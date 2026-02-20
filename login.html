@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedAgent Hub - 登录</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #FFF9F5 0%, #FFE8D9 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(255,107,107,0.15);
+    }
+    .logo { font-size: 2rem; text-align: center; margin-bottom: 0.5rem; }
+    h1 { text-align: center; font-size: 1.5rem; color: #1F2937; margin-bottom: 0.25rem; }
+    .subtitle { text-align: center; color: #6B7280; font-size: 0.875rem; margin-bottom: 2rem; }
+    label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem; }
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid #FFE8D9;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: #FF6B6B; }
+    button {
+      width: 100%;
+      padding: 0.875rem;
+      background: linear-gradient(135deg, #FF6B6B, #FF922B);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1.25rem;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error { color: #DC2626; font-size: 0.875rem; margin-top: 0.75rem; text-align: center; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🏥</div>
+    <h1>MedAgent Hub</h1>
+    <p class="subtitle">医美行业AI助手团队</p>
+    <label for="code">邀请码</label>
+    <input type="password" id="code" placeholder="请输入邀请码" autocomplete="off">
+    <button id="btn" onclick="login()">进入</button>
+    <p class="error" id="err"></p>
+  </div>
+  <script>
+    document.getElementById('code').addEventListener('keydown', e => {
+      if (e.key === 'Enter') login();
+    });
+    async function login() {
+      const code = document.getElementById('code').value.trim();
+      const btn = document.getElementById('btn');
+      const err = document.getElementById('err');
+      if (!code) return;
+      btn.disabled = true;
+      btn.textContent = '验证中...';
+      err.style.display = 'none';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          window.location.href = '/index.html';
+        } else {
+          err.textContent = data.error || '邀请码无效';
+          err.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = '进入';
+        }
+      } catch {
+        err.textContent = '连接失败，请重试';
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '进入';
+      }
+    }
+  </script>
+</body>
+</html>

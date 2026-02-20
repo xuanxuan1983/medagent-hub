@@ -497,10 +497,10 @@
     <section class="hero">
         <div class="hero-content">
             <div class="hero-badge">
-                ✨ 医疗级安全合规 · 16个精品Agent · 全链路覆盖
+                ✨ 医疗级安全合规 · 21个精品Agent · 全链路覆盖
             </div>
             <h1>医美行业智能助手平台</h1>
-            <p class="hero-subtitle">覆盖上游厂商到下游机构的全链路业务场景<br>从战略制定到销售转化，从医疗安全到客户留存，16个精品Agent为您提供专业级智能服务</p>
+            <p class="hero-subtitle">覆盖上游厂商到下游机构的全链路业务场景<br>从战略制定到销售转化，从医疗安全到客户留存，21个精品Agent为您提供专业级智能服务</p>
             <div class="hero-cta">
                 <button class="btn btn-primary btn-hero">免费开始使用 →</button>
                 <button class="btn btn-secondary btn-hero">查看演示</button>
@@ -532,7 +532,7 @@
 
             <div class="category-tabs">
                 <button class="category-tab active" onclick="filterCategory('all')">
-                    全部助手 (16)
+                    全部助手 (21)
                 </button>
                 <button class="category-tab" onclick="filterCategory('upstream')">
                     🏭 上游厂商 (7)
@@ -621,6 +621,61 @@
                     <button class="btn-launch" onclick="launchAgent('training-director')">立即使用</button>
                 </div>
 
+                <div class="agent-card" data-category="upstream">
+                    <div class="agent-icon">🗺️</div>
+                    <h3 class="agent-name">大区经理</h3>
+                    <p class="agent-desc">Forecast分级测谎、进销存逻辑闭环、情境模拟辅导、填坑战术拆解</p>
+                    <div class="agent-meta">
+                        <span class="agent-category">销售部</span>
+                        <span class="agent-usage">本周0次</span>
+                    </div>
+                    <button class="btn-launch" onclick="launchAgent('area-manager')">立即使用</button>
+                </div>
+
+                <div class="agent-card" data-category="upstream">
+                    <div class="agent-icon">🤝</div>
+                    <h3 class="agent-name">商务经理</h3>
+                    <p class="agent-desc">ROI利润精算、反向背调、窜货雷霆管控、库存博弈</p>
+                    <div class="agent-meta">
+                        <span class="agent-category">销售部</span>
+                        <span class="agent-usage">本周0次</span>
+                    </div>
+                    <button class="btn-launch" onclick="launchAgent('channel-manager')">立即使用</button>
+                </div>
+
+                <div class="agent-card" data-category="upstream">
+                    <div class="agent-icon">💰</div>
+                    <h3 class="agent-name">财务BP</h3>
+                    <p class="agent-desc">税务合规与交易结构优化，货折替代票折保护利润，AR挂钩机制</p>
+                    <div class="agent-meta">
+                        <span class="agent-category">财务部</span>
+                        <span class="agent-usage">本周0次</span>
+                    </div>
+                    <button class="btn-launch" onclick="launchAgent('finance-bp')">立即使用</button>
+                </div>
+
+                <div class="agent-card" data-category="upstream">
+                    <div class="agent-icon">🎯</div>
+                    <h3 class="agent-name">战略HRBP</h3>
+                    <p class="agent-desc">精准猎聘竞品人才，背调侦查与竞业攻防，人才九宫格优化组织效能</p>
+                    <div class="agent-meta">
+                        <span class="agent-category">人力资源部</span>
+                        <span class="agent-usage">本周0次</span>
+                    </div>
+                    <button class="btn-launch" onclick="launchAgent('hrbp')">立即使用</button>
+                </div>
+
+                <div class="agent-card" data-category="upstream">
+                    <div class="agent-icon">📦</div>
+                    <h3 class="agent-name">采购经理</h3>
+                    <p class="agent-desc">精通GMP规范与供应链博弈，Kraljic矩阵与Should-Cost模型优化TCO</p>
+                    <div class="agent-meta">
+                        <span class="agent-category">采购部</span>
+                        <span class="agent-usage">本周0次</span>
+                    </div>
+                    <button class="btn-launch" onclick="launchAgent('procurement-manager')">立即使用</button>
+                </div>
+
                 <!-- Downstream Agents -->
                 <div class="agent-card" data-category="downstream">
                     <div class="agent-icon">💎</div>
@@ -668,8 +723,8 @@
 
                 <div class="agent-card" data-category="downstream">
                     <div class="agent-icon">🔥</div>
-                    <h3 class="agent-name">医美爆款种草官</h3>
-                    <p class="agent-desc">小红书算法与医美合规风控的内容炼金术师</p>
+                    <h3 class="agent-name">医美合规种草官</h3>
+                    <p class="agent-desc">三品一规合规专家，生成既有传播力又不踩红线的医美内容</p>
                     <div class="agent-meta">
                         <span class="agent-category">运营部</span>
                         <span class="agent-usage">本周145次</span>
@@ -746,9 +801,7 @@
 
         // Launch agent
         function launchAgent(agentId) {
-            console.log('Launching agent:', agentId);
-            // Add your launch logic here
-            alert(`启动 Agent: ${agentId}`);
+            window.location.href = `chat.html?agent=${agentId}`;
         }
 
         // Add scroll animation
