@@ -377,6 +377,7 @@ const server = http.createServer(async (req, res) => {
         messages: []
       });
 
+      console.log(`[USAGE] ${new Date().toISOString()} agent=${agentId}`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         sessionId,
