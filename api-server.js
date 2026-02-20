@@ -5,7 +5,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 const INVITE_CODES = (process.env.INVITE_CODES || 'medagent2026').split(',').map(c => c.trim());
 const COOKIE_NAME = 'medagent_auth';

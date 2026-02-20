@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "start": "node api-server.js"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0"
   }
