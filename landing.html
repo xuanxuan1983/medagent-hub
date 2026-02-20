@@ -605,8 +605,60 @@
   <section class="cta-section">
     <h2>准备好了吗？</h2>
     <p>私信获取邀请码，免费体验 21 个医美 AI 助手</p>
-    <a href="/index.html" class="btn-white wobbly">立即进入 →</a>
+    <button onclick="wakeAndGo()" class="btn-white wobbly" id="cta-btn">立即进入 →</button>
   </section>
+
+  <!-- Wake-up overlay -->
+  <div id="wake-overlay" style="display:none; position:fixed; inset:0; background:rgba(45,45,45,0.85); z-index:9999; display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px;">
+    <div style="font-family:'Kalam',cursive; font-size:28px; color:#fdfbf7; text-align:center;">
+      ☕ 正在唤醒服务器…
+    </div>
+    <div style="font-family:'Patrick Hand',cursive; font-size:16px; color:#e5e0d8; text-align:center;">
+      免费服务器休眠中，通常需要 30-60 秒<br>请稍候，马上就好
+    </div>
+    <div id="wake-dots" style="font-size:24px; color:#ff4d4d; letter-spacing:8px;">●○○</div>
+  </div>
+
+  <script>
+    async function wakeAndGo() {
+      const overlay = document.getElementById('wake-overlay');
+      const btn = document.getElementById('cta-btn');
+      const dots = document.getElementById('wake-dots');
+      const dotFrames = ['●○○','○●○','○○●'];
+      let frame = 0;
+
+      // Check if server is already awake
+      try {
+        const res = await fetch('/health', { signal: AbortSignal.timeout(3000) });
+        if (res.ok) { window.location.href = '/index.html'; return; }
+      } catch {}
+
+      // Show overlay and start polling
+      overlay.style.display = 'flex';
+      btn.disabled = true;
+
+      const dotTimer = setInterval(() => {
+        dots.textContent = dotFrames[frame++ % 3];
+      }, 500);
+
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const res = await fetch('/health', { signal: AbortSignal.timeout(3000) });
+          if (res.ok) {
+            clearInterval(dotTimer);
+            window.location.href = '/index.html';
+            return;
+          }
+        } catch {}
+      }
+
+      // Timeout after 80s
+      clearInterval(dotTimer);
+      dots.textContent = '⚠️';
+      overlay.querySelector('div').textContent = '服务器响应超时，请刷新重试';
+    }
+  </script>
 
   <!-- FOOTER -->
   <footer>
