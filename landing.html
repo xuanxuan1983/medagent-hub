@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedAgent Hub — 医美行业AI助手</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fdfbf7;
+      --fg: #2d2d2d;
+      --soft: #e5e0d8;
+      --accent: #ff4d4d;
+      --border: #2d2d2d;
+      --blue: #2d5da1;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      background-image: radial-gradient(var(--soft) 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--fg);
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    /* Wobbly border helpers */
+    .wobbly { border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; }
+    .wobbly-md { border-radius: 15px 255px 15px 225px / 225px 15px 255px 15px; }
+    .wobbly-sm { border-radius: 8px 32px 8px 32px / 32px 8px 32px 8px; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 48px;
+      border-bottom: 3px solid var(--border);
+      background: var(--white);
+      box-shadow: 0 4px 0px 0px var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-family: 'Kalam', cursive;
+      font-size: 24px;
+      font-weight: 700;
+      transform: rotate(-1deg);
+      display: inline-block;
+    }
+
+    .nav-logo span { color: var(--accent); }
+
+    .nav-cta {
+      font-family: 'Patrick Hand', cursive;
+      font-size: 16px;
+      padding: 10px 24px;
+      background: var(--white);
+      border: 3px solid var(--border);
+      cursor: pointer;
+      box-shadow: 4px 4px 0px 0px var(--border);
+      transition: all 0.15s ease;
+      text-decoration: none;
+      color: var(--fg);
+    }
+
+    .nav-cta:hover {
+      background: var(--accent);
+      color: var(--white);
+      box-shadow: 2px 2px 0px 0px var(--border);
+      transform: translate(-2px, -2px);
+    }
+
+    .nav-cta:active {
+      box-shadow: none;
+      transform: translate(-4px, -4px);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 900px;
+      margin: 80px auto;
+      padding: 0 24px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--soft);
+      border: 2px solid var(--border);
+      padding: 6px 18px;
+      font-size: 14px;
+      margin-bottom: 24px;
+      transform: rotate(-1.5deg);
+      box-shadow: 3px 3px 0px 0px var(--border);
+    }
+
+    .hero h1 {
+      font-family: 'Kalam', cursive;
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 .highlight {
+      color: var(--accent);
+      display: inline-block;
+      transform: rotate(-1deg);
+    }
+
+    .hero p {
+      font-size: 20px;
+      color: #555;
+      max-width: 600px;
+      margin: 0 auto 40px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      padding: 14px 36px;
+      background: var(--accent);
+      color: var(--white);
+      border: 3px solid var(--border);
+      cursor: pointer;
+      box-shadow: 5px 5px 0px 0px var(--border);
+      transition: all 0.15s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 3px 3px 0px 0px var(--border);
+      transform: translate(-2px, -2px);
+    }
+
+    .btn-primary:active {
+      box-shadow: none;
+      transform: translate(-5px, -5px);
+    }
+
+    .btn-secondary {
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      padding: 14px 36px;
+      background: var(--white);
+      color: var(--fg);
+      border: 3px solid var(--border);
+      cursor: pointer;
+      box-shadow: 5px 5px 0px 0px var(--border);
+      transition: all 0.15s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-secondary:hover {
+      background: var(--soft);
+      box-shadow: 3px 3px 0px 0px var(--border);
+      transform: translate(-2px, -2px);
+    }
+
+    /* ── STATS ── */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      margin: 64px auto;
+      max-width: 800px;
+      padding: 0 24px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border: 3px solid var(--border);
+      padding: 24px 32px;
+      text-align: center;
+      box-shadow: 5px 5px 0px 0px var(--border);
+      min-width: 160px;
+      animation: bounce 3s ease-in-out infinite;
+    }
+
+    .stat-card:nth-child(2) { animation-delay: 0.5s; transform: rotate(1deg); }
+    .stat-card:nth-child(3) { animation-delay: 1s; transform: rotate(-0.5deg); }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+      50% { transform: translateY(-6px) rotate(var(--r, 0deg)); }
+    }
+
+    .stat-number {
+      font-family: 'Kalam', cursive;
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 15px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-family: 'Kalam', cursive;
+      font-size: 36px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 48px;
+      position: relative;
+      display: inline-block;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--accent);
+      transform: rotate(-1deg);
+    }
+
+    .section-center { text-align: center; }
+
+    /* ── AGENTS GRID ── */
+    .agents-section {
+      max-width: 1100px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+    }
+
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .agent-card {
+      background: var(--white);
+      border: 2px solid var(--border);
+      padding: 20px;
+      box-shadow: 3px 3px 0px 0px rgba(45,45,45,0.1);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-2deg);
+      width: 40px;
+      height: 8px;
+      background: rgba(45,45,45,0.15);
+    }
+
+    .agent-card:hover {
+      box-shadow: 6px 6px 0px 0px var(--border);
+      transform: translate(-3px, -3px);
+    }
+
+    .agent-icon { font-size: 32px; margin-bottom: 8px; }
+
+    .agent-name {
+      font-family: 'Kalam', cursive;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .agent-desc { font-size: 13px; color: #666; }
+
+    .agent-tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      margin-top: 8px;
+      border: 1.5px solid var(--border);
+    }
+
+    .tag-upstream { background: #e8f0fe; }
+    .tag-downstream { background: #fce8e8; }
+
+    /* ── HOW IT WORKS ── */
+    .how-section {
+      background: var(--soft);
+      border-top: 3px solid var(--border);
+      border-bottom: 3px solid var(--border);
+      padding: 64px 24px;
+      margin-bottom: 80px;
+    }
+
+    .steps {
+      display: flex;
+      gap: 32px;
+      max-width: 900px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .step {
+      background: var(--white);
+      border: 2px solid var(--border);
+      padding: 28px 24px;
+      flex: 1;
+      min-width: 220px;
+      max-width: 260px;
+      box-shadow: 4px 4px 0px 0px var(--border);
+      position: relative;
+    }
+
+    .step-num {
+      font-family: 'Kalam', cursive;
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .step h3 {
+      font-family: 'Kalam', cursive;
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .step p { font-size: 15px; color: #555; }
+
+    /* ── QUOTE ── */
+    .quote-section {
+      max-width: 700px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+      text-align: center;
+    }
+
+    .quote-card {
+      background: var(--white);
+      border: 3px solid var(--border);
+      padding: 40px;
+      box-shadow: 6px 6px 0px 0px var(--border);
+      transform: rotate(-0.5deg);
+      position: relative;
+    }
+
+    .quote-card::before {
+      content: '"';
+      font-family: 'Kalam', cursive;
+      font-size: 80px;
+      color: var(--accent);
+      position: absolute;
+      top: -20px;
+      left: 20px;
+      line-height: 1;
+    }
+
+    .quote-text {
+      font-family: 'Kalam', cursive;
+      font-size: 22px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .quote-author { font-size: 15px; color: #666; }
+
+    /* ── CTA SECTION ── */
+    .cta-section {
+      background: var(--fg);
+      color: var(--white);
+      padding: 64px 24px;
+      text-align: center;
+      border-top: 3px solid var(--border);
+    }
+
+    .cta-section h2 {
+      font-family: 'Kalam', cursive;
+      font-size: 40px;
+      margin-bottom: 16px;
+    }
+
+    .cta-section p { font-size: 18px; color: #ccc; margin-bottom: 32px; }
+
+    .btn-white {
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      padding: 14px 40px;
+      background: var(--white);
+      color: var(--fg);
+      border: 3px solid var(--white);
+      cursor: pointer;
+      box-shadow: 5px 5px 0px 0px var(--accent);
+      transition: all 0.15s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-white:hover {
+      box-shadow: 3px 3px 0px 0px var(--accent);
+      transform: translate(-2px, -2px);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 32px 48px;
+      border-top: 2px solid var(--soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 14px;
+      color: #888;
+    }
+
+    .footer-logo {
+      font-family: 'Kalam', cursive;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--fg);
+    }
+
+    .footer-logo span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">MedAgent<span>Hub</span></div>
+    <a href="/index.html" class="nav-cta wobbly-sm">进入助手 →</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge wobbly-sm">🎉 正式上线 · 免费体验</div>
+    <h1>
+      把<span class="highlight">16年</span>医美经验<br>
+      装进 21 个 AI 助手
+    </h1>
+    <p>覆盖医美机构全链路——从上游材料到下游咨询，每一个助手都是行业专才，不是通用 AI。</p>
+    <div class="hero-actions">
+      <a href="/index.html" class="btn-primary wobbly">立即体验</a>
+      <a href="#agents" class="btn-secondary wobbly">查看所有助手</a>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-card wobbly" style="--r: -1deg">
+      <div class="stat-number">21</div>
+      <div class="stat-label">专属 AI 助手</div>
+    </div>
+    <div class="stat-card wobbly-md" style="--r: 1deg">
+      <div class="stat-number">16年</div>
+      <div class="stat-label">行业实战经验</div>
+    </div>
+    <div class="stat-card wobbly" style="--r: -0.5deg">
+      <div class="stat-number">55%</div>
+      <div class="stat-label">AI 推荐客户占比</div>
+    </div>
+  </div>
+
+  <!-- AGENTS -->
+  <section class="agents-section" id="agents">
+    <div class="section-center">
+      <span class="section-title">21 个专属助手</span>
+    </div>
+    <br><br>
+
+    <p style="text-align:center; color:#888; margin-bottom:32px; font-size:15px">
+      ▲ 上游 12 个 · 下游 9 个 ▼
+    </p>
+
+    <div class="agents-grid">
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">🧬</div>
+        <div class="agent-name">解剖学专家</div>
+        <div class="agent-desc">面部解剖结构精准解读</div>
+        <span class="agent-tag tag-upstream">上游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">🔬</div>
+        <div class="agent-name">材料科学顾问</div>
+        <div class="agent-desc">胶原蛋白·玻尿酸·肉毒素</div>
+        <span class="agent-tag tag-upstream">上游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">📊</div>
+        <div class="agent-name">GTM策略大师</div>
+        <div class="agent-desc">新产品上市全链路策略</div>
+        <span class="agent-tag tag-upstream">上游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">🎨</div>
+        <div class="agent-name">视觉翻译官</div>
+        <div class="agent-desc">医美视觉内容创作指导</div>
+        <span class="agent-tag tag-upstream">上游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">🏗️</div>
+        <div class="agent-name">材料架构师</div>
+        <div class="agent-desc">产品组合与定价策略</div>
+        <span class="agent-tag tag-upstream">上游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">🎓</div>
+        <div class="agent-name">学术联络官</div>
+        <div class="agent-desc">学术推广与KOL合作</div>
+        <span class="agent-tag tag-upstream">上游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">🥇</div>
+        <div class="agent-name">金牌咨询师</div>
+        <div class="agent-desc">SPIN提问·三明治报价</div>
+        <span class="agent-tag tag-downstream">下游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">📝</div>
+        <div class="agent-name">合规内容专家</div>
+        <div class="agent-desc">三品一规·合规种草</div>
+        <span class="agent-tag tag-downstream">下游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">🥊</div>
+        <div class="agent-name">实战陪练机器人</div>
+        <div class="agent-desc">HP情绪系统·高压训练</div>
+        <span class="agent-tag tag-downstream">下游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">📈</div>
+        <div class="agent-name">运营总监</div>
+        <div class="agent-desc">门店运营·数据分析</div>
+        <span class="agent-tag tag-downstream">下游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">💼</div>
+        <div class="agent-name">销售总监</div>
+        <div class="agent-desc">团队管理·业绩提升</div>
+        <span class="agent-tag tag-downstream">下游</span>
+      </div>
+      <div class="agent-card wobbly-sm">
+        <div class="agent-icon">🛡️</div>
+        <div class="agent-name">术后守护者</div>
+        <div class="agent-desc">术后管理·复诊提醒</div>
+        <span class="agent-tag tag-downstream">下游</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section">
+    <div class="section-center">
+      <span class="section-title">怎么用</span>
+    </div>
+    <br><br>
+    <div class="steps">
+      <div class="step wobbly-sm">
+        <div class="step-num">01</div>
+        <h3>选择助手</h3>
+        <p>从 21 个专属助手中选择你需要的角色</p>
+      </div>
+      <div class="step wobbly-sm">
+        <div class="step-num">02</div>
+        <h3>描述场景</h3>
+        <p>告诉助手你的具体问题或需求</p>
+      </div>
+      <div class="step wobbly-sm">
+        <div class="step-num">03</div>
+        <h3>获得专业回答</h3>
+        <p>基于 16 年行业经验的专业建议</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTE -->
+  <section class="quote-section">
+    <div class="quote-card wobbly">
+      <p class="quote-text">做完这件事，我有一种奇怪的感觉——像是把自己的大脑备份了一份。</p>
+      <p class="quote-author">— 陈萱宜，医美增长架构师 · 斐缦（长春）前董事长总经理</p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2>准备好了吗？</h2>
+    <p>私信获取邀请码，免费体验 21 个医美 AI 助手</p>
+    <a href="/index.html" class="btn-white wobbly">立即进入 →</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">MedAgent<span>Hub</span></div>
+    <div>微信：xuanyi9747 · 医美增长架构师 陈萱宜</div>
+    <div>© 2026 MedAgent Hub</div>
+  </footer>
+
+</body>
+</html>
