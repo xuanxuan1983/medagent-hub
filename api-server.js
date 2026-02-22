@@ -425,6 +425,15 @@ const server = http.createServer(async (req, res) => {
         content: response.message
       });
 
+      // Log conversation turn for future fine-tuning
+      const logEntry = JSON.stringify({
+        ts: new Date().toISOString(),
+        agent: session.agentId,
+        user: message,
+        assistant: response.message
+      });
+      fs.appendFile(path.join(__dirname, 'conversations.jsonl'), logEntry + '\n', () => {});
+
       console.log(`🤖 [${session.agentName}] Response: ${response.message.substring(0, 50)}...`);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
