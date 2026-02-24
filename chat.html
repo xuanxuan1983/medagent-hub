@@ -203,6 +203,27 @@
             text-align: right;
         }
 
+        .message-feedback {
+            display: flex;
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+        }
+
+        .feedback-btn {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #94A3B8;
+            transition: all 0.15s;
+        }
+
+        .feedback-btn:hover { background: #F1F5F9; color: #475569; }
+        .feedback-btn.active-up { background: rgba(16,185,129,0.1); border-color: #10B981; color: #10B981; }
+        .feedback-btn.active-down { background: rgba(239,68,68,0.1); border-color: #EF4444; color: #EF4444; }
+
         .message.user .message-time {
             text-align: left;
             color: rgba(255,255,255,0.7);
@@ -375,6 +396,7 @@
         const API_BASE = '';
         let sessionId = null;
         let agentId = null;
+        let messageIndex = 0;
 
         // Get agent ID from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -523,6 +545,14 @@
             } else {
                 messageDiv.appendChild(avatar);
                 messageDiv.appendChild(contentDiv);
+                // Add feedback buttons for assistant messages
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.className = 'message-feedback';
+                const idx = messageIndex++;
+                feedbackDiv.innerHTML = `
+                    <button class="feedback-btn" onclick="submitFeedback(this, ${idx}, 'up')">👍</button>
+                    <button class="feedback-btn" onclick="submitFeedback(this, ${idx}, 'down')">👎</button>`;
+                contentDiv.appendChild(feedbackDiv);
             }
 
             messagesContainer.appendChild(messageDiv);
@@ -554,6 +584,20 @@
         function hideTyping() {
             const typing = document.getElementById('typingIndicator');
             if (typing) typing.remove();
+        }
+
+        // Submit feedback
+        async function submitFeedback(btn, idx, value) {
+            const parent = btn.parentElement;
+            parent.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('active-up', 'active-down'));
+            btn.classList.add(value === 'up' ? 'active-up' : 'active-down');
+            try {
+                await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId, messageIndex: idx, feedback: value })
+                });
+            } catch {}
         }
 
         // Show error

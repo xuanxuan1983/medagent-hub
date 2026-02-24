@@ -6,10 +6,27 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3002;
-
-const INVITE_CODES = (process.env.INVITE_CODES || 'medagent2026').split(',').map(c => c.trim());
+const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
 const COOKIE_NAME = 'medagent_auth';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
+
+// Data directory: use DATA_DIR env var for persistent storage (e.g. Railway volumes)
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const CODES_FILE = path.join(DATA_DIR, 'invite-codes.json');
+
+function loadCodes() {
+  try {
+    if (fs.existsSync(CODES_FILE)) return JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
+  } catch {}
+  // Default seed
+  const defaults = { 'medagent2026': '默认用户' };
+  fs.writeFileSync(CODES_FILE, JSON.stringify(defaults, null, 2));
+  return defaults;
+}
+
+function saveCodes(map) {
+  fs.writeFileSync(CODES_FILE, JSON.stringify(map, null, 2));
+}
 
 function parseCookies(req) {
   const raw = req.headers.cookie || '';
@@ -18,7 +35,19 @@ function parseCookies(req) {
 
 function isAuthenticated(req) {
   const cookies = parseCookies(req);
-  return INVITE_CODES.includes(cookies[COOKIE_NAME]);
+  const codes = loadCodes();
+  return cookies[COOKIE_NAME] in codes;
+}
+
+function getUserName(req) {
+  const cookies = parseCookies(req);
+  const codes = loadCodes();
+  return codes[cookies[COOKIE_NAME]] || '未知用户';
+}
+
+function isAdmin(req) {
+  const cookies = parseCookies(req);
+  return cookies[COOKIE_NAME] === ADMIN_CODE;
 }
 
 // AI Provider configuration
@@ -213,7 +242,8 @@ class DeepSeekProvider {
       body: JSON.stringify({
         model: 'deepseek-chat',
         messages: formattedMessages,
-        temperature: 0.7
+        temperature: 0.7,
+        max_tokens: 800
       })
     });
 
@@ -328,10 +358,11 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/auth/login' && req.method === 'POST') {
     try {
       const { code } = await parseRequestBody(req);
-      if (INVITE_CODES.includes(code)) {
+      const codes = loadCodes();
+      if (code in codes || code === ADMIN_CODE) {
         res.setHeader('Set-Cookie', `${COOKIE_NAME}=${encodeURIComponent(code)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
+        res.end(JSON.stringify({ ok: true, isAdmin: code === ADMIN_CODE }));
       } else {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: '邀请码无效' }));
@@ -373,6 +404,7 @@ const server = http.createServer(async (req, res) => {
       sessions.set(sessionId, {
         agentId,
         agentName: agentNames[agentId],
+        userName: getUserName(req),
         systemPrompt,
         messages: []
       });
@@ -429,10 +461,13 @@ const server = http.createServer(async (req, res) => {
       const logEntry = JSON.stringify({
         ts: new Date().toISOString(),
         agent: session.agentId,
+        user_name: session.userName,
         user: message,
-        assistant: response.message
+        assistant: response.message,
+        feedback: null
       });
-      fs.appendFile(path.join(__dirname, 'conversations.jsonl'), logEntry + '\n', () => {});
+      const logLine = logEntry + '\n';
+      fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logLine, () => {});
 
       console.log(`🤖 [${session.agentName}] Response: ${response.message.substring(0, 50)}...`);
 
@@ -471,6 +506,160 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Submit feedback (thumbs up/down)
+  if (url.pathname === '/api/feedback' && req.method === 'POST') {
+    try {
+      if (!isAuthenticated(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+      const { sessionId, messageIndex, feedback } = await parseRequestBody(req);
+      if (!['up', 'down'].includes(feedback)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid feedback value' }));
+        return;
+      }
+      const session = sessions.get(sessionId);
+      const agentId = session ? session.agentId : 'unknown';
+      const userName = session ? session.userName : getUserName(req);
+      const feedbackEntry = JSON.stringify({
+        ts: new Date().toISOString(),
+        type: 'feedback',
+        agent: agentId,
+        user_name: userName,
+        message_index: messageIndex,
+        feedback
+      });
+      fs.appendFile(path.join(__dirname, 'conversations.jsonl'), feedbackEntry + '\n', () => {});
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
+  }
+
+  // Admin: list users
+  if (url.pathname === '/api/admin/users' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const users = Object.entries(loadCodes()).map(([code, name]) => ({ code, name }));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(users));
+    return;
+  }
+
+  // Admin: create invite code
+  if (url.pathname === '/api/admin/codes' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const { name } = await parseRequestBody(req);
+      if (!name || !name.trim()) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请填写用户名' }));
+        return;
+      }
+      const code = 'ma' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      const codes = loadCodes();
+      codes[code] = name.trim();
+      saveCodes(codes);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ code, name: name.trim() }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: delete invite code
+  if (url.pathname.startsWith('/api/admin/codes/') && req.method === 'DELETE') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const code = decodeURIComponent(url.pathname.replace('/api/admin/codes/', ''));
+    const codes = loadCodes();
+    if (!(code in codes)) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '邀请码不存在' }));
+      return;
+    }
+    delete codes[code];
+    saveCodes(codes);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  // Admin: get stats from conversations.jsonl
+  if (url.pathname === '/api/admin/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+      const lines = fs.existsSync(logPath)
+        ? fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean)
+        : [];
+      const agentCounts = {};
+      const userCounts = {};
+      const feedbackCounts = { up: 0, down: 0 };
+      const recentConvs = [];
+      lines.forEach(line => {
+        try {
+          const entry = JSON.parse(line);
+          if (entry.type === 'feedback') {
+            feedbackCounts[entry.feedback] = (feedbackCounts[entry.feedback] || 0) + 1;
+          } else {
+            agentCounts[entry.agent] = (agentCounts[entry.agent] || 0) + 1;
+            userCounts[entry.user_name || '未知'] = (userCounts[entry.user_name || '未知'] || 0) + 1;
+            if (recentConvs.length < 50) recentConvs.push(entry);
+          }
+        } catch {}
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ agentCounts, userCounts, feedbackCounts, totalTurns: lines.length, recentConvs }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: download conversations.jsonl
+  if (url.pathname === '/api/admin/export' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const logPath = path.join(__dirname, 'conversations.jsonl');
+    if (!fs.existsSync(logPath)) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'No data yet' }));
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/x-ndjson',
+      'Content-Disposition': `attachment; filename="conversations-${new Date().toISOString().slice(0,10)}.jsonl"`
+    });
+    fs.createReadStream(logPath).pipe(res);
+    return;
+  }
+
   // Serve static files
   const staticDir = path.join(__dirname);
   let filePath = path.join(staticDir, url.pathname === '/' ? 'index.html' : url.pathname);
@@ -478,7 +667,13 @@ const server = http.createServer(async (req, res) => {
   const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
   const contentType = mimeTypes[ext] || 'text/plain';
   const protectedPages = ['index.html', 'chat.html'];
+  const adminPages = ['admin.html'];
   const requestedFile = path.basename(filePath);
+  if (adminPages.includes(requestedFile) && !isAdmin(req)) {
+    res.writeHead(302, { Location: '/login.html' });
+    res.end();
+    return;
+  }
   if (protectedPages.includes(requestedFile) && !isAuthenticated(req)) {
     res.writeHead(302, { Location: '/login.html' });
     res.end();

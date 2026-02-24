@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedAgent 数据看板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; background: #0F172A; color: #E2E8F0; min-height: 100vh; }
+        .header { background: #1E293B; border-bottom: 1px solid #334155; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+        .header h1 { font-size: 1.25rem; font-weight: 700; color: #F8FAFC; }
+        .header-actions { display: flex; gap: 0.75rem; }
+        .btn { padding: 0.5rem 1rem; border-radius: 8px; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; }
+        .btn-primary { background: #3B82F6; color: white; }
+        .btn-primary:hover { background: #2563EB; }
+        .btn-outline { background: transparent; color: #94A3B8; border: 1px solid #334155; }
+        .btn-outline:hover { background: #1E293B; color: #E2E8F0; }
+        .main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 1.25rem; }
+        .stat-label { font-size: 0.8rem; color: #64748B; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #F8FAFC; }
+        .stat-sub { font-size: 0.8rem; color: #64748B; margin-top: 0.25rem; }
+        .section { background: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .section-title { font-size: 1rem; font-weight: 600; color: #F8FAFC; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .bar-chart { display: flex; flex-direction: column; gap: 0.625rem; }
+        .bar-row { display: flex; align-items: center; gap: 0.75rem; }
+        .bar-label { width: 160px; font-size: 0.8rem; color: #94A3B8; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bar-track { flex: 1; background: #0F172A; border-radius: 4px; height: 20px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #3B82F6, #60A5FA); transition: width 0.5s ease; }
+        .bar-count { width: 40px; font-size: 0.8rem; color: #64748B; text-align: right; flex-shrink: 0; }
+        .feedback-row { display: flex; gap: 1.5rem; }
+        .feedback-item { display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; }
+        .feedback-num { font-size: 1.5rem; font-weight: 700; }
+        .conv-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .conv-table th { text-align: left; padding: 0.625rem 0.75rem; color: #64748B; border-bottom: 1px solid #334155; font-weight: 500; }
+        .conv-table td { padding: 0.625rem 0.75rem; border-bottom: 1px solid #1E293B; color: #CBD5E1; vertical-align: top; }
+        .conv-table tr:hover td { background: #0F172A; }
+        .tag { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 100px; font-size: 0.7rem; font-weight: 600; }
+        .tag-up { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        .tag-down { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        .tag-agent { background: rgba(59, 130, 246, 0.15); color: #60A5FA; }
+        .truncate { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .loading { text-align: center; padding: 3rem; color: #64748B; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } .bar-label { width: 100px; } }
+        /* Invite code management */
+        .code-form { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+        .code-input { flex: 1; padding: 0.5rem 0.875rem; background: #0F172A; border: 1px solid #334155; border-radius: 8px; color: #E2E8F0; font-size: 0.875rem; outline: none; }
+        .code-input:focus { border-color: #3B82F6; }
+        .code-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .code-table th { text-align: left; padding: 0.5rem 0.75rem; color: #64748B; border-bottom: 1px solid #334155; font-weight: 500; }
+        .code-table td { padding: 0.625rem 0.75rem; border-bottom: 1px solid #1E293B; }
+        .code-cell { font-family: monospace; color: #60A5FA; background: rgba(59,130,246,0.1); padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; user-select: all; }
+        .code-cell:hover { background: rgba(59,130,246,0.2); }
+        .btn-copy { padding: 0.25rem 0.625rem; background: transparent; border: 1px solid #334155; border-radius: 6px; color: #94A3B8; cursor: pointer; font-size: 0.75rem; }
+        .btn-copy:hover { background: #1E293B; color: #E2E8F0; }
+        .btn-del { padding: 0.25rem 0.625rem; background: transparent; border: 1px solid #334155; border-radius: 6px; color: #EF4444; cursor: pointer; font-size: 0.75rem; }
+        .btn-del:hover { background: rgba(239,68,68,0.1); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 MedAgent 数据看板</h1>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="loadData()">刷新</button>
+            <button class="btn btn-primary" onclick="exportData()">导出 JSONL</button>
+        </div>
+    </div>
+    <div class="main">
+        <div id="content"><div class="loading">加载中...</div></div>
+        <div class="section" style="margin-top:1.5rem">
+            <div class="section-title">🔑 邀请码管理</div>
+            <div class="code-form">
+                <input class="code-input" id="newUserName" placeholder="输入客户姓名，如：李院长" maxlength="20">
+                <button class="btn btn-primary" onclick="createCode()">生成邀请码</button>
+            </div>
+            <div id="codesTable"><div style="color:#64748B;font-size:0.875rem">加载中...</div></div>
+        </div>
+    </div>
+    <script>
+        async function loadData() {
+            try {
+                const res = await fetch('/api/admin/stats');
+                if (!res.ok) { document.getElementById('content').innerHTML = '<div class="loading">无权限或服务器错误</div>'; return; }
+                const data = await res.json();
+                render(data);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">无法连接服务器</div>';
+            }
+        }
+
+        function render(data) {
+            const { agentCounts, userCounts, feedbackCounts, totalTurns, recentConvs } = data;
+            const totalConvs = Object.values(agentCounts).reduce((a, b) => a + b, 0);
+            const totalUsers = Object.keys(userCounts).length;
+            const topAgent = Object.entries(agentCounts).sort((a,b) => b[1]-a[1])[0];
+
+            const agentMax = Math.max(...Object.values(agentCounts), 1);
+            const userMax = Math.max(...Object.values(userCounts), 1);
+
+            const agentBars = Object.entries(agentCounts)
+                .sort((a,b) => b[1]-a[1])
+                .map(([agent, count]) => `
+                    <div class="bar-row">
+                        <div class="bar-label" title="${agent}">${agent}</div>
+                        <div class="bar-track"><div class="bar-fill" style="width:${(count/agentMax*100).toFixed(1)}%"></div></div>
+                        <div class="bar-count">${count}</div>
+                    </div>`).join('');
+
+            const userBars = Object.entries(userCounts)
+                .sort((a,b) => b[1]-a[1])
+                .map(([user, count]) => `
+                    <div class="bar-row">
+                        <div class="bar-label" title="${user}">${user}</div>
+                        <div class="bar-track"><div class="bar-fill" style="width:${(count/userMax*100).toFixed(1)}%;background:linear-gradient(90deg,#059669,#10B981)"></div></div>
+                        <div class="bar-count">${count}</div>
+                    </div>`).join('');
+
+            const convRows = recentConvs.slice().reverse().map(c => `
+                <tr>
+                    <td style="color:#64748B;white-space:nowrap">${c.ts ? c.ts.replace('T',' ').slice(0,16) : '-'}</td>
+                    <td><span class="tag tag-agent">${c.agent || '-'}</span></td>
+                    <td style="color:#94A3B8">${c.user_name || '-'}</td>
+                    <td class="truncate">${escHtml(c.user || '')}</td>
+                    <td class="truncate">${escHtml(c.assistant || '')}</td>
+                </tr>`).join('');
+
+            document.getElementById('content').innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">总对话轮次</div>
+                        <div class="stat-value">${totalConvs}</div>
+                        <div class="stat-sub">含反馈记录共 ${totalTurns} 条</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">活跃用户数</div>
+                        <div class="stat-value">${totalUsers}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">最热 Agent</div>
+                        <div class="stat-value" style="font-size:1.25rem">${topAgent ? topAgent[0] : '-'}</div>
+                        <div class="stat-sub">${topAgent ? topAgent[1] + ' 次' : ''}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">用户反馈</div>
+                        <div class="feedback-row" style="margin-top:0.5rem">
+                            <div class="feedback-item"><span>👍</span><span class="feedback-num" style="color:#10B981">${feedbackCounts.up || 0}</span></div>
+                            <div class="feedback-item"><span>👎</span><span class="feedback-num" style="color:#EF4444">${feedbackCounts.down || 0}</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="two-col">
+                    <div class="section">
+                        <div class="section-title">🤖 Agent 使用频率</div>
+                        <div class="bar-chart">${agentBars || '<div style="color:#64748B">暂无数据</div>'}</div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">👥 用户活跃度</div>
+                        <div class="bar-chart">${userBars || '<div style="color:#64748B">暂无数据</div>'}</div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title">💬 最近对话记录（最新50条）</div>
+                    <div style="overflow-x:auto">
+                        <table class="conv-table">
+                            <thead><tr><th>时间</th><th>Agent</th><th>用户</th><th>提问</th><th>回复</th></tr></thead>
+                            <tbody>${convRows || '<tr><td colspan="5" style="text-align:center;color:#64748B;padding:2rem">暂无对话记录</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+        }
+
+        function escHtml(str) {
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function exportData() {
+            window.location.href = '/api/admin/export';
+        }
+
+        async function loadCodes() {
+            try {
+                const res = await fetch('/api/admin/users');
+                if (!res.ok) return;
+                const users = await res.json();
+                renderCodes(users);
+            } catch {}
+        }
+
+        function renderCodes(users) {
+            if (!users.length) {
+                document.getElementById('codesTable').innerHTML = '<div style="color:#64748B;font-size:0.875rem">暂无邀请码</div>';
+                return;
+            }
+            const rows = users.map(u => `
+                <tr>
+                    <td style="color:#94A3B8">${escHtml(u.name)}</td>
+                    <td><span class="code-cell" title="点击复制">${u.code}</span></td>
+                    <td>
+                        <button class="btn-copy" onclick="copyCode('${u.code}', this)">复制</button>
+                        <button class="btn-del" onclick="deleteCode('${u.code}', '${escHtml(u.name)}')">删除</button>
+                    </td>
+                </tr>`).join('');
+            document.getElementById('codesTable').innerHTML = `
+                <table class="code-table">
+                    <thead><tr><th>用户名</th><th>邀请码</th><th>操作</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
+
+        async function createCode() {
+            const nameInput = document.getElementById('newUserName');
+            const name = nameInput.value.trim();
+            if (!name) { nameInput.focus(); return; }
+            const res = await fetch('/api/admin/codes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                nameInput.value = '';
+                loadCodes();
+            }
+        }
+
+        async function deleteCode(code, name) {
+            if (!confirm(`确认删除 ${name} 的邀请码？`)) return;
+            await fetch(`/api/admin/codes/${encodeURIComponent(code)}`, { method: 'DELETE' });
+            loadCodes();
+        }
+
+        function copyCode(code, btn) {
+            navigator.clipboard.writeText(code).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = '已复制';
+                setTimeout(() => btn.textContent = orig, 1500);
+            });
+        }
+
+        loadData();
+        loadCodes();
+    </script>
+</body>
+</html>

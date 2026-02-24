@@ -2,3 +2,5 @@
 .env
 node_modules/
 conversations.jsonl
+invite-codes.json
+medagent-hub.zip
