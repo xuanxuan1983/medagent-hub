@@ -41,8 +41,8 @@ if [ ! -f "$ENV_FILE" ]; then
   echo "⚙️  创建 .env 配置文件..."
   cat > "$ENV_FILE" << 'ENVEOF'
 PORT=3002
-AI_PROVIDER=gemini
-GEMINI_API_KEY=填入你的Gemini_API_Key
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=填入你的DeepSeek_API_Key
 ADMIN_CODE=admin2026
 MAX_USES_PER_CODE=5
 ENVEOF
