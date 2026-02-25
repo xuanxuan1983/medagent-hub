@@ -85,7 +85,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          window.location.href = data.isAdmin ? '/admin.html' : '/chat.html';
+          window.location.href = data.isAdmin ? '/admin.html' : '/index.html';
         } else {
           err.textContent = data.error || '邀请码无效';
           err.style.display = 'block';
