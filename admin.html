@@ -57,6 +57,12 @@
         .btn-copy:hover { background: #1E293B; color: #E2E8F0; }
         .btn-del { padding: 0.25rem 0.625rem; background: transparent; border: 1px solid #334155; border-radius: 6px; color: #EF4444; cursor: pointer; font-size: 0.75rem; }
         .btn-del:hover { background: rgba(239,68,68,0.1); }
+        .usage-bar { display: flex; align-items: center; gap: 0.5rem; }
+        .usage-track { width: 60px; height: 6px; background: #0F172A; border-radius: 3px; overflow: hidden; }
+        .usage-fill { height: 100%; border-radius: 3px; background: #3B82F6; }
+        .usage-fill.full { background: #EF4444; }
+        .batch-row { display: flex; gap: 0.75rem; margin-top: 0.75rem; align-items: center; }
+        .batch-label { font-size: 0.8rem; color: #64748B; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -75,7 +81,13 @@
                 <input class="code-input" id="newUserName" placeholder="输入客户姓名，如：李院长" maxlength="20">
                 <button class="btn btn-primary" onclick="createCode()">生成邀请码</button>
             </div>
-            <div id="codesTable"><div style="color:#64748B;font-size:0.875rem">加载中...</div></div>
+            <div class="batch-row">
+                <span class="batch-label">批量生成：</span>
+                <input class="code-input" id="batchPrefix" placeholder="前缀，如：体验用户" maxlength="10" style="max-width:140px">
+                <input class="code-input" id="batchCount" type="number" placeholder="数量" min="1" max="50" value="5" style="max-width:80px">
+                <button class="btn btn-outline" onclick="batchCreate()">批量生成</button>
+            </div>
+            <div id="codesTable" style="margin-top:1rem"><div style="color:#64748B;font-size:0.875rem">加载中...</div></div>
         </div>
     </div>
     <script>
@@ -193,18 +205,25 @@
                 document.getElementById('codesTable').innerHTML = '<div style="color:#64748B;font-size:0.875rem">暂无邀请码</div>';
                 return;
             }
-            const rows = users.map(u => `
-                <tr>
+            const rows = users.map(u => {
+                const pct = u.maxUses > 0 ? Math.min(100, Math.round(u.usage / u.maxUses * 100)) : 0;
+                const full = u.remaining === 0;
+                return `<tr>
                     <td style="color:#94A3B8">${escHtml(u.name)}</td>
                     <td><span class="code-cell" title="点击复制">${u.code}</span></td>
+                    <td><div class="usage-bar">
+                        <div class="usage-track"><div class="usage-fill${full?' full':''}" style="width:${pct}%"></div></div>
+                        <span style="font-size:0.75rem;color:${full?'#EF4444':'#64748B'}">${u.usage}/${u.maxUses}</span>
+                    </div></td>
                     <td>
                         <button class="btn-copy" onclick="copyCode('${u.code}', this)">复制</button>
                         <button class="btn-del" onclick="deleteCode('${u.code}', '${escHtml(u.name)}')">删除</button>
                     </td>
-                </tr>`).join('');
+                </tr>`;
+            }).join('');
             document.getElementById('codesTable').innerHTML = `
                 <table class="code-table">
-                    <thead><tr><th>用户名</th><th>邀请码</th><th>操作</th></tr></thead>
+                    <thead><tr><th>用户名</th><th>邀请码</th><th>使用次数</th><th>操作</th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>`;
         }
@@ -236,6 +255,22 @@
                 btn.textContent = '已复制';
                 setTimeout(() => btn.textContent = orig, 1500);
             });
+        }
+
+        async function batchCreate() {
+            const prefix = document.getElementById('batchPrefix').value.trim() || '体验用户';
+            const count = Math.min(50, Math.max(1, parseInt(document.getElementById('batchCount').value) || 5));
+            const btn = event.target;
+            btn.disabled = true; btn.textContent = '生成中...';
+            for (let i = 1; i <= count; i++) {
+                await fetch('/api/admin/codes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: `${prefix}-${i}` })
+                });
+            }
+            btn.disabled = false; btn.textContent = '批量生成';
+            loadCodes();
         }
 
         loadData();
