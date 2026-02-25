@@ -10,18 +10,16 @@ const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
 const COOKIE_NAME = 'medagent_auth';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
-// Data directory: use DATA_DIR env var for persistent storage (e.g. Railway volumes)
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CODES_FILE = path.join(DATA_DIR, 'invite-codes.json');
 const USAGE_FILE = path.join(DATA_DIR, 'invite-usage.json');
 const USAGE_LIMITS_FILE = path.join(DATA_DIR, 'invite-usage-limits.json');
-const MAX_USES_PER_CODE = parseInt(process.env.MAX_USES_PER_CODE || '5'); // 默认每个邀请码最大使用次数
+const MAX_USES_PER_CODE = parseInt(process.env.MAX_USES_PER_CODE || '5');
 
 function loadCodes() {
   try {
     if (fs.existsSync(CODES_FILE)) return JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
   } catch {}
-  // Default seed
   const defaults = { 'medagent2026': '默认用户' };
   fs.writeFileSync(CODES_FILE, JSON.stringify(defaults, null, 2));
   return defaults;
@@ -31,7 +29,6 @@ function saveCodes(map) {
   fs.writeFileSync(CODES_FILE, JSON.stringify(map, null, 2));
 }
 
-// Invite code usage tracking
 function loadUsage() {
   try {
     if (fs.existsSync(USAGE_FILE)) return JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8'));
