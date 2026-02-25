@@ -531,7 +531,7 @@
                 <div class="logo-icon">M</div>
                 <span>MedAgent Hub</span>
             </div>
-            <div class="header-actions">
+            <div class="header-actions" id="headerActions">
                 <button class="btn btn-secondary" onclick="window.location.href='login.html'">登录</button>
                 <button class="btn btn-primary" onclick="window.location.href='login.html'">免费开始</button>
             </div>
@@ -594,7 +594,7 @@
     </section>
 
     <!-- Category Section -->
-    <section class="category-section">
+    <section class="category-section" id="agents">
         <div class="category-content">
             <div class="section-header">
                 <h2 class="section-title">选择你需要的AI助手</h2>
@@ -874,6 +874,23 @@
         function launchAgent(agentId) {
             window.location.href = `chat.html?agent=${agentId}`;
         }
+
+        // Check auth status and update header
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/code-status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.exists) {
+                        document.getElementById('headerActions').innerHTML = `
+                            <span style="font-size:0.875rem;color:#6B7280">👋 ${data.userName || '已登录'}</span>
+                            <button class="btn btn-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">选择助手 →</button>
+                        `;
+                    }
+                }
+            } catch {}
+        }
+        checkAuth();
 
         // Add scroll animation
         const observerOptions = {
