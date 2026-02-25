@@ -640,7 +640,7 @@ const server = http.createServer(async (req, res) => {
         message_index: messageIndex,
         feedback
       });
-      fs.appendFile(path.join(__dirname, 'conversations.jsonl'), feedbackEntry + '\n', () => {});
+      fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), feedbackEntry + '\n', () => {});
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     } catch (error) {
@@ -774,7 +774,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Forbidden' }));
       return;
     }
-    const logPath = path.join(__dirname, 'conversations.jsonl');
+    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
     if (!fs.existsSync(logPath)) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'No data yet' }));
