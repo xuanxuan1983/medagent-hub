@@ -13,6 +13,9 @@ const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 // Data directory: use DATA_DIR env var for persistent storage (e.g. Railway volumes)
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CODES_FILE = path.join(DATA_DIR, 'invite-codes.json');
+const USAGE_FILE = path.join(DATA_DIR, 'invite-usage.json');
+const USAGE_LIMITS_FILE = path.join(DATA_DIR, 'invite-usage-limits.json');
+const MAX_USES_PER_CODE = parseInt(process.env.MAX_USES_PER_CODE || '5'); // 默认每个邀请码最大使用次数
 
 function loadCodes() {
   try {
@@ -28,6 +31,59 @@ function saveCodes(map) {
   fs.writeFileSync(CODES_FILE, JSON.stringify(map, null, 2));
 }
 
+// Invite code usage tracking
+function loadUsage() {
+  try {
+    if (fs.existsSync(USAGE_FILE)) return JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8'));
+  } catch {}
+  return {};
+}
+
+function saveUsage(usage) {
+  fs.writeFileSync(USAGE_FILE, JSON.stringify(usage, null, 2));
+}
+
+function loadUsageLimits() {
+  try {
+    if (fs.existsSync(USAGE_LIMITS_FILE)) return JSON.parse(fs.readFileSync(USAGE_LIMITS_FILE, 'utf8'));
+  } catch {}
+  return {};
+}
+
+function saveUsageLimits(limits) {
+  fs.writeFileSync(USAGE_LIMITS_FILE, JSON.stringify(limits, null, 2));
+}
+
+function getCodeMaxUses(code) {
+  const limits = loadUsageLimits();
+  // For default codes (medagent2026, xuanyi2026), use default limit
+  if (limits[code]) return limits[code];
+  // For dynamically generated codes without explicit limit, default to 1 (single-use)
+  const codes = loadCodes();
+  if (code in codes && code.startsWith('ma')) return 1; // Single-use for generated codes
+  return MAX_USES_PER_CODE; // Default for legacy codes
+}
+
+function getCodeUsage(code) {
+  const usage = loadUsage();
+  return usage[code] || 0;
+}
+
+function incrementCodeUsage(code) {
+  const usage = loadUsage();
+  usage[code] = (usage[code] || 0) + 1;
+  saveUsage(usage);
+  return usage[code];
+}
+
+function isCodeAvailable(code) {
+  const codes = loadCodes();
+  if (!(code in codes)) return false;
+  const usage = getCodeUsage(code);
+  const maxUses = getCodeMaxUses(code);
+  return usage < maxUses;
+}
+
 function parseCookies(req) {
   const raw = req.headers.cookie || '';
   return Object.fromEntries(raw.split(';').map(c => c.trim().split('=').map(decodeURIComponent)));
@@ -35,8 +91,17 @@ function parseCookies(req) {
 
 function isAuthenticated(req) {
   const cookies = parseCookies(req);
+  const code = cookies[COOKIE_NAME];
   const codes = loadCodes();
-  return cookies[COOKIE_NAME] in codes;
+  
+  // Check if code exists
+  if (!(code in codes)) return false;
+  
+  // Admin code always valid
+  if (code === ADMIN_CODE) return true;
+  
+  // Check usage limit (only for non-admin)
+  return isCodeAvailable(code);
 }
 
 function getUserName(req) {
@@ -359,14 +424,31 @@ const server = http.createServer(async (req, res) => {
     try {
       const { code } = await parseRequestBody(req);
       const codes = loadCodes();
-      if (code in codes || code === ADMIN_CODE) {
-        res.setHeader('Set-Cookie', `${COOKIE_NAME}=${encodeURIComponent(code)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax`);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, isAdmin: code === ADMIN_CODE }));
-      } else {
+      
+      // Check if code exists
+      if (!(code in codes) && code !== ADMIN_CODE) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: '邀请码无效' }));
+        return;
       }
+      
+      // Check usage limit (skip for admin)
+      if (code !== ADMIN_CODE && !isCodeAvailable(code)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `邀请码已达使用上限（${MAX_USES_PER_CODE}人）` }));
+        return;
+      }
+      
+      // Increment usage count (skip for admin)
+      if (code !== ADMIN_CODE) {
+        const currentUsage = incrementCodeUsage(code);
+        const maxUses = getCodeMaxUses(code);
+        console.log(`📝 邀请码 ${code} 使用次数: ${currentUsage}/${maxUses}`);
+      }
+      
+      res.setHeader('Set-Cookie', `${COOKIE_NAME}=${encodeURIComponent(code)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, isAdmin: code === ADMIN_CODE }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
@@ -487,6 +569,33 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Check invite code usage (public endpoint)
+  if (url.pathname === '/api/auth/code-status' && req.method === 'GET') {
+    const code = url.searchParams.get('code');
+    if (!code) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing code parameter' }));
+      return;
+    }
+    
+    const codes = loadCodes();
+    const usage = getCodeUsage(code);
+    const maxUses = code === ADMIN_CODE ? '无限制' : getCodeMaxUses(code);
+    const available = code === ADMIN_CODE ? true : isCodeAvailable(code);
+    const remaining = code === ADMIN_CODE ? '无限制' : Math.max(0, maxUses - usage);
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      code,
+      exists: code in codes || code === ADMIN_CODE,
+      usage,
+      maxUses,
+      available,
+      remaining
+    }));
+    return;
+  }
+
   // Get conversation history
   if (url.pathname === '/api/chat/history' && req.method === 'GET') {
     const sessionId = url.searchParams.get('sessionId');
@@ -541,14 +650,26 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Admin: list users
+  // Admin: list users with usage stats
   if (url.pathname === '/api/admin/users' && req.method === 'GET') {
     if (!isAdmin(req)) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Forbidden' }));
       return;
     }
-    const users = Object.entries(loadCodes()).map(([code, name]) => ({ code, name }));
+    const codes = loadCodes();
+    const usage = loadUsage();
+    const users = Object.entries(codes).map(([code, name]) => {
+      const maxUses = getCodeMaxUses(code);
+      const used = usage[code] || 0;
+      return {
+        code,
+        name,
+        usage: used,
+        maxUses,
+        remaining: Math.max(0, maxUses - used)
+      };
+    });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(users));
     return;
@@ -562,7 +683,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     try {
-      const { name } = await parseRequestBody(req);
+      const { name, maxUses } = await parseRequestBody(req);
       if (!name || !name.trim()) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: '请填写用户名' }));
@@ -572,8 +693,15 @@ const server = http.createServer(async (req, res) => {
       const codes = loadCodes();
       codes[code] = name.trim();
       saveCodes(codes);
+      
+      // Set custom max uses for this code (default to 1 for single-use codes)
+      const codeMaxUses = maxUses ? parseInt(maxUses) : 1;
+      const usageLimits = loadUsageLimits();
+      usageLimits[code] = codeMaxUses;
+      saveUsageLimits(usageLimits);
+      
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ code, name: name.trim() }));
+      res.end(JSON.stringify({ code, name: name.trim(), maxUses: codeMaxUses }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
@@ -666,7 +794,7 @@ const server = http.createServer(async (req, res) => {
   const ext = path.extname(filePath);
   const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
   const contentType = mimeTypes[ext] || 'text/plain';
-  const protectedPages = ['index.html', 'chat.html'];
+  const protectedPages = ['chat.html'];
   const adminPages = ['admin.html'];
   const requestedFile = path.basename(filePath);
   if (adminPages.includes(requestedFile) && !isAdmin(req)) {
@@ -694,10 +822,12 @@ server.listen(PORT, () => {
   console.log(`🤖 AI Provider: ${AI_PROVIDER.toUpperCase()}`);
   console.log(`📋 Available endpoints:`);
   console.log(`   - POST /api/auth/login      - Login with invite code`);
+  console.log(`   - GET  /api/auth/code-status - Check invite code usage`);
   console.log(`   - POST /api/chat/init       - Initialize chat session`);
   console.log(`   - POST /api/chat/message    - Send message`);
   console.log(`   - GET  /api/chat/history    - Get conversation history`);
   console.log(`   - GET  /health              - Health check`);
+  console.log(`\n🔑 Invite Code Limit: ${MAX_USES_PER_CODE} uses per code`);
   console.log(`\n✨ Ready to serve medical aesthetics agents!`);
   console.log(`\n⚠️  Required API Key: ${AI_PROVIDER.toUpperCase()}_API_KEY`);
 });
