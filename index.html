@@ -241,6 +241,51 @@
             font-weight: 500;
         }
 
+        /* Demo Video Section */
+        .demo-section {
+            padding: 80px 24px;
+            background: var(--color-bg-light);
+        }
+        .demo-content {
+            max-width: 920px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 20px;
+            box-shadow: 0 24px 64px rgba(255, 107, 107, 0.18);
+            margin: 40px 0 32px;
+            border: 2px solid var(--color-border);
+            background: #000;
+        }
+        .video-wrapper iframe,
+        .video-wrapper video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+        }
+        .demo-tags {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+        .demo-tag {
+            background: white;
+            border: 1px solid var(--color-border);
+            color: var(--color-orange);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
         /* Category Section */
         .category-section {
             padding: 3rem 2rem;
@@ -503,22 +548,48 @@
             <p class="hero-subtitle">覆盖上游厂商到下游机构的全链路业务场景<br>从战略制定到销售转化，从医疗安全到客户留存，21个精品Agent为您提供专业级智能服务</p>
             <div class="hero-cta">
                 <button class="btn btn-primary btn-hero">免费开始使用 →</button>
-                <button class="btn btn-secondary btn-hero">查看演示</button>
+                <button class="btn btn-secondary btn-hero" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">观看演示视频 ▶</button>
             </div>
             <div class="hero-stats">
                 <div class="stat">
-                    <div class="stat-value">12</div>
-                    <div class="stat-label">上游厂商 Agent</div>
+                    <div class="stat-value">21</div>
+                    <div class="stat-label">精品 Agent</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-value">9</div>
-                    <div class="stat-label">下游机构 Agent</div>
+                    <div class="stat-value">55%</div>
+                    <div class="stat-label">AI 推荐客户占比</div>
                 </div>
                 <div class="stat">
                     <div class="stat-value">100%</div>
                     <div class="stat-label">业务场景覆盖</div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- Demo Video Section -->
+    <section class="demo-section" id="demo">
+        <div class="demo-content">
+            <div class="section-header">
+                <h2 class="section-title">看看它怎么工作</h2>
+                <p class="section-subtitle">金牌咨询师实战对话 · 咨询师话术陪练 · 材料学硬核拆解</p>
+            </div>
+            <div class="demo-tags">
+                <span class="demo-tag">🏆 金牌医美咨询师</span>
+                <span class="demo-tag">🥊 咨询师陪练</span>
+                <span class="demo-tag">🔬 医美材料学硬核导师</span>
+            </div>
+            <!-- 如需换成 YouTube/Bilibili 嵌入，替换下方 video 标签即可 -->
+            <div class="video-wrapper">
+                <video
+                    src="MedAgent-60s.mp4"
+                    controls
+                    preload="metadata"
+                    poster=""
+                    title="MedAgent Hub 实战演示">
+                </video>
+            </div>
+            <button class="btn btn-primary btn-hero" onclick="window.location.href='chat.html'">立即免费体验 →</button>
         </div>
     </section>
 
