@@ -325,6 +325,49 @@ class DeepSeekProvider {
   }
 }
 
+class SiliconFlowProvider {
+  constructor() {
+    this.apiKey = process.env.SILICONFLOW_API_KEY;
+    this.baseUrl = 'https://api.siliconflow.cn/v1';
+    this.model = process.env.SILICONFLOW_MODEL || 'deepseek-ai/DeepSeek-V3';
+  }
+
+  async chat(systemPrompt, messages) {
+    const formattedMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages
+    ];
+
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: formattedMessages,
+        temperature: 0.7,
+        max_tokens: 800
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'SiliconFlow API error');
+    }
+
+    return {
+      message: data.choices[0].message.content,
+      usage: {
+        input_tokens: data.usage.prompt_tokens,
+        output_tokens: data.usage.completion_tokens
+      }
+    };
+  }
+}
+
 class AnthropicProvider {
   constructor() {
     const Anthropic = require('@anthropic-ai/sdk');
@@ -351,6 +394,76 @@ class AnthropicProvider {
   }
 }
 
+// Providers config exposed to frontend
+const PROVIDERS_CONFIG = {
+  international: [
+    { id: 'openai',     name: 'OpenAI',              baseUrl: 'https://api.openai.com/v1',                          models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],                                          keyHint: 'sk-...' },
+    { id: 'anthropic',  name: 'Anthropic (Claude)',   baseUrl: null,                                                 models: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],             keyHint: 'sk-ant-...' },
+    { id: 'gemini',     name: 'Google Gemini',        baseUrl: null,                                                 models: ['gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-1.5-flash'],                    keyHint: 'AIza...' },
+  ],
+  domestic: [
+    { id: 'deepseek',    name: 'DeepSeek',            baseUrl: 'https://api.deepseek.com/v1',                        models: ['deepseek-chat', 'deepseek-reasoner'],                                             keyHint: 'sk-...' },
+    { id: 'siliconflow', name: '硅基流动',             baseUrl: 'https://api.siliconflow.cn/v1',                      models: ['deepseek-ai/DeepSeek-V3', 'Pro/deepseek-ai/DeepSeek-R1', 'Qwen/Qwen2.5-72B-Instruct'], keyHint: 'sk-...' },
+    { id: 'kimi',        name: 'Kimi (月之暗面)',      baseUrl: 'https://api.moonshot.cn/v1',                         models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'],                         keyHint: 'sk-...' },
+    { id: 'qwen',        name: '通义千问',             baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',  models: ['qwen-max', 'qwen-plus', 'qwen-turbo'],                                            keyHint: 'sk-...' },
+  ]
+};
+
+// Generic OpenAI-compatible provider
+class OpenAICompatibleProvider {
+  constructor(baseUrl, apiKey, model) {
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+    this.model = model;
+  }
+
+  async chat(systemPrompt, messages) {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        temperature: 0.7,
+        max_tokens: 800
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'API error');
+    return {
+      message: data.choices[0].message.content,
+      usage: { input_tokens: data.usage.prompt_tokens, output_tokens: data.usage.completion_tokens }
+    };
+  }
+}
+
+// Factory: create provider from user-supplied config
+function createProviderFromConfig(providerId, apiKey, model) {
+  const allProviders = [...PROVIDERS_CONFIG.international, ...PROVIDERS_CONFIG.domestic];
+  const config = allProviders.find(p => p.id === providerId);
+  if (!config) throw new Error(`Unknown provider: ${providerId}`);
+
+  if (providerId === 'gemini') {
+    const p = new GeminiProvider();
+    p.apiKey = apiKey;
+    return p;
+  }
+
+  if (providerId === 'anthropic') {
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey });
+    const resolvedModel = model || 'claude-sonnet-4-6';
+    return {
+      chat: async (systemPrompt, messages) => {
+        const res = await client.messages.create({ model: resolvedModel, max_tokens: 800, system: systemPrompt, messages });
+        return { message: res.content[0].text, usage: { input_tokens: res.usage.input_tokens, output_tokens: res.usage.output_tokens } };
+      }
+    };
+  }
+
+  return new OpenAICompatibleProvider(config.baseUrl, apiKey, model || config.models[0]);
+}
+
 // Initialize AI provider
 let aiProvider;
 try {
@@ -363,6 +476,9 @@ try {
       break;
     case 'deepseek':
       aiProvider = new DeepSeekProvider();
+      break;
+    case 'siliconflow':
+      aiProvider = new SiliconFlowProvider();
       break;
     case 'anthropic':
       aiProvider = new AnthropicProvider();
@@ -453,6 +569,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Get available providers config
+  if (url.pathname === '/api/config/providers' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(PROVIDERS_CONFIG));
+    return;
+  }
+
   // Initialize chat session
   if (url.pathname === '/api/chat/init' && req.method === 'POST') {
     try {
@@ -512,7 +635,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const { sessionId, message } = await parseRequestBody(req);
+      const { sessionId, message, provider: userProvider, apiKey: userApiKey, model: userModel } = await parseRequestBody(req);
 
       if (!sessionId || !sessions.has(sessionId)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -528,8 +651,13 @@ const server = http.createServer(async (req, res) => {
 
       console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
 
+      // Use user-supplied provider if provided, otherwise fall back to server default
+      const activeProvider = (userProvider && userApiKey)
+        ? createProviderFromConfig(userProvider, userApiKey, userModel)
+        : aiProvider;
+
       // Call AI provider
-      const response = await aiProvider.chat(session.systemPrompt, session.messages);
+      const response = await activeProvider.chat(session.systemPrompt, session.messages);
 
       session.messages.push({
         role: 'assistant',

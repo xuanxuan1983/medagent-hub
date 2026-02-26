@@ -4,3 +4,7 @@ node_modules/
 conversations.jsonl
 invite-codes.json
 medagent-hub.zip
+invite-codes-*.csv
+invite-usage*.json
+server.log
+medagent-hub.tar.gz
