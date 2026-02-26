@@ -394,6 +394,69 @@ class AnthropicProvider {
   }
 }
 
+// Medical aesthetics image prompt templates
+const MEDAESTHETIC_IMAGE_PROMPTS = {
+  skin_rejuvenation: {
+    label: '皮肤焕活',
+    prompt: 'Ultra-close macro photograph of flawless porcelain skin texture, luminous glow, visible collagen structure, soft diffused studio lighting, clinical beauty photography, 8K resolution, pristine white background, hyper-realistic skin detail, dewy moisture, professional medical aesthetics editorial style'
+  },
+  clinic_environment: {
+    label: '高端诊所',
+    prompt: 'Luxury medical aesthetics clinic interior, minimalist white and gold design, soft warm lighting, sterile yet elegant atmosphere, modern treatment room, premium medical equipment, fresh flowers, marble surfaces, professional healthcare environment, architectural photography, wide angle, 8K'
+  },
+  doctor_portrait: {
+    label: '医生形象',
+    prompt: 'Professional female doctor in pristine white coat, confident warm smile, modern clinic background softly blurred, natural window light, clean medical aesthetics environment, trust and expertise, editorial portrait photography, shallow depth of field, 85mm lens, 8K resolution'
+  },
+  xiaohongshu_beauty: {
+    label: '小红书美容',
+    prompt: 'Elegant Asian woman in her 30s, radiant glowing skin, minimal makeup, soft pink and white aesthetic, holding luxury skincare product, natural soft light, lifestyle beauty photography, clean background, warm tones, Instagram-worthy composition, vertical format, 4K'
+  },
+  collagen_science: {
+    label: '胶原蛋白科普',
+    prompt: 'Scientific visualization of collagen fiber network under skin, biophotonic microscopy style, glowing blue and gold collagen strands, cellular regeneration, medical illustration aesthetic, dark background with luminous fibers, educational infographic style, ultra-detailed, 8K'
+  },
+  before_after_concept: {
+    label: '焕肤概念',
+    prompt: 'Split concept image showing skin transformation, left side dull tired skin texture, right side radiant luminous rejuvenated skin, clinical comparison photography, neutral grey background, professional medical aesthetics documentation style, sharp detail, 8K'
+  },
+  brand_founder: {
+    label: '创始人品牌',
+    prompt: 'Confident professional Chinese woman entrepreneur in her 40s, sophisticated business attire, modern minimalist office with medical aesthetics branding, natural light from large windows, personal brand photography, warm authoritative presence, editorial style, 85mm portrait lens, 8K'
+  },
+  product_showcase: {
+    label: '产品展示',
+    prompt: 'Luxury medical aesthetics product flat lay, premium serum bottles and ampoules, white marble surface, fresh botanicals, soft diffused light, clinical elegance, high-end beauty product photography, overhead shot, pristine composition, 8K resolution'
+  }
+};
+
+// Image generation via SiliconFlow
+async function generateImage(promptKey, customPrompt) {
+  const apiKey = process.env.SILICONFLOW_API_KEY;
+  if (!apiKey) throw new Error('SILICONFLOW_API_KEY not configured');
+
+  const template = MEDAESTHETIC_IMAGE_PROMPTS[promptKey];
+  const finalPrompt = customPrompt
+    ? `${template ? template.prompt + ', ' : ''}${customPrompt}`
+    : (template ? template.prompt : customPrompt);
+
+  const response = await fetch('https://api.siliconflow.cn/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: 'black-forest-labs/FLUX.1-dev',
+      prompt: finalPrompt,
+      image_size: '1024x1024',
+      num_inference_steps: 28,
+      guidance_scale: 3.5
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || 'Image generation failed');
+  return { url: data.images[0].url, prompt: finalPrompt };
+}
+
 // Providers config exposed to frontend
 const PROVIDERS_CONFIG = {
   international: [
@@ -573,6 +636,40 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/config/providers' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(PROVIDERS_CONFIG));
+    return;
+  }
+
+  // Get medical aesthetics image prompt templates
+  if (url.pathname === '/api/image/prompts' && req.method === 'GET') {
+    const templates = Object.entries(MEDAESTHETIC_IMAGE_PROMPTS).map(([key, val]) => ({
+      key, label: val.label
+    }));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(templates));
+    return;
+  }
+
+  // Generate medical aesthetics image
+  if (url.pathname === '/api/image/generate' && req.method === 'POST') {
+    try {
+      if (!isAuthenticated(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+      const { promptKey, customPrompt } = await parseRequestBody(req);
+      if (!promptKey && !customPrompt) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'promptKey or customPrompt required' }));
+        return;
+      }
+      const result = await generateImage(promptKey, customPrompt);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
     return;
   }
 
