@@ -241,7 +241,14 @@
     function confirmRole() {
       if (!selectedRole) return;
       localStorage.setItem('medagent_role', selectedRole);
-      window.location.href = '/index.html#agents';
+      // Check if there's a redirect param from a protected page
+      var params = new URLSearchParams(window.location.search);
+      var redirect = params.get('redirect');
+      if (redirect) {
+        window.location.href = decodeURIComponent(redirect);
+      } else {
+        window.location.href = '/index.html#agents';
+      }
     }
   </script>
 </body>

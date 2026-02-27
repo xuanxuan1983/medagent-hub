@@ -1146,7 +1146,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (protectedPages.includes(requestedFile) && !isAuthenticated(req)) {
-    res.writeHead(302, { Location: '/login.html' });
+    const redirectTo = encodeURIComponent(req.url);
+    res.writeHead(302, { Location: `/login.html?redirect=${redirectTo}` });
     res.end();
     return;
   }
