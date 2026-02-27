@@ -348,7 +348,7 @@
         <h1>医美行业的<br><em>AI 助手团队</em></h1>
         <p class="hero-sub">
             覆盖上游厂商到下游机构的全链路业务场景——<br>
-            从 GTM 战略到销售转化，从学术推广到术后管理，16 个精品 Agent 随时待命。
+            从 GTM 战略到销售转化，从学术推广到术后管理，21 个精品 Agent 随时待命。
         </p>
         <div class="hero-actions">
             <button class="btn-hero-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">
@@ -360,11 +360,11 @@
         </div>
         <div class="hero-stats">
             <div class="hero-stat">
-                <div class="hero-stat-num"><span>16</span></div>
+                <div class="hero-stat-num"><span>21</span></div>
                 <div class="hero-stat-label">精品 Agent</div>
             </div>
             <div class="hero-stat">
-                <div class="hero-stat-num"><span>7</span></div>
+                <div class="hero-stat-num"><span>12</span></div>
                 <div class="hero-stat-label">上游厂商场景</div>
             </div>
             <div class="hero-stat">
@@ -388,8 +388,8 @@
             <button class="clr" id="clrBtn" onclick="clearSearch()">×</button>
         </div>
         <div class="tabs">
-            <button class="tab active" data-filter="all" onclick="setFilter('all')">全部 <span class="cnt">16</span></button>
-            <button class="tab" data-filter="upstream" onclick="setFilter('upstream')">🏭 上游 <span class="cnt">7</span></button>
+            <button class="tab active" data-filter="all" onclick="setFilter('all')">全部 <span class="cnt">21</span></button>
+            <button class="tab" data-filter="upstream" onclick="setFilter('upstream')">🏭 上游 <span class="cnt">12</span></button>
             <button class="tab" data-filter="downstream" onclick="setFilter('downstream')">🏥 下游 <span class="cnt">9</span></button>
             <button class="tab" data-filter="favorites" onclick="setFilter('favorites')">⭐ 收藏</button>
             <button class="tab" data-filter="strategy" onclick="setFilter('strategy')">战略</button>
@@ -397,8 +397,8 @@
             <button class="tab" data-filter="medical" onclick="setFilter('medical')">医疗</button>
         </div>
         <select class="mobile-filter" onchange="setFilter(this.value)">
-            <option value="all">全部 (16)</option>
-            <option value="upstream">🏭 上游 (7)</option>
+            <option value="all">全部 (21)</option>
+            <option value="upstream">🏭 上游 (12)</option>
             <option value="downstream">🏥 下游 (9)</option>
             <option value="favorites">⭐ 收藏</option>
             <option value="strategy">战略</option>
@@ -571,6 +571,112 @@
                 <div class="card-actions">
                     <button class="btn-fav" onclick="toggleFav(event,'training-director')">☆</button>
                     <button class="btn-use" onclick="useAgent('training-director')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== UPSTREAM AGENTS (新增5个) ===== -->
+        <div class="agent-card upstream" data-category="upstream sales" data-usage="91" data-name="大区经理" data-id="area-manager">
+            <div class="card-head">
+                <div class="card-avatar">🗺️</div>
+                <div class="card-meta">
+                    <div class="card-name">大区经理</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">销售部</span>
+                        <span>本周 91 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">Forecast分级测谎、进销存逻辑闭环、情境模拟辅导</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">销售</span><span class="card-tag">区域</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'area-manager')">☆</button>
+                    <button class="btn-use" onclick="useAgent('area-manager')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream sales" data-usage="78" data-name="商务经理" data-id="channel-manager">
+            <div class="card-head">
+                <div class="card-avatar">🤝</div>
+                <div class="card-meta">
+                    <div class="card-name">商务经理</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">销售部</span>
+                        <span>本周 78 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">ROI利润精算、反向背调、窜货雷霆管控、库存博弈</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">渠道</span><span class="card-tag">商务</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'channel-manager')">☆</button>
+                    <button class="btn-use" onclick="useAgent('channel-manager')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream operations" data-usage="65" data-name="财务BP" data-id="finance-bp">
+            <div class="card-head">
+                <div class="card-avatar">💰</div>
+                <div class="card-meta">
+                    <div class="card-name">财务BP</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">财务部</span>
+                        <span>本周 65 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">税务合规与交易结构优化，货折替代票折保护利润</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">财务</span><span class="card-tag">合规</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'finance-bp')">☆</button>
+                    <button class="btn-use" onclick="useAgent('finance-bp')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream operations" data-usage="59" data-name="战略HRBP" data-id="hrbp">
+            <div class="card-head">
+                <div class="card-avatar">🎯</div>
+                <div class="card-meta">
+                    <div class="card-name">战略HRBP</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">人力部</span>
+                        <span>本周 59 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">精准猎聘竞品人才，背调侦查与竞业攻防</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">HR</span><span class="card-tag">猎聘</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'hrbp')">☆</button>
+                    <button class="btn-use" onclick="useAgent('hrbp')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream operations" data-usage="54" data-name="采购经理" data-id="procurement-manager">
+            <div class="card-head">
+                <div class="card-avatar">📦</div>
+                <div class="card-meta">
+                    <div class="card-name">采购经理</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">采购部</span>
+                        <span>本周 54 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">Kraljic矩阵与Should-Cost模型优化TCO</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">采购</span><span class="card-tag">供应链</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'procurement-manager')">☆</button>
+                    <button class="btn-use" onclick="useAgent('procurement-manager')">使用</button>
                 </div>
             </div>
         </div>
@@ -814,7 +920,7 @@
         if (sel) sel.value = f;
         applyFilters();
         var titles = {
-            all: '全部 Agent', upstream: '上游厂商 Agent', downstream: '下游机构 Agent',
+            all: '全部 Agent (21)', upstream: '上游厂商 Agent (12)', downstream: '下游机构 Agent (9)',
             favorites: '收藏的 Agent', strategy: '战略类 Agent', sales: '销售类 Agent', medical: '医疗类 Agent'
         };
         document.getElementById('sectionTitle').textContent = titles[f] || '全部 Agent';
