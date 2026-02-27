@@ -90,15 +90,8 @@ function isAuthenticated(req) {
   const cookies = parseCookies(req);
   const code = cookies[COOKIE_NAME];
   const codes = loadCodes();
-  
-  // Check if code exists
-  if (!(code in codes)) return false;
-  
-  // Admin code always valid
-  if (code === ADMIN_CODE) return true;
-  
-  // Check usage limit (only for non-admin)
-  return isCodeAvailable(code);
+  // Only check if code exists, not usage count (usage is checked at login time)
+  return code in codes;
 }
 
 function getUserName(req) {
@@ -592,6 +585,18 @@ const server = http.createServer(async (req, res) => {
       port: PORT,
       provider: AI_PROVIDER
     }));
+    return;
+  }
+
+  // Auth status check via cookie
+  if (url.pathname === '/api/auth/status' && req.method === 'GET') {
+    if (isAuthenticated(req)) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ authenticated: true, userName: getUserName(req) }));
+    } else {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ authenticated: false }));
+    }
     return;
   }
 

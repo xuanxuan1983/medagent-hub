@@ -879,10 +879,10 @@
         // Check auth status and update header
         async function checkAuth() {
             try {
-                const res = await fetch('/api/auth/code-status');
+                const res = await fetch('/api/auth/status');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.exists) {
+                    if (data.authenticated) {
                         document.getElementById('headerActions').innerHTML = `
                             <span style="font-size:0.875rem;color:#6B7280">👋 ${data.userName || '已登录'}</span>
                             <button class="btn btn-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">选择助手 →</button>
