@@ -3,1279 +3,926 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedAgent Hub - 医美智能助手平台</title>
+    <title>MedAgent Hub - 医美行业AI助手平台</title>
+    <meta name="description" content="MedAgent Hub 是专为医美行业打造的 AI 助手平台，覆盖上游厂商到下游机构全链路业务场景的 16 个精品 Agent。">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --color-primary: #0F172A;
-            --color-secondary: #1E3A8A;
-            --color-accent: #CA8A04;
-            --color-background: #F8FAFC;
-            --color-surface: #FFFFFF;
-            --color-surface-elevated: #F1F5F9;
-            --color-text: #0F172A;
-            --color-text-secondary: #475569;
-            --color-text-muted: #64748B;
-            --color-border: #E2E8F0;
-            --color-upstream: #1E3A8A;
-            --color-upstream-light: #3B82F6;
-            --color-downstream: #059669;
-            --color-downstream-light: #10B981;
-            --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08);
-            --radius-sm: 6px;
-            --radius-md: 8px;
-            --radius-lg: 12px;
-            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            --text: #191919;
+            --text-2: #5a5a5a;
+            --text-3: #767676;
+            --bg: #FFFFFF;
+            --bg-warm: #FAF8F5;
+            --border: #E8E5E0;
+            --border-light: #F0EDEA;
+            --coral: #E8715A;
+            --coral-light: #FFF0EC;
+            --coral-mid: #FDDDD6;
+            --blue: #4A9EF5;
+            --blue-light: #EBF3FE;
+            --green: #3DB88C;
+            --green-light: #E8F7F0;
+            --yellow: #E5A84B;
+            --yellow-light: #FEF5E7;
+            --purple: #8B6CC1;
+            --purple-light: #F3EEFA;
+            --font-serif: 'Noto Serif SC', 'Georgia', serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --max: 1200px;
+            --r: 14px;
+            --r-sm: 8px;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font-family); background: var(--color-background); color: var(--color-text); line-height: 1.6; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.6; }
 
-        /* Header */
-        .header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(8px); background-color: rgba(255, 255, 255, 0.95); }
-        .header-content { max-width: 1400px; margin: 0 auto; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
-        .logo { display: flex; align-items: center; gap: 0.875rem; font-weight: 700; font-size: 1.25rem; color: var(--color-primary); text-decoration: none; transition: color var(--transition); }
-        .logo-icon { width: 42px; height: 42px; background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-upstream) 100%); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.125rem; box-shadow: var(--shadow-md); position: relative; overflow: hidden; }
-        .logo-icon::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, transparent 0%, rgba(202, 138, 4, 0.3) 100%); }
-        .nav { display: flex; gap: 2.5rem; }
-        .nav a { color: var(--color-text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: color var(--transition); position: relative; }
-        .nav a:hover { color: var(--color-secondary); }
-        .nav a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: var(--color-accent); transition: width var(--transition); }
-        .nav a:hover::after { width: 100%; }
-        .header-actions { display: flex; gap: 0.75rem; align-items: center; }
-
-        /* Theme Toggle */
-        .theme-toggle { width: 40px; height: 40px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
-        .theme-toggle:hover { background: var(--color-surface-elevated); }
-
-        /* Buttons */
-        .btn { padding: 0.625rem 1.25rem; border-radius: var(--radius-md); font-weight: 500; font-size: 0.875rem; cursor: pointer; transition: all var(--transition); border: none; font-family: inherit; display: inline-flex; align-items: center; gap: 0.5rem; }
-        .btn-secondary { background: transparent; color: var(--color-text-secondary); border: 1px solid var(--color-border); }
-        .btn-secondary:hover { background: var(--color-surface-elevated); border-color: var(--color-text-muted); color: var(--color-text); }
-        .btn-primary { background: var(--color-secondary); color: white; box-shadow: var(--shadow-sm); }
-        .btn-primary:hover { background: #1E40AF; box-shadow: var(--shadow-md); transform: translateY(-1px); }
-        .btn-gold { background: linear-gradient(135deg, var(--color-accent) 0%, #B45309 100%); color: white; }
-
-        /* Hero */
-        .hero { background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-background) 100%); padding: 3rem 2rem 2.5rem; text-align: center; position: relative; }
-        .hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%); opacity: 0.5; }
-        .hero-content { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
-        .trust-badges { display: flex; justify-content: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-        .trust-badge { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.875rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 100px; font-size: 0.75rem; font-weight: 500; color: var(--color-text-secondary); box-shadow: var(--shadow-sm); }
-        .trust-badge svg { width: 14px; height: 14px; color: var(--color-downstream); }
-        .hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; color: var(--color-primary); margin-bottom: 0.75rem; line-height: 1.2; letter-spacing: -0.02em; }
-        .hero-subtitle { font-size: 1.125rem; color: var(--color-text-secondary); margin-bottom: 0.5rem; font-weight: 500; }
-        .hero-desc { font-size: 0.95rem; color: var(--color-text-muted); margin-bottom: 2rem; max-width: 550px; margin-left: auto; margin-right: auto; }
-        .stats { display: flex; justify-content: center; gap: 1.5rem; margin-top: 1.5rem; }
-        .stat { text-align: center; padding: 1rem 1.5rem; background: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); min-width: 120px; }
-        .stat-value { font-size: 2rem; font-weight: 700; color: var(--color-secondary); line-height: 1; margin-bottom: 0.375rem; }
-        .stat-label { font-size: 0.8rem; color: var(--color-text-muted); font-weight: 500; }
-
-        /* Quick Workflow */
-        .quick-workflow { background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 1.25rem 2rem; }
-        .quick-workflow-content { max-width: 1400px; margin: 0 auto; }
-        .quick-workflow-title { font-size: 0.875rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
-        .workflow-chips { display: flex; gap: 0.625rem; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.25rem; }
-        .workflow-chips::-webkit-scrollbar { height: 4px; }
-        .workflow-chips::-webkit-scrollbar-track { background: transparent; }
-        .workflow-chips::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
-        .workflow-chip { padding: 0.5rem 1rem; background: linear-gradient(135deg, rgba(30, 58, 138, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%); border: 1px solid var(--color-border); border-radius: 100px; font-size: 0.8rem; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 0.375rem; }
-        .workflow-chip:hover { border-color: var(--color-secondary); color: var(--color-secondary); transform: translateY(-1px); }
-        .workflow-chip svg { width: 14px; height: 14px; }
-
-        /* Control Bar */
-        .control-bar { background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 1rem 2rem; position: sticky; top: 65px; z-index: 99; }
-        .control-content { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-        .search-box { flex: 1; min-width: 280px; max-width: 400px; position: relative; }
-        .search-box { position: relative; }
-        .search-box input { width: 100%; padding: 0.625rem 2.5rem 0.625rem 2.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 0.9rem; font-family: inherit; background: var(--color-surface); transition: all var(--transition); }
-        .search-box input:focus { outline: none; border-color: var(--color-secondary); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
-        .search-box .search-icon { position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--color-text-muted); pointer-events: none; }
-        .search-box .clear-btn {
-            position: absolute;
-            right: 0.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 24px;
-            height: 24px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            color: var(--color-text-muted);
-            font-size: 1rem;
-            border-radius: 50%;
+        /* ===== NAV ===== */
+        .nav {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-light);
+            padding: 0 2rem;
         }
-        .search-box .clear-btn:hover {
-            background: var(--color-surface-elevated);
-            color: var(--color-text);
+        .nav-inner {
+            max-width: var(--max); margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 60px;
         }
-        .search-box .clear-btn.visible {
-            display: flex;
+        .nav-logo {
+            display: flex; align-items: center; gap: 0.625rem;
+            font-family: var(--font-serif); font-weight: 700; font-size: 1.1rem;
+            color: var(--text); text-decoration: none;
         }
-        .filter-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-        .filter-tab { padding: 0.5rem 1rem; border: 1px solid var(--color-border); background: var(--color-surface); border-radius: var(--radius-md); cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--color-text-secondary); transition: all var(--transition); white-space: nowrap; }
-        .filter-tab:hover { border-color: var(--color-text-muted); background: var(--color-surface-elevated); }
-        .filter-tab.active { color: white; border-color: transparent; background: var(--color-secondary); }
-        .filter-tab .count { margin-left: 0.375rem; padding: 0.125rem 0.375rem; background: rgba(0,0,0,0.1); border-radius: 100px; font-size: 0.7rem; }
-        .sort-options { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--color-text-muted); margin-left: auto; }
-        .sort-options select { padding: 0.375rem 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.85rem; background: var(--color-surface); cursor: pointer; }
+        .nav-logo-badge {
+            width: 34px; height: 34px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--coral) 0%, #FF922B 100%);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 900; font-size: 1rem;
+            font-family: var(--font-serif);
+        }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a {
+            font-size: 0.875rem; font-weight: 500; color: var(--text-2);
+            text-decoration: none; transition: color 0.15s;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-right { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-user { font-size: 0.85rem; color: var(--text-2); }
+        .btn-nav {
+            padding: 0.5rem 1.125rem; border-radius: 8px;
+            font-size: 0.875rem; font-weight: 600; cursor: pointer;
+            border: none; font-family: var(--font-sans); transition: all 0.15s;
+        }
+        .btn-nav-ghost {
+            background: transparent; color: var(--text-2);
+            border: 1px solid var(--border);
+        }
+        .btn-nav-ghost:hover { background: var(--bg-warm); color: var(--text); }
+        .btn-nav-primary {
+            background: var(--coral); color: white;
+        }
+        .btn-nav-primary:hover { background: #d4604a; }
 
-        /* Agent Section */
-        .agent-section { padding: 1.5rem 2rem 3rem; max-width: 1400px; margin: 0 auto; }
-        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
-        .section-title { font-size: 1.25rem; font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 0.625rem; }
-        .section-title .indicator { width: 8px; height: 8px; border-radius: 50%; }
-        .view-toggle { display: flex; gap: 0.25rem; background: var(--color-surface); padding: 0.25rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); }
-        .view-btn { padding: 0.375rem 0.75rem; border: none; background: transparent; cursor: pointer; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--color-text-muted); transition: all var(--transition); }
-        .view-btn.active { background: var(--color-primary); color: white; }
-
-        /* Agent Grid */
-        .agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-        .agent-grid.list-view { 
-            grid-template-columns: 1fr; 
-            gap: 0.75rem;
+        /* ===== HERO ===== */
+        .hero {
+            background: var(--bg-warm);
+            padding: 5rem 2rem 4rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-light);
         }
-        .agent-grid.list-view .agent-card { 
-            display: flex; 
-            align-items: center; 
+        .hero-inner { max-width: 720px; margin: 0 auto; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.375rem 1rem; border-radius: 100px;
+            background: var(--coral-light); border: 1px solid var(--coral-mid);
+            font-size: 0.8rem; font-weight: 600; color: var(--coral);
+            margin-bottom: 1.75rem;
+        }
+        .hero h1 {
+            font-family: var(--font-serif);
+            font-size: clamp(2.25rem, 5vw, 3.25rem);
+            font-weight: 900; color: var(--text);
+            line-height: 1.2; letter-spacing: -0.01em;
+            margin-bottom: 1.25rem;
+        }
+        .hero h1 em {
+            font-style: normal; color: var(--coral);
+        }
+        .hero-sub {
+            font-size: 1.05rem; color: var(--text-2);
+            line-height: 1.7; margin-bottom: 2.5rem;
+            max-width: 560px; margin-left: auto; margin-right: auto;
+        }
+        .hero-actions { display: flex; gap: 0.875rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem; }
+        .btn-hero-primary {
+            padding: 0.875rem 2rem; border-radius: 10px;
+            background: var(--coral); color: white;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            border: none; font-family: var(--font-sans); transition: all 0.15s;
+        }
+        .btn-hero-primary:hover { background: #d4604a; transform: translateY(-1px); }
+        .btn-hero-ghost {
+            padding: 0.875rem 2rem; border-radius: 10px;
+            background: white; color: var(--text-2);
+            font-size: 1rem; font-weight: 500; cursor: pointer;
+            border: 1.5px solid var(--border); font-family: var(--font-sans); transition: all 0.15s;
+        }
+        .btn-hero-ghost:hover { border-color: var(--text-3); color: var(--text); }
+        .hero-stats {
+            display: flex; justify-content: center; gap: 3rem;
+            padding-top: 2.5rem; border-top: 1px solid var(--border-light);
+        }
+        .hero-stat { text-align: center; }
+        .hero-stat-num {
+            font-family: var(--font-serif); font-size: 2rem; font-weight: 900;
+            color: var(--text); line-height: 1;
+        }
+        .hero-stat-num span { color: var(--coral); }
+        .hero-stat-label { font-size: 0.8rem; color: var(--text-3); margin-top: 0.25rem; }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            background: white; border-bottom: 1px solid var(--border-light);
+            padding: 0 2rem; position: sticky; top: 60px; z-index: 99;
+        }
+        .filter-bar-inner {
+            max-width: var(--max); margin: 0 auto;
+            display: flex; align-items: center; gap: 1rem;
+            padding: 0.875rem 0; flex-wrap: wrap;
+        }
+        .search-wrap { position: relative; flex: 1; min-width: 220px; max-width: 320px; }
+        .search-wrap input {
+            width: 100%; padding: 0.5rem 0.875rem 0.5rem 2.25rem;
+            border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: 0.875rem; font-family: var(--font-sans);
+            background: var(--bg-warm); outline: none; transition: border-color 0.15s;
+        }
+        .search-wrap input:focus { border-color: var(--coral); background: white; }
+        .search-wrap .si {
+            position: absolute; left: 0.625rem; top: 50%;
+            transform: translateY(-50%); color: var(--text-3);
+            font-size: 0.9rem; pointer-events: none;
+        }
+        .search-wrap .clr {
+            position: absolute; right: 0.5rem; top: 50%;
+            transform: translateY(-50%); background: none; border: none;
+            cursor: pointer; color: var(--text-3); font-size: 1rem;
+            display: none; line-height: 1;
+        }
+        .search-wrap .clr.show { display: block; }
+        .tabs { display: flex; gap: 0.375rem; flex-wrap: wrap; }
+        .tab {
+            padding: 0.4rem 0.875rem; border-radius: 100px;
+            font-size: 0.8rem; font-weight: 500; cursor: pointer;
+            border: 1.5px solid var(--border); background: white;
+            color: var(--text-2); transition: all 0.15s; white-space: nowrap;
+        }
+        .tab:hover { border-color: var(--coral); color: var(--coral); }
+        .tab.active { background: var(--coral); border-color: var(--coral); color: white; }
+        .tab .cnt { margin-left: 0.25rem; opacity: 0.75; font-size: 0.75rem; }
+        .sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-3); }
+        .sort-wrap select {
+            padding: 0.375rem 0.625rem; border: 1.5px solid var(--border);
+            border-radius: 6px; font-size: 0.8rem; background: white;
+            cursor: pointer; font-family: var(--font-sans);
+        }
+
+        /* ===== AGENT GRID ===== */
+        .agents-section { max-width: var(--max); margin: 0 auto; padding: 2rem 2rem 4rem; }
+        .agents-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .agents-title {
+            font-family: var(--font-serif); font-size: 1.1rem; font-weight: 700;
+            color: var(--text); display: flex; align-items: center; gap: 0.5rem;
+        }
+        .agents-title-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: var(--coral);
+        }
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1rem;
-            padding: 1rem 1.25rem;
-        }
-        .agent-grid.list-view .agent-card::before {
-            width: 4px;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            height: auto;
-        }
-        .agent-grid.list-view .agent-header { 
-            margin: 0; 
-            flex: 1;
-            flex-direction: row;
-            align-items: center;
-            gap: 1rem;
-        }
-        .agent-grid.list-view .agent-avatar {
-            width: 40px;
-            height: 40px;
-            font-size: 1.1rem;
-        }
-        .agent-grid.list-view .agent-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .agent-grid.list-view .agent-name {
-            margin: 0;
-            white-space: nowrap;
-        }
-        .agent-grid.list-view .agent-meta {
-            margin: 0;
-        }
-        .agent-grid.list-view .agent-desc { 
-            display: none; 
-        }
-        .agent-grid.list-view .agent-footer { 
-            margin: 0; 
-            padding: 0; 
-            border: none;
-            gap: 1rem;
-        }
-        .agent-grid.list-view .agent-tags {
-            display: none;
         }
 
-        /* Agent Card */
-        .agent-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.25rem; transition: all var(--transition); cursor: pointer; position: relative; }
-        .agent-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); border-color: transparent; }
-        .agent-card.upstream:hover { border-color: var(--color-upstream-light); }
-        .agent-card.downstream:hover { border-color: var(--color-downstream-light); }
+        /* ===== AGENT CARD ===== */
+        .agent-card {
+            background: white; border: 1.5px solid var(--border);
+            border-radius: var(--r); padding: 1.25rem;
+            cursor: pointer; transition: all 0.18s;
+            position: relative; overflow: hidden;
+        }
+        .agent-card::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 3px;
+            border-radius: var(--r) var(--r) 0 0;
+        }
+        .agent-card.upstream::before { background: linear-gradient(90deg, var(--blue), #7BC8FF); }
+        .agent-card.downstream::before { background: linear-gradient(90deg, var(--coral), #FF922B); }
+        .agent-card:hover {
+            border-color: transparent;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
         .agent-card.hidden { display: none; }
-        .agent-card.favorite::after { content: '★'; position: absolute; top: 0.75rem; right: 0.75rem; color: var(--color-accent); font-size: 1rem; }
-        .agent-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-        .agent-card.upstream::before { background: linear-gradient(90deg, var(--color-upstream) 0%, var(--color-upstream-light) 100%); }
-        .agent-card.downstream::before { background: linear-gradient(90deg, var(--color-downstream) 0%, var(--color-downstream-light) 100%); }
 
-        .agent-header { display: flex; align-items: flex-start; gap: 0.875rem; margin-bottom: 0.875rem; margin-top: 0.375rem; }
-        .agent-avatar { width: 44px; height: 44px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
-        .agent-card.upstream .agent-avatar { background: rgba(30, 58, 138, 0.08); }
-        .agent-card.downstream .agent-avatar { background: rgba(5, 150, 105, 0.08); }
-        .agent-card[data-id="material-architect"] .agent-avatar { background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0.05) 100%); }
-        .agent-info { flex: 1; min-width: 0; }
-        .agent-name { font-weight: 700; color: var(--color-primary); margin-bottom: 0.25rem; font-size: 1rem; letter-spacing: -0.01em; }
-        .agent-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--color-text-muted); }
-        .agent-category { display: flex; align-items: center; gap: 0.25rem; }
-        .agent-category::before { content: ''; width: 4px; height: 4px; border-radius: 50%; }
-        .agent-card.upstream .agent-category::before { background: var(--color-upstream); }
-        .agent-card.downstream .agent-category::before { background: var(--color-downstream); }
-        .agent-usage { display: flex; align-items: center; gap: 0.25rem; }
-        .agent-usage::before { content: '•'; margin: 0 0.25rem; }
-        .agent-usage.hot { color: #EA580C; font-weight: 600; }
-        body.dark-mode .agent-usage.hot { color: #FB923C; }
-        .agent-card.favorite {
-            border-color: var(--color-accent);
-            box-shadow: 0 0 0 1px var(--color-accent);
+        .card-head { display: flex; align-items: flex-start; gap: 0.875rem; margin-bottom: 0.875rem; }
+        .card-avatar {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; flex-shrink: 0;
         }
-        .agent-card.favorite:hover {
-            box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-lg);
+        .upstream .card-avatar { background: var(--blue-light); }
+        .downstream .card-avatar { background: var(--coral-light); }
+        .card-meta { flex: 1; min-width: 0; }
+        .card-name {
+            font-weight: 700; font-size: 0.95rem; color: var(--text);
+            margin-bottom: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
+        .card-dept {
+            font-size: 0.75rem; color: var(--text-3);
+            display: flex; align-items: center; gap: 0.375rem;
+        }
+        .card-dept-badge {
+            padding: 0.1rem 0.5rem; border-radius: 100px;
+            font-size: 0.7rem; font-weight: 600;
+        }
+        .upstream .card-dept-badge { background: var(--blue-light); color: var(--blue); }
+        .downstream .card-dept-badge { background: var(--coral-light); color: var(--coral); }
+        .card-hot { color: #FF4444; font-size: 0.7rem; font-weight: 600; }
 
-        .agent-desc { font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 0.875rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-        .agent-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 0.875rem; border-top: 1px solid var(--color-border); }
-        .agent-tags { display: flex; gap: 0.375rem; }
-        .agent-tag { padding: 0.25rem 0.625rem; border-radius: 100px; font-size: 0.7rem; font-weight: 600; }
-        .agent-card.upstream .agent-tag { background: rgba(30, 58, 138, 0.08); color: var(--color-upstream); }
-        .agent-card.downstream .agent-tag { background: rgba(5, 150, 105, 0.08); color: var(--color-downstream); }
-
-        .agent-actions { display: flex; gap: 0.5rem; }
-        .btn-icon { width: 32px; height: 32px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition); font-size: 0.9rem; }
-        .btn-icon:hover { background: var(--color-surface-elevated); border-color: var(--color-text-muted); }
-        .btn-icon:active { transform: scale(0.9); }
-        .btn-icon.favorite { color: var(--color-accent); border-color: var(--color-accent); background: rgba(202, 138, 4, 0.1); animation: favorite-pop 0.3s ease; }
-        @keyframes favorite-pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-        .btn-launch.loading {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-        .btn-launch.loading::after {
-            content: '';
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid transparent;
-            border-top-color: currentColor;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-left: 6px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .btn-launch { padding: 0.5rem 1rem; border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none; color: white; transition: all var(--transition); }
-        .agent-card.upstream .btn-launch { background: var(--color-upstream); }
-        .agent-card.upstream .btn-launch:hover { background: #1E40AF; }
-        .agent-card.downstream .btn-launch { background: var(--color-downstream); }
-        .agent-card.downstream .btn-launch:hover { background: #047857; }
-
-        /* Empty State */
-        .empty-state { text-align: center; padding: 4rem 2rem; color: var(--color-text-muted); }
-        .empty-state svg { width: 64px; height: 64px; margin-bottom: 1rem; opacity: 0.3; }
-        .empty-state h3 { font-size: 1.125rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
-        .empty-state p { font-size: 0.9rem; }
-
-        /* Onboarding Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all var(--transition); }
-        .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal { background: var(--color-surface); border-radius: var(--radius-lg); padding: 2rem; max-width: 500px; width: 90%; box-shadow: var(--shadow-lg); transform: translateY(20px); transition: transform var(--transition); }
-        .modal-overlay.active .modal { transform: translateY(0); }
-        .modal h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; color: var(--color-primary); }
-        .modal p { color: var(--color-text-secondary); margin-bottom: 1.5rem; line-height: 1.6; }
-        .modal-steps { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
-        .modal-step { flex: 1; text-align: center; padding: 1rem; background: var(--color-surface-elevated); border-radius: var(--radius-md); }
-        .modal-step-number { width: 32px; height: 32px; background: var(--color-secondary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin: 0 auto 0.5rem; }
-        .modal-step-title { font-size: 0.875rem; font-weight: 600; color: var(--color-primary); }
-        .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
-
-        /* Dark Mode - Fixed */
-        body.dark-mode { 
-            --color-background: #0B1120; 
-            --color-surface: #1E293B; 
-            --color-surface-elevated: #334155; 
-            --color-text: #FFFFFF; 
-            --color-text-secondary: #E2E8F0; 
-            --color-text-muted: #94A3B8; 
-            --color-border: #475569;
-            --color-border-light: #334155;
-        }
-        body.dark-mode .header { 
-            background-color: rgba(30, 41, 59, 0.98); 
-            border-color: #475569;
-        }
-        body.dark-mode .hero {
-            background: linear-gradient(180deg, #1E293B 0%, #0B1120 100%);
-        }
-        body.dark-mode .hero h1 {
-            color: #FFFFFF;
-        }
-        body.dark-mode .hero-subtitle {
-            color: #E2E8F0;
-        }
-        body.dark-mode .hero-desc {
-            color: #94A3B8;
-        }
-        body.dark-mode .stat {
-            background: #1E293B;
-            border-color: #475569;
-        }
-        body.dark-mode .stat-value {
-            color: #60A5FA;
-        }
-        body.dark-mode .stat-label {
-            color: #94A3B8;
-        }
-        body.dark-mode .control-bar,
-        body.dark-mode .quick-workflow {
-            background: #1E293B;
-            border-color: #475569;
-        }
-        body.dark-mode .quick-workflow-title {
-            color: #E2E8F0;
-        }
-        body.dark-mode .workflow-chip {
-            background: #334155;
-            border-color: #475569;
-            color: #E2E8F0;
-        }
-        body.dark-mode .workflow-chip:hover {
-            border-color: #60A5FA;
-            color: #60A5FA;
-        }
-        body.dark-mode .filter-tab {
-            background: #334155;
-            border-color: #475569;
-            color: #E2E8F0;
-        }
-        body.dark-mode .filter-tab:hover {
-            background: #475569;
-        }
-        body.dark-mode .filter-tab.active {
-            background: #3B82F6;
-            color: white;
-        }
-        body.dark-mode .search-box input {
-            background: #334155;
-            border-color: #475569;
-            color: #FFFFFF;
-        }
-        body.dark-mode .search-box input::placeholder {
-            color: #94A3B8;
-        }
-        body.dark-mode .agent-card {
-            background: #1E293B;
-            border-color: #475569;
-        }
-        body.dark-mode .agent-card:hover {
-            border-color: #60A5FA;
-        }
-        body.dark-mode .agent-name {
-            color: #FFFFFF;
-        }
-        body.dark-mode .agent-desc {
-            color: #CBD5E1;
-        }
-        body.dark-mode .section-title {
-            color: #FFFFFF;
-        }
-        body.dark-mode .view-btn {
-            color: #94A3B8;
-        }
-        body.dark-mode .view-btn.active {
-            background: #3B82F6;
-            color: white;
-        }
-        body.dark-mode .btn-secondary {
-            background: #334155;
-            border-color: #475569;
-            color: #E2E8F0;
-        }
-        body.dark-mode .btn-secondary:hover {
-            background: #475569;
-            color: #FFFFFF;
-        }
-        body.dark-mode .empty-state h3 {
-            color: #E2E8F0;
-        }
-        body.dark-mode .modal {
-            background: #1E293B;
-        }
-        body.dark-mode .modal h2 {
-            color: #FFFFFF;
-        }
-        body.dark-mode .modal p {
-            color: #CBD5E1;
-        }
-        body.dark-mode .modal-step {
-            background: #334155;
-        }
-        body.dark-mode .modal-step-title {
-            color: #E2E8F0;
-        }
-        body.dark-mode .logo {
-            color: #FFFFFF;
-        }
-        body.dark-mode .trust-badge {
-            background: #334155;
-            border-color: #475569;
-            color: #E2E8F0;
-        }
-        body.dark-mode .btn-icon {
-            background: #334155;
-            border-color: #475569;
-            color: #E2E8F0;
-        }
-        body.dark-mode .btn-icon:hover {
-            background: #475569;
-        }
-        body.dark-mode .agent-card.favorite {
-            border-color: #FBBF24;
-            box-shadow: 0 0 0 1px #FBBF24;
-        }
-        body.dark-mode .mobile-filter-select {
-            background: #334155;
-            border-color: #475569;
-            color: #FFFFFF;
-        }
-        body.dark-mode .search-box .clear-btn {
-            color: #94A3B8;
-        }
-        body.dark-mode .search-box .clear-btn:hover {
-            background: #475569;
-            color: #FFFFFF;
+        .card-desc {
+            font-size: 0.825rem; color: var(--text-2); line-height: 1.55;
+            margin-bottom: 1rem; display: -webkit-box;
+            -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
 
-        /* Mobile Filter Dropdown */
-        .mobile-filter-select {
-            display: none;
-            width: 100%;
-            padding: 0.625rem 1rem;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            font-size: 0.9rem;
-            background: var(--color-surface);
-            cursor: pointer;
+        .card-foot { display: flex; align-items: center; justify-content: space-between; }
+        .card-tags { display: flex; gap: 0.375rem; flex-wrap: wrap; }
+        .card-tag {
+            padding: 0.15rem 0.5rem; border-radius: 4px;
+            font-size: 0.7rem; font-weight: 500;
+            background: var(--bg-warm); color: var(--text-3);
+            border: 1px solid var(--border-light);
+        }
+        .card-actions { display: flex; gap: 0.375rem; align-items: center; }
+        .btn-fav {
+            width: 30px; height: 30px; border-radius: 7px;
+            background: none; border: 1.5px solid var(--border);
+            cursor: pointer; font-size: 0.875rem; transition: all 0.15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-fav:hover { border-color: var(--yellow); background: var(--yellow-light); }
+        .btn-fav.active { border-color: var(--yellow); background: var(--yellow-light); }
+        .btn-use {
+            padding: 0.4rem 1rem; border-radius: 7px;
+            background: var(--coral); color: white;
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            border: none; font-family: var(--font-sans); transition: all 0.15s;
+        }
+        .btn-use:hover { background: #d4604a; }
+        .btn-use.loading { opacity: 0.6; cursor: wait; }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center; padding: 4rem 2rem;
+            color: var(--text-3); display: none;
+        }
+        .empty-state h3 { font-size: 1.1rem; color: var(--text-2); margin-bottom: 0.5rem; }
+        .empty-state p { font-size: 0.875rem; }
+
+        /* ===== MOBILE ===== */
+        .mobile-filter {
+            display: none; width: 100%;
+            padding: 0.5rem 0.875rem; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: 0.875rem; background: var(--bg-warm);
+            font-family: var(--font-sans); cursor: pointer;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
-            .header-content { padding: 1rem; }
-            .nav { display: none; }
-            .hero { padding: 2rem 1rem 1.5rem; }
-            .stats { flex-direction: column; gap: 0.75rem; }
-            .stat { width: 100%; max-width: 200px; margin: 0 auto; }
-            .quick-workflow { padding: 1rem; }
-            .control-bar { padding: 0.875rem 1rem; top: 57px; }
-            .control-content { flex-direction: column; align-items: stretch; }
-            .search-box { max-width: none; min-width: auto; }
-            .sort-options { margin-left: 0; }
-            .filter-tabs { display: none; }
-            .mobile-filter-select { display: block; }
+            .nav-links { display: none; }
+            .hero { padding: 3rem 1.25rem 2.5rem; }
+            .hero-stats { gap: 1.5rem; }
+            .filter-bar { padding: 0 1.25rem; }
+            .tabs { display: none; }
+            .mobile-filter { display: block; }
+            .sort-wrap { display: none; }
+            .agents-section { padding: 1.5rem 1.25rem 3rem; }
             .agent-grid { grid-template-columns: 1fr; }
-            .agent-section { padding: 1rem 1rem 2rem; }
-            .modal { padding: 1.5rem; }
-            .modal-steps { flex-direction: column; }
-            .agent-card { padding: 1rem; }
-            .view-toggle { display: none; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <a href="#" class="logo">
-                <div class="logo-icon">M</div>
-                <span>MedAgent Hub</span>
-            </a>
-            <nav class="nav">
-                <a href="#agents">智能助手</a>
-                <a href="#workflows">工作流</a>
-                <a href="#analytics">数据洞察</a>
-            </nav>
-            <div class="header-actions" id="headerActions">
-                <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">🌙</button>
-                <button class="btn btn-secondary">帮助</button>
-                <button class="btn btn-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">开始使用</button>
-            </div>
-        </div>
-    </header>
 
-    <!-- Hero -->
-    <section class="hero">
-        <div class="hero-content">
-            <div class="trust-badges">
-                <div class="trust-badge">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    医疗级安全合规
-                </div>
-                <div class="trust-badge">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    16个精品Agent
-                </div>
-                <div class="trust-badge">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    全链路覆盖
-                </div>
-            </div>
-            <h1>医美行业智能助手平台</h1>
-            <p class="hero-subtitle">覆盖上游厂商到下游机构的全链路业务场景</p>
-            <p class="hero-desc">从战略制定到销售转化，从医疗安全到客户留存，16个精品Agent为您提供专业级智能服务</p>
-            <div class="stats">
-                <div class="stat"><div class="stat-value">7</div><div class="stat-label">上游厂商 Agent</div></div>
-                <div class="stat"><div class="stat-value">9</div><div class="stat-label">下游机构 Agent</div></div>
-                <div class="stat"><div class="stat-value">100%</div><div class="stat-label">业务场景覆盖</div></div>
-            </div>
+<!-- NAV -->
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="#" class="nav-logo">
+            <div class="nav-logo-badge">M</div>
+            MedAgent Hub
+        </a>
+        <div class="nav-links">
+            <a href="#agents">智能助手</a>
+            <a href="https://medagent.filldmy.com/login.html">登录</a>
         </div>
-    </section>
+        <div class="nav-right" id="navRight">
+            <button class="btn-nav btn-nav-ghost" onclick="window.location.href='/login.html'">登录</button>
+            <button class="btn-nav btn-nav-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">开始使用</button>
+        </div>
+    </div>
+</nav>
 
-    <!-- Quick Workflow -->
-    <div class="quick-workflow">
-        <div class="quick-workflow-content">
-            <div class="quick-workflow-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                快速工作流
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-inner">
+        <div class="hero-badge">
+            🏥 专为医美行业打造
+        </div>
+        <h1>医美行业的<br><em>AI 助手团队</em></h1>
+        <p class="hero-sub">
+            覆盖上游厂商到下游机构的全链路业务场景——<br>
+            从 GTM 战略到销售转化，从学术推广到术后管理，16 个精品 Agent 随时待命。
+        </p>
+        <div class="hero-actions">
+            <button class="btn-hero-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">
+                立即体验 →
+            </button>
+            <button class="btn-hero-ghost" onclick="window.location.href='/login.html'">
+                邀请码登录
+            </button>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-num"><span>16</span></div>
+                <div class="hero-stat-label">精品 Agent</div>
             </div>
-            <div class="workflow-chips">
-                <div class="workflow-chip" onclick="runWorkflow('consultation')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
-                    咨询接待流
-                </div>
-                <div class="workflow-chip" onclick="runWorkflow('design')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 6.34L2.1 2.1m17.8 17.8l-4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.24-4.24l-4.24 4.24M6.34 6.34l-4.24-4.24"/></svg>
-                    方案设计流
-                </div>
-                <div class="workflow-chip" onclick="runWorkflow('postop')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    术后管理流
-                </div>
-                <div class="workflow-chip" onclick="runWorkflow('gtm')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    新品上市流
-                </div>
+            <div class="hero-stat">
+                <div class="hero-stat-num"><span>7</span></div>
+                <div class="hero-stat-label">上游厂商场景</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-num"><span>9</span></div>
+                <div class="hero-stat-label">下游机构场景</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-num"><span>100%</span></div>
+                <div class="hero-stat-label">全链路覆盖</div>
             </div>
         </div>
     </div>
+</section>
 
-    <!-- Control Bar -->
-    <div class="control-bar">
-        <div class="control-content">
-            <div class="search-box">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                <input type="text" id="searchInput" placeholder="搜索 Agent 名称、部门或功能..." oninput="filterAgents()">
-                <button class="clear-btn" id="clearSearch" onclick="clearSearch()">×</button>
-            </div>
-            <div class="filter-tabs">
-                <button class="filter-tab active" onclick="setFilter('all')">全部<span class="count">16</span></button>
-                <button class="filter-tab" onclick="setFilter('upstream')">🏭 上游<span class="count">7</span></button>
-                <button class="filter-tab" onclick="setFilter('downstream')">🏥 下游<span class="count">9</span></button>
-                <button class="filter-tab" onclick="setFilter('favorites')">⭐ 收藏</button>
-                <button class="filter-tab" onclick="setFilter('strategy')">战略</button>
-                <button class="filter-tab" onclick="setFilter('sales')">销售</button>
-                <button class="filter-tab" onclick="setFilter('medical')">医疗</button>
-            </div>
-            <select class="mobile-filter-select" onchange="setFilterMobile(this.value)">
-                <option value="all">全部 (16)</option>
-                <option value="upstream">🏭 上游 (7)</option>
-                <option value="downstream">🏥 下游 (9)</option>
-                <option value="favorites">⭐ 收藏</option>
-                <option value="strategy">战略</option>
-                <option value="sales">销售</option>
-                <option value="medical">医疗</option>
+<!-- FILTER BAR -->
+<div class="filter-bar" id="agents">
+    <div class="filter-bar-inner">
+        <div class="search-wrap">
+            <span class="si">🔍</span>
+            <input type="text" id="searchInput" placeholder="搜索 Agent..." oninput="filterAgents(this.value)">
+            <button class="clr" id="clrBtn" onclick="clearSearch()">×</button>
+        </div>
+        <div class="tabs">
+            <button class="tab active" data-filter="all" onclick="setFilter('all')">全部 <span class="cnt">16</span></button>
+            <button class="tab" data-filter="upstream" onclick="setFilter('upstream')">🏭 上游 <span class="cnt">7</span></button>
+            <button class="tab" data-filter="downstream" onclick="setFilter('downstream')">🏥 下游 <span class="cnt">9</span></button>
+            <button class="tab" data-filter="favorites" onclick="setFilter('favorites')">⭐ 收藏</button>
+            <button class="tab" data-filter="strategy" onclick="setFilter('strategy')">战略</button>
+            <button class="tab" data-filter="sales" onclick="setFilter('sales')">销售</button>
+            <button class="tab" data-filter="medical" onclick="setFilter('medical')">医疗</button>
+        </div>
+        <select class="mobile-filter" onchange="setFilter(this.value)">
+            <option value="all">全部 (16)</option>
+            <option value="upstream">🏭 上游 (7)</option>
+            <option value="downstream">🏥 下游 (9)</option>
+            <option value="favorites">⭐ 收藏</option>
+            <option value="strategy">战略</option>
+            <option value="sales">销售</option>
+            <option value="medical">医疗</option>
+        </select>
+        <div class="sort-wrap">
+            <span>排序：</span>
+            <select id="sortSel" onchange="sortAgents(this.value)">
+                <option value="default">默认</option>
+                <option value="usage">使用频率</option>
+                <option value="name">名称</option>
             </select>
-            <div class="sort-options">
-                <span>排序:</span>
-                <select id="sortSelect" onchange="sortAgents()">
-                    <option value="default">默认</option>
-                    <option value="usage">使用频率</option>
-                    <option value="name">名称</option>
-                </select>
-            </div>
         </div>
     </div>
+</div>
 
-    <!-- Agent Section -->
-    <section class="agent-section">
-        <div class="section-header">
-            <h2 class="section-title" id="sectionTitle">
-                <span class="indicator" style="background: var(--color-secondary);"></span>
-                全部 Agent
-            </h2>
-            <div class="view-toggle">
-                <button class="view-btn active" onclick="setView('grid')" title="网格视图">▦</button>
-                <button class="view-btn" onclick="setView('list')" title="列表视图">☰</button>
-            </div>
-        </div>
-        <div class="agent-grid" id="agentGrid">
-            <!-- Upstream Agents -->
-            <div class="agent-card upstream" data-category="upstream strategy" data-usage="128" data-name="GTM战略大师" data-id="gtm-strategy">
-                <div class="agent-header">
-                    <div class="agent-avatar">🎯</div>
-                    <div class="agent-info">
-                        <div class="agent-name">GTM战略大师</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">战略部</span>
-                            <span class="agent-usage">本周 128 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">整合战略定位、循证背书、组品方案、价格控盘的超级战略Agent</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">战略</span><span class="agent-tag">GTM</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'gtm-strategy')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('gtm-strategy')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card upstream" data-category="upstream product" data-usage="96" data-name="产品材料专家" data-id="product-expert">
-                <div class="agent-header">
-                    <div class="agent-avatar">🧪</div>
-                    <div class="agent-info">
-                        <div class="agent-name">产品材料专家</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">产品部</span>
-                            <span class="agent-usage">本周 96 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">精通流变学、PACER模型、材料选择与机理拆解的技术专家</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">产品</span><span class="agent-tag">材料</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'product-expert')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('product-expert')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card upstream" data-category="upstream medical" data-usage="84" data-name="学术推广专家" data-id="academic-liaison">
-                <div class="agent-header">
-                    <div class="agent-avatar">🎓</div>
-                    <div class="agent-info">
-                        <div class="agent-name">学术推广专家</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">医学部</span>
-                            <span class="agent-usage">本周 84 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">首席医学联络官，擅长KOL征服与学术叙事</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">学术</span><span class="agent-tag">KOL</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'academic-liaison')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('academic-liaison')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card upstream" data-category="upstream marketing" data-usage="112" data-name="市场创意总监" data-id="marketing-director">
-                <div class="agent-header">
-                    <div class="agent-avatar">✨</div>
-                    <div class="agent-info">
-                        <div class="agent-name">市场创意总监</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">市场部</span>
-                            <span class="agent-usage">本周 112 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">整合新媒体、视觉创意、种草运营、科学视觉的超级创意Agent</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">市场</span><span class="agent-tag">创意</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'marketing-director')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('marketing-director')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card upstream" data-category="upstream sales" data-usage="156" data-name="销售作战总监" data-id="sales-director">
-                <div class="agent-header">
-                    <div class="agent-avatar">⚔️</div>
-                    <div class="agent-info">
-                        <div class="agent-name">销售作战总监</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">销售部</span>
-                            <span class="agent-usage hot">本周 156 次 🔥</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">整合销售总监、大区经理、商务经理的超级销售Agent</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">销售</span><span class="agent-tag">渠道</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'sales-director')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('sales-director')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card upstream" data-category="upstream operations" data-usage="72" data-name="运营效能总监" data-id="operations-director">
-                <div class="agent-header">
-                    <div class="agent-avatar">⚙️</div>
-                    <div class="agent-info">
-                        <div class="agent-name">运营效能总监</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">运营部</span>
-                            <span class="agent-usage">本周 72 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">整合SFE、财务、采购的综合运营Agent</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">运营</span><span class="agent-tag">SFE</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'operations-director')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('operations-director')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card upstream" data-category="upstream training" data-usage="88" data-name="培训赋能总监" data-id="training-director">
-                <div class="agent-header">
-                    <div class="agent-avatar">📚</div>
-                    <div class="agent-info">
-                        <div class="agent-name">培训赋能总监</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">培训部</span>
-                            <span class="agent-usage">本周 88 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">ASK模型、反差教学、通关护照的培训专家</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">培训</span><span class="agent-tag">ASK</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'training-director')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('training-director')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Downstream Agents -->
-            <div class="agent-card downstream" data-category="downstream consultation" data-usage="203" data-name="高定美学设计总监" data-id="aesthetic-design">
-                <div class="agent-header">
-                    <div class="agent-avatar">💎</div>
-                    <div class="agent-info">
-                        <div class="agent-name">高定美学设计总监</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">咨询部</span>
-                            <span class="agent-usage hot">本周 203 次 🔥</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">服务于Top 1%高净值人群的面部美学设计专家</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">美学</span><span class="agent-tag">设计</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'aesthetic-design')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('aesthetic-design')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card downstream favorite" data-category="downstream consultation" data-usage="267" data-name="金牌医美咨询师" data-id="senior-consultant">
-                <div class="agent-header">
-                    <div class="agent-avatar">🥇</div>
-                    <div class="agent-info">
-                        <div class="agent-name">金牌医美咨询师</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">咨询部</span>
-                            <span class="agent-usage hot">本周 267 次 🔥</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">10年一线经验的销冠级咨询师，精通SPIN与三明治报价</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">咨询</span><span class="agent-tag">销售</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon favorite" onclick="toggleFavorite(event, 'senior-consultant')">★</button>
-                        <button class="btn-launch" onclick="launchAgent('senior-consultant')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card downstream" data-category="downstream training" data-usage="134" data-name="医美实战陪练机器人" data-id="sparring-robot">
-                <div class="agent-header">
-                    <div class="agent-avatar">🥊</div>
-                    <div class="agent-info">
-                        <div class="agent-name">医美实战陪练机器人</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">培训部</span>
-                            <span class="agent-usage">本周 134 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">HP动态情绪系统，高压仿真话术训练</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">培训</span><span class="agent-tag">陪练</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'sparring-robot')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('sparring-robot')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card downstream favorite" data-category="downstream service" data-usage="189" data-name="医美术后私域管家" data-id="post-op-guardian">
-                <div class="agent-header">
-                    <div class="agent-avatar">🛡️</div>
-                    <div class="agent-info">
-                        <div class="agent-name">医美术后私域管家</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">客服部</span>
-                            <span class="agent-usage hot">本周 189 次 🔥</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">红绿灯风险分诊，将术后焦虑转化为复购信任</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">术后</span><span class="agent-tag">私域</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon favorite" onclick="toggleFavorite(event, 'post-op-guardian')">★</button>
-                        <button class="btn-launch" onclick="launchAgent('post-op-guardian')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card downstream" data-category="downstream marketing" data-usage="145" data-name="医美爆款种草官" data-id="trend-setter">
-                <div class="agent-header">
-                    <div class="agent-avatar">🔥</div>
-                    <div class="agent-info">
-                        <div class="agent-name">医美爆款种草官</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">运营部</span>
-                            <span class="agent-usage">本周 145 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">小红书算法与医美合规风控的内容炼金术师</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">种草</span><span class="agent-tag">内容</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'trend-setter')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('trend-setter')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card downstream" data-category="downstream medical" data-usage="98" data-name="医美解剖决策建筑师" data-id="anatomy-architect">
-                <div class="agent-header">
-                    <div class="agent-avatar">🏗️</div>
-                    <div class="agent-info">
-                        <div class="agent-name">医美解剖决策建筑师</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">医疗部</span>
-                            <span class="agent-usage">本周 98 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">PACER模型，面部建筑结构分析，安全预警</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">解剖</span><span class="agent-tag">PACER</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'anatomy-architect')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('anatomy-architect')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card downstream" data-category="downstream medical" data-usage="76" data-name="医美材料学硬核导师" data-id="materials-mentor">
-                <div class="agent-header">
-                    <div class="agent-avatar">🧬</div>
-                    <div class="agent-info">
-                        <div class="agent-name">医美材料学硬核导师</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">医疗部</span>
-                            <span class="agent-usage">本周 76 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">营销剥离，PACER深度拆解，灵魂拷问</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">材料</span><span class="agent-tag">硬核</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'materials-mentor')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('materials-mentor')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card downstream" data-category="downstream medical" data-usage="82" data-name="医美材料学架构师" data-id="material-architect">
-                <div class="agent-header">
-                    <div class="agent-avatar">🏗️</div>
-                    <div class="agent-info">
-                        <div class="agent-name">医美材料学架构师</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">医疗部</span>
-                            <span class="agent-usage">本周 82 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">6维评估模型，场景判别，合规底线，专业决策</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">评估</span><span class="agent-tag">决策</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'material-architect')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('material-architect')">启动</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="agent-card downstream" data-category="downstream marketing" data-usage="67" data-name="医美视觉通译官" data-id="visual-translator">
-                <div class="agent-header">
-                    <div class="agent-avatar">🎨</div>
-                    <div class="agent-info">
-                        <div class="agent-name">医美视觉通译官</div>
-                        <div class="agent-meta">
-                            <span class="agent-category">运营部</span>
-                            <span class="agent-usage">本周 67 次</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="agent-desc">机理转视觉画面，设计师Brief，3D渲染指导</p>
-                <div class="agent-footer">
-                    <div class="agent-tags"><span class="agent-tag">视觉</span><span class="agent-tag">设计</span></div>
-                    <div class="agent-actions">
-                        <button class="btn-icon" onclick="toggleFavorite(event, 'visual-translator')">☆</button>
-                        <button class="btn-launch" onclick="launchAgent('visual-translator')">启动</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Empty State -->
-        <div class="empty-state" id="emptyState" style="display: none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <h3>未找到匹配的 Agent</h3>
-            <p>请尝试其他关键词或筛选条件</p>
-            <button class="btn btn-secondary" onclick="resetFilters()" style="margin-top: 1rem;">清除筛选</button>
-        </div>
-    </section>
-
-    <!-- Onboarding Modal -->
-    <div class="modal-overlay" id="onboardingModal">
-        <div class="modal">
-            <h2>👋 欢迎使用 MedAgent Hub</h2>
-            <p>16个精品Agent覆盖医美行业全链路，从上游厂商到下游机构，为您提供专业级智能服务。</p>
-            <div class="modal-steps">
-                <div class="modal-step">
-                    <div class="modal-step-number">1</div>
-                    <div class="modal-step-title">选择Agent</div>
-                </div>
-                <div class="modal-step">
-                    <div class="modal-step-number">2</div>
-                    <div class="modal-step-title">输入需求</div>
-                </div>
-                <div class="modal-step">
-                    <div class="modal-step-number">3</div>
-                    <div class="modal-step-title">获取方案</div>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeModal()">稍后再说</button>
-                <button class="btn btn-primary" onclick="closeModal()">开始使用</button>
-            </div>
-        </div>
+<!-- AGENTS SECTION -->
+<section class="agents-section">
+    <div class="agents-header">
+        <h2 class="agents-title">
+            <span class="agents-title-dot"></span>
+            <span id="sectionTitle">全部 Agent</span>
+        </h2>
     </div>
 
-    <script>
-        // State
-        let currentFilter = 'all';
-        let currentSearch = '';
-        let favorites = JSON.parse(localStorage.getItem('medagent_favorites') || '[]');
-        let currentView = 'grid';
+    <div class="agent-grid" id="agentGrid">
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            updateFavoriteButtons();
-            
-            // Show onboarding for first-time users
-            if (!localStorage.getItem('medagent_visited')) {
-                document.getElementById('onboardingModal').classList.add('active');
-                localStorage.setItem('medagent_visited', 'true');
+        <!-- ===== UPSTREAM AGENTS ===== -->
+        <div class="agent-card upstream" data-category="upstream strategy" data-usage="128" data-name="GTM战略大师" data-id="gtm-strategy">
+            <div class="card-head">
+                <div class="card-avatar">🎯</div>
+                <div class="card-meta">
+                    <div class="card-name">GTM战略大师</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">战略部</span>
+                        <span>本周 128 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">整合战略定位、循证背书、组品方案、价格控盘的超级战略 Agent</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">战略</span><span class="card-tag">GTM</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'gtm-strategy')">☆</button>
+                    <button class="btn-use" onclick="useAgent('gtm-strategy')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream product" data-usage="96" data-name="产品材料专家" data-id="product-expert">
+            <div class="card-head">
+                <div class="card-avatar">🧪</div>
+                <div class="card-meta">
+                    <div class="card-name">产品材料专家</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">产品部</span>
+                        <span>本周 96 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">精通流变学、PACER 模型、材料选择与机理拆解的技术专家</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">产品</span><span class="card-tag">材料</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'product-expert')">☆</button>
+                    <button class="btn-use" onclick="useAgent('product-expert')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream medical" data-usage="84" data-name="学术推广专家" data-id="academic-liaison">
+            <div class="card-head">
+                <div class="card-avatar">🎓</div>
+                <div class="card-meta">
+                    <div class="card-name">学术推广专家</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">医学部</span>
+                        <span>本周 84 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">首席医学联络官，擅长 KOL 征服与学术叙事</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">学术</span><span class="card-tag">KOL</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'academic-liaison')">☆</button>
+                    <button class="btn-use" onclick="useAgent('academic-liaison')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream marketing" data-usage="112" data-name="市场创意总监" data-id="marketing-director">
+            <div class="card-head">
+                <div class="card-avatar">✨</div>
+                <div class="card-meta">
+                    <div class="card-name">市场创意总监</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">市场部</span>
+                        <span>本周 112 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">整合新媒体、视觉创意、种草运营、科学视觉的超级创意 Agent</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">市场</span><span class="card-tag">创意</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'marketing-director')">☆</button>
+                    <button class="btn-use" onclick="useAgent('marketing-director')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream sales" data-usage="156" data-name="销售作战总监" data-id="sales-director">
+            <div class="card-head">
+                <div class="card-avatar">⚔️</div>
+                <div class="card-meta">
+                    <div class="card-name">销售作战总监</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">销售部</span>
+                        <span>本周 156 次 <span class="card-hot">🔥</span></span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">整合销售总监、大区经理、商务经理的超级销售 Agent</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">销售</span><span class="card-tag">渠道</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'sales-director')">☆</button>
+                    <button class="btn-use" onclick="useAgent('sales-director')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream operations" data-usage="72" data-name="运营效能总监" data-id="operations-director">
+            <div class="card-head">
+                <div class="card-avatar">⚙️</div>
+                <div class="card-meta">
+                    <div class="card-name">运营效能总监</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">运营部</span>
+                        <span>本周 72 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">整合 SFE、财务、采购的综合运营 Agent</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">运营</span><span class="card-tag">SFE</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'operations-director')">☆</button>
+                    <button class="btn-use" onclick="useAgent('operations-director')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card upstream" data-category="upstream training" data-usage="88" data-name="培训赋能总监" data-id="training-director">
+            <div class="card-head">
+                <div class="card-avatar">📚</div>
+                <div class="card-meta">
+                    <div class="card-name">培训赋能总监</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">培训部</span>
+                        <span>本周 88 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">ASK 模型、反差教学、通关护照的培训专家</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">培训</span><span class="card-tag">ASK</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'training-director')">☆</button>
+                    <button class="btn-use" onclick="useAgent('training-director')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== DOWNSTREAM AGENTS ===== -->
+        <div class="agent-card downstream" data-category="downstream consultation" data-usage="203" data-name="高定美学设计总监" data-id="aesthetic-design">
+            <div class="card-head">
+                <div class="card-avatar">💎</div>
+                <div class="card-meta">
+                    <div class="card-name">高定美学设计总监</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">咨询部</span>
+                        <span>本周 203 次 <span class="card-hot">🔥</span></span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">服务于 Top 1% 高净值人群的面部美学设计专家</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">美学</span><span class="card-tag">设计</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'aesthetic-design')">☆</button>
+                    <button class="btn-use" onclick="useAgent('aesthetic-design')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card downstream" data-category="downstream consultation" data-usage="267" data-name="金牌医美咨询师" data-id="senior-consultant">
+            <div class="card-head">
+                <div class="card-avatar">🥇</div>
+                <div class="card-meta">
+                    <div class="card-name">金牌医美咨询师</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">咨询部</span>
+                        <span>本周 267 次 <span class="card-hot">🔥</span></span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">10 年一线经验的销冠级咨询师，精通 SPIN 与三明治报价</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">咨询</span><span class="card-tag">销售</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'senior-consultant')">☆</button>
+                    <button class="btn-use" onclick="useAgent('senior-consultant')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card downstream" data-category="downstream training" data-usage="134" data-name="医美实战陪练机器人" data-id="sparring-robot">
+            <div class="card-head">
+                <div class="card-avatar">🥊</div>
+                <div class="card-meta">
+                    <div class="card-name">医美实战陪练机器人</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">培训部</span>
+                        <span>本周 134 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">HP 动态情绪系统，高压仿真话术训练</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">培训</span><span class="card-tag">陪练</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'sparring-robot')">☆</button>
+                    <button class="btn-use" onclick="useAgent('sparring-robot')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card downstream" data-category="downstream service" data-usage="189" data-name="医美术后私域管家" data-id="post-op-guardian">
+            <div class="card-head">
+                <div class="card-avatar">🛡️</div>
+                <div class="card-meta">
+                    <div class="card-name">医美术后私域管家</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">客服部</span>
+                        <span>本周 189 次 <span class="card-hot">🔥</span></span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">红绿灯风险分诊，将术后焦虑转化为复购信任</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">术后</span><span class="card-tag">私域</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'post-op-guardian')">☆</button>
+                    <button class="btn-use" onclick="useAgent('post-op-guardian')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card downstream" data-category="downstream marketing" data-usage="145" data-name="医美爆款种草官" data-id="trend-setter">
+            <div class="card-head">
+                <div class="card-avatar">🔥</div>
+                <div class="card-meta">
+                    <div class="card-name">医美爆款种草官</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">运营部</span>
+                        <span>本周 145 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">小红书算法与医美合规风控的内容炼金术师</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">种草</span><span class="card-tag">内容</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'trend-setter')">☆</button>
+                    <button class="btn-use" onclick="useAgent('trend-setter')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card downstream" data-category="downstream medical" data-usage="98" data-name="医美解剖决策建筑师" data-id="anatomy-architect">
+            <div class="card-head">
+                <div class="card-avatar">🏗️</div>
+                <div class="card-meta">
+                    <div class="card-name">医美解剖决策建筑师</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">医疗部</span>
+                        <span>本周 98 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">PACER 模型，面部建筑结构分析，安全预警</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">解剖</span><span class="card-tag">PACER</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'anatomy-architect')">☆</button>
+                    <button class="btn-use" onclick="useAgent('anatomy-architect')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card downstream" data-category="downstream medical" data-usage="76" data-name="医美材料学硬核导师" data-id="materials-mentor">
+            <div class="card-head">
+                <div class="card-avatar">🧬</div>
+                <div class="card-meta">
+                    <div class="card-name">医美材料学硬核导师</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">医疗部</span>
+                        <span>本周 76 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">营销剥离，PACER 深度拆解，灵魂拷问</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">材料</span><span class="card-tag">硬核</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'materials-mentor')">☆</button>
+                    <button class="btn-use" onclick="useAgent('materials-mentor')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card downstream" data-category="downstream medical" data-usage="82" data-name="医美材料学架构师" data-id="material-architect">
+            <div class="card-head">
+                <div class="card-avatar">🏗️</div>
+                <div class="card-meta">
+                    <div class="card-name">医美材料学架构师</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">医疗部</span>
+                        <span>本周 82 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">6 维评估模型，场景判别，合规底线，专业决策</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">评估</span><span class="card-tag">决策</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'material-architect')">☆</button>
+                    <button class="btn-use" onclick="useAgent('material-architect')">使用</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="agent-card downstream" data-category="downstream marketing" data-usage="67" data-name="医美视觉通译官" data-id="visual-translator">
+            <div class="card-head">
+                <div class="card-avatar">🎨</div>
+                <div class="card-meta">
+                    <div class="card-name">医美视觉通译官</div>
+                    <div class="card-dept">
+                        <span class="card-dept-badge">运营部</span>
+                        <span>本周 67 次</span>
+                    </div>
+                </div>
+            </div>
+            <p class="card-desc">机理转视觉画面，设计师 Brief，3D 渲染指导</p>
+            <div class="card-foot">
+                <div class="card-tags"><span class="card-tag">视觉</span><span class="card-tag">设计</span></div>
+                <div class="card-actions">
+                    <button class="btn-fav" onclick="toggleFav(event,'visual-translator')">☆</button>
+                    <button class="btn-use" onclick="useAgent('visual-translator')">使用</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="empty-state" id="emptyState">
+        <h3>未找到匹配的 Agent</h3>
+        <p>请尝试其他关键词或筛选条件</p>
+    </div>
+</section>
+
+<script>
+    var currentFilter = 'all';
+    var currentSearch = '';
+    var favorites = JSON.parse(localStorage.getItem('medagent_favorites') || '[]');
+
+    // Init
+    document.addEventListener('DOMContentLoaded', function() {
+        updateFavBtns();
+        sortAgentsByRole();
+        checkAuth();
+    });
+
+    // Role-based sorting
+    function sortAgentsByRole() {
+        var role = localStorage.getItem('medagent_role');
+        if (!role || role === 'all') return;
+        var grid = document.getElementById('agentGrid');
+        var cards = Array.from(grid.querySelectorAll('.agent-card'));
+        var roleMap = { upstream: 'upstream', downstream: 'downstream' };
+        var target = roleMap[role];
+        if (!target) return;
+        cards.sort(function(a, b) {
+            var aM = a.classList.contains(target) ? 0 : 1;
+            var bM = b.classList.contains(target) ? 0 : 1;
+            return aM - bM;
+        });
+        cards.forEach(function(c) { grid.appendChild(c); });
+        // Auto-filter
+        setFilter(role);
+    }
+
+    // Filter
+    function setFilter(f) {
+        currentFilter = f;
+        document.querySelectorAll('.tab').forEach(function(t) {
+            t.classList.toggle('active', t.dataset.filter === f);
+        });
+        var sel = document.querySelector('.mobile-filter');
+        if (sel) sel.value = f;
+        applyFilters();
+        var titles = {
+            all: '全部 Agent', upstream: '上游厂商 Agent', downstream: '下游机构 Agent',
+            favorites: '收藏的 Agent', strategy: '战略类 Agent', sales: '销售类 Agent', medical: '医疗类 Agent'
+        };
+        document.getElementById('sectionTitle').textContent = titles[f] || '全部 Agent';
+    }
+
+    function filterAgents(val) {
+        currentSearch = val || '';
+        var clr = document.getElementById('clrBtn');
+        if (clr) clr.classList.toggle('show', currentSearch.length > 0);
+        applyFilters();
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        filterAgents('');
+    }
+
+    function applyFilters() {
+        var cards = document.querySelectorAll('.agent-card');
+        var visible = 0;
+        cards.forEach(function(card) {
+            var cat = card.dataset.category || '';
+            var name = (card.dataset.name || '').toLowerCase();
+            var desc = (card.querySelector('.card-desc') || {}).textContent || '';
+            var id = card.dataset.id || '';
+            var matchFilter = true;
+            if (currentFilter === 'favorites') {
+                matchFilter = favorites.indexOf(id) > -1;
+            } else if (currentFilter !== 'all') {
+                matchFilter = cat.indexOf(currentFilter) > -1;
+            }
+            var matchSearch = !currentSearch || name.indexOf(currentSearch.toLowerCase()) > -1 || desc.toLowerCase().indexOf(currentSearch.toLowerCase()) > -1;
+            if (matchFilter && matchSearch) {
+                card.classList.remove('hidden');
+                visible++;
+            } else {
+                card.classList.add('hidden');
             }
         });
+        var empty = document.getElementById('emptyState');
+        if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+    }
 
-        // Filter Functions
-        function setFilter(filter) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
-            applyFilters();
-            updateSectionTitle(filter);
+    function sortAgents(val) {
+        var grid = document.getElementById('agentGrid');
+        var cards = Array.from(grid.querySelectorAll('.agent-card'));
+        if (val === 'usage') {
+            cards.sort(function(a, b) { return parseInt(b.dataset.usage||0) - parseInt(a.dataset.usage||0); });
+        } else if (val === 'name') {
+            cards.sort(function(a, b) { return (a.dataset.name||'').localeCompare(b.dataset.name||''); });
         }
+        cards.forEach(function(c) { grid.appendChild(c); });
+    }
 
-        function filterAgents() {
-            currentSearch = document.getElementById('searchInput').value.toLowerCase();
-            const clearBtn = document.getElementById('clearSearch');
-            if (clearBtn) {
-                clearBtn.classList.toggle('visible', currentSearch.length > 0);
+    // Favorites
+    function toggleFav(e, id) {
+        e.stopPropagation();
+        var btn = e.target;
+        var idx = favorites.indexOf(id);
+        if (idx > -1) {
+            favorites.splice(idx, 1);
+            btn.textContent = '☆';
+            btn.classList.remove('active');
+        } else {
+            favorites.push(id);
+            btn.textContent = '★';
+            btn.classList.add('active');
+        }
+        localStorage.setItem('medagent_favorites', JSON.stringify(favorites));
+        if (currentFilter === 'favorites') applyFilters();
+    }
+
+    function updateFavBtns() {
+        favorites.forEach(function(id) {
+            var card = document.querySelector('[data-id="' + id + '"]');
+            if (card) {
+                var btn = card.querySelector('.btn-fav');
+                if (btn) { btn.textContent = '★'; btn.classList.add('active'); }
             }
-            applyFilters();
-        }
+        });
+    }
 
-        function clearSearch() {
-            const input = document.getElementById('searchInput');
-            input.value = '';
-            currentSearch = '';
-            document.getElementById('clearSearch').classList.remove('visible');
-            applyFilters();
-            input.focus();
-        }
+    // Use Agent
+    function useAgent(id) {
+        var btn = event.target;
+        btn.classList.add('loading');
+        btn.textContent = '启动中';
+        setTimeout(function() {
+            btn.classList.remove('loading');
+            btn.textContent = '使用';
+            window.open('chat.html?agent=' + id, '_blank', 'width=1000,height=800');
+        }, 400);
+    }
 
-        function setFilterMobile(value) {
-            currentFilter = value;
-            applyFilters();
-            updateSectionTitle(value);
-        }
-
-        function applyFilters() {
-            const cards = document.querySelectorAll('.agent-card');
-            let visibleCount = 0;
-
-            cards.forEach(card => {
-                const category = card.dataset.category;
-                const name = card.dataset.name.toLowerCase();
-                const desc = card.querySelector('.agent-desc').textContent.toLowerCase();
-                const dept = card.querySelector('.agent-category').textContent.toLowerCase();
-                const isFavorite = favorites.includes(card.dataset.id);
-
-                let matchesFilter = currentFilter === 'all' || 
-                    category.includes(currentFilter) ||
-                    (currentFilter === 'favorites' && isFavorite);
-                    
-                const matchesSearch = currentSearch === '' || 
-                    name.includes(currentSearch) || 
-                    desc.includes(currentSearch) || 
-                    dept.includes(currentSearch);
-
-                if (matchesFilter && matchesSearch) {
-                    card.classList.remove('hidden');
-                    visibleCount++;
-                } else {
-                    card.classList.add('hidden');
+    // Auth check
+    async function checkAuth() {
+        try {
+            var res = await fetch('/api/auth/status');
+            if (res.ok) {
+                var data = await res.json();
+                if (data.authenticated) {
+                    document.getElementById('navRight').innerHTML =
+                        '<span class="nav-user">👋 ' + (data.userName || '已登录') + '</span>' +
+                        '<button class="btn-nav btn-nav-primary" onclick="document.getElementById(\'agents\').scrollIntoView({behavior:\'smooth\'})">选择助手 →</button>';
                 }
-            });
-
-            document.getElementById('emptyState').style.display = visibleCount === 0 ? 'block' : 'none';
-        }
-
-        function updateSectionTitle(filter) {
-            const title = document.getElementById('sectionTitle');
-            const indicator = title.querySelector('.indicator');
-            
-            const titles = {
-                'all': { text: '全部 Agent', color: 'var(--color-secondary)' },
-                'upstream': { text: '上游厂商 Agent', color: 'var(--color-upstream)' },
-                'downstream': { text: '下游机构 Agent', color: 'var(--color-downstream)' },
-                'favorites': { text: '收藏的 Agent', color: 'var(--color-accent)' },
-                'strategy': { text: '战略类 Agent', color: 'var(--color-upstream)' },
-                'sales': { text: '销售类 Agent', color: 'var(--color-upstream)' },
-                'medical': { text: '医疗类 Agent', color: 'var(--color-downstream)' }
-            };
-
-            const config = titles[filter] || titles['all'];
-            title.innerHTML = `<span class="indicator" style="background: ${config.color};"></span>${config.text}`;
-        }
-
-        // Sort
-        function sortAgents() {
-            const sortBy = document.getElementById('sortSelect').value;
-            const grid = document.getElementById('agentGrid');
-            const cards = Array.from(grid.querySelectorAll('.agent-card:not(.hidden)'));
-
-            cards.sort((a, b) => {
-                if (sortBy === 'usage') {
-                    return parseInt(b.dataset.usage) - parseInt(a.dataset.usage);
-                } else if (sortBy === 'name') {
-                    return a.dataset.name.localeCompare(b.dataset.name);
-                }
-                return 0;
-            });
-
-            cards.forEach(card => grid.appendChild(card));
-        }
-
-        // View Toggle
-        function setView(view) {
-            currentView = view;
-            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            const grid = document.getElementById('agentGrid');
-            if (view === 'list') {
-                grid.classList.add('list-view');
-            } else {
-                grid.classList.remove('list-view');
             }
-        }
-
-        // Favorites
-        function toggleFavorite(event, agentId) {
-            event.stopPropagation();
-            const index = favorites.indexOf(agentId);
-            const btn = event.target;
-            
-            if (index > -1) {
-                favorites.splice(index, 1);
-                btn.textContent = '☆';
-                btn.classList.remove('favorite');
-            } else {
-                favorites.push(agentId);
-                btn.textContent = '★';
-                btn.classList.add('favorite');
-            }
-            
-            localStorage.setItem('medagent_favorites', JSON.stringify(favorites));
-            
-            // Update card favorite state
-            const card = document.querySelector(`[data-id="${agentId}"]`);
-            if (index > -1) {
-                card.classList.remove('favorite');
-            } else {
-                card.classList.add('favorite');
-            }
-            
-            // Refresh if in favorites filter
-            if (currentFilter === 'favorites') {
-                applyFilters();
-            }
-        }
-
-        function updateFavoriteButtons() {
-            favorites.forEach(agentId => {
-                const card = document.querySelector(`[data-id="${agentId}"]`);
-                if (card) {
-                    card.classList.add('favorite');
-                    const btn = card.querySelector('.btn-icon');
-                    if (btn) {
-                        btn.textContent = '★';
-                        btn.classList.add('favorite');
-                    }
-                }
-            });
-        }
-
-        // Launch Agent
-        function launchAgent(agentId) {
-            const btn = event.target;
-            btn.classList.add('loading');
-            btn.textContent = '启动中';
-
-            setTimeout(() => {
-                btn.classList.remove('loading');
-                btn.textContent = '启动';
-                console.log('Launching agent:', agentId);
-
-                // Open chat page in new tab
-                const chatUrl = `chat.html?agent=${agentId}`;
-                window.open(chatUrl, '_blank', 'width=1000,height=800');
-            }, 500);
-        }
-
-        // Workflow
-        function runWorkflow(workflowType) {
-            const workflows = {
-                'consultation': ['金牌医美咨询师', '高定美学设计总监'],
-                'design': ['高定美学设计总监', '医美解剖决策建筑师'],
-                'postop': ['医美术后私域管家', '医美爆款种草官'],
-                'gtm': ['GTM战略大师', '市场创意总监', '销售作战总监']
-            };
-            
-            const agents = workflows[workflowType];
-            alert(`启动工作流: ${workflowType}\n\n涉及 Agent:\n${agents.join('\n')}`);
-        }
-
-        // Reset Filters
-        function resetFilters() {
-            currentFilter = 'all';
-            currentSearch = '';
-            document.getElementById('searchInput').value = '';
-            document.getElementById('clearSearch').classList.remove('visible');
-            
-            // Reset filter tabs
-            document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelector('.filter-tab').classList.add('active');
-            
-            // Reset mobile select
-            const mobileSelect = document.querySelector('.mobile-filter-select');
-            if (mobileSelect) mobileSelect.value = 'all';
-            
-            applyFilters();
-            updateSectionTitle('all');
-        }
-
-        // Theme Toggle
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const btn = document.querySelector('.theme-toggle');
-            btn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
-            localStorage.setItem('medagent_theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-        }
-
-        // Load saved theme
-        if (localStorage.getItem('medagent_theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-            document.querySelector('.theme-toggle').textContent = '☀️';
-        }
-
-        // Modal
-        function closeModal() {
-            document.getElementById('onboardingModal').classList.remove('active');
-        }
-
-        // Role-based agent sorting
-        function sortAgentsByRole() {
-            var role = localStorage.getItem('medagent_role');
-            if (!role || role === 'all') return;
-            var grid = document.getElementById('agentGrid');
-            var cards = Array.from(grid.querySelectorAll('.agent-card'));
-            cards.sort(function(a, b) {
-                var aMatch = a.dataset.category === role ? 0 : 1;
-                var bMatch = b.dataset.category === role ? 0 : 1;
-                return aMatch - bMatch;
-            });
-            cards.forEach(function(card) { grid.appendChild(card); });
-            var matchingTab = document.querySelector('.category-tab[data-category="' + role + '"]');
-            if (matchingTab) {
-                document.querySelectorAll('.category-tab').forEach(function(t) {
-                    t.classList.remove('active');
-                    t.setAttribute('aria-pressed', 'false');
-                });
-                matchingTab.classList.add('active');
-                matchingTab.setAttribute('aria-pressed', 'true');
-                document.querySelectorAll('.agent-card').forEach(function(card) {
-                    if (card.dataset.category === role) {
-                        card.classList.remove('hidden');
-                    } else {
-                        card.classList.add('hidden');
-                    }
-                });
-            }
-        }
-        sortAgentsByRole();
-
-        // Check auth status
-        async function checkAuth() {
-            try {
-                const res = await fetch('/api/auth/status');
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.authenticated) {
-                        document.getElementById('headerActions').innerHTML = `
-                            <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">🌙</button>
-                            <span style="font-size:0.875rem;color:#64748B">👋 ${data.userName || '已登录'}</span>
-                            <button class="btn btn-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">选择助手 →</button>
-                        `;
-                    }
-                }
-            } catch {}
-        }
-        checkAuth();
-    </script>
+        } catch(e) {}
+    }
+</script>
 </body>
 </html>
