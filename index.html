@@ -1228,6 +1228,37 @@
             document.getElementById('onboardingModal').classList.remove('active');
         }
 
+        // Role-based agent sorting
+        function sortAgentsByRole() {
+            var role = localStorage.getItem('medagent_role');
+            if (!role || role === 'all') return;
+            var grid = document.getElementById('agentGrid');
+            var cards = Array.from(grid.querySelectorAll('.agent-card'));
+            cards.sort(function(a, b) {
+                var aMatch = a.dataset.category === role ? 0 : 1;
+                var bMatch = b.dataset.category === role ? 0 : 1;
+                return aMatch - bMatch;
+            });
+            cards.forEach(function(card) { grid.appendChild(card); });
+            var matchingTab = document.querySelector('.category-tab[data-category="' + role + '"]');
+            if (matchingTab) {
+                document.querySelectorAll('.category-tab').forEach(function(t) {
+                    t.classList.remove('active');
+                    t.setAttribute('aria-pressed', 'false');
+                });
+                matchingTab.classList.add('active');
+                matchingTab.setAttribute('aria-pressed', 'true');
+                document.querySelectorAll('.agent-card').forEach(function(card) {
+                    if (card.dataset.category === role) {
+                        card.classList.remove('hidden');
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                });
+            }
+        }
+        sortAgentsByRole();
+
         // Check auth status
         async function checkAuth() {
             try {
