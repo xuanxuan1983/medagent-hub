@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MedAgent Hub - 医美行业AI助手平台</title>
-    <meta name="description" content="MedAgent Hub 是专为医美行业打造的 AI 助手平台，覆盖上游厂商到下游机构全链路业务场景的 16 个精品 Agent。">
+    <meta name="description" content="MedAgent Hub 是专为医美行业打造的 AI 助手平台，21 个精品 Agent 覆盖上游厂商到下游机构全链路业务场景。">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -23,28 +23,18 @@
             --coral: #E8715A;
             --coral-light: #FFF0EC;
             --coral-mid: #FDDDD6;
-            --blue: #4A9EF5;
-            --blue-light: #EBF3FE;
-            --green: #3DB88C;
-            --green-light: #E8F7F0;
-            --yellow: #E5A84B;
-            --yellow-light: #FEF5E7;
-            --purple: #8B6CC1;
-            --purple-light: #F3EEFA;
             --font-serif: 'Noto Serif SC', 'Georgia', serif;
             --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --max: 1200px;
-            --r: 14px;
-            --r-sm: 8px;
+            --max: 1100px;
         }
 
         html { scroll-behavior: smooth; }
-        body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.6; }
+        body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
 
         /* ===== NAV ===== */
         .nav {
             position: sticky; top: 0; z-index: 100;
-            background: rgba(255,255,255,0.92);
+            background: rgba(255,255,255,0.95);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border-light);
             padding: 0 2rem;
@@ -56,15 +46,14 @@
         }
         .nav-logo {
             display: flex; align-items: center; gap: 0.625rem;
-            font-family: var(--font-serif); font-weight: 700; font-size: 1.1rem;
+            font-family: var(--font-sans); font-weight: 700; font-size: 1.05rem;
             color: var(--text); text-decoration: none;
         }
         .nav-logo-badge {
-            width: 34px; height: 34px; border-radius: 10px;
-            background: linear-gradient(135deg, var(--coral) 0%, #FF922B 100%);
+            width: 32px; height: 32px; border-radius: 9px;
+            background: var(--text);
             display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: 900; font-size: 1rem;
-            font-family: var(--font-serif);
+            color: white; font-weight: 900; font-size: 0.95rem;
         }
         .nav-links { display: flex; gap: 2rem; }
         .nav-links a {
@@ -73,249 +62,342 @@
         }
         .nav-links a:hover { color: var(--text); }
         .nav-right { display: flex; align-items: center; gap: 0.75rem; }
-        .nav-user { font-size: 0.85rem; color: var(--text-2); }
-        .btn-nav {
+        .btn-nav-primary {
             padding: 0.5rem 1.125rem; border-radius: 8px;
             font-size: 0.875rem; font-weight: 600; cursor: pointer;
-            border: none; font-family: var(--font-sans); transition: all 0.15s;
+            border: none; font-family: var(--font-sans);
+            background: var(--text); color: white; transition: opacity 0.15s;
         }
-        .btn-nav-ghost {
-            background: transparent; color: var(--text-2);
-            border: 1px solid var(--border);
-        }
-        .btn-nav-ghost:hover { background: var(--bg-warm); color: var(--text); }
-        .btn-nav-primary {
-            background: var(--coral); color: white;
-        }
-        .btn-nav-primary:hover { background: #d4604a; }
+        .btn-nav-primary:hover { opacity: 0.85; }
 
         /* ===== HERO ===== */
         .hero {
             background: var(--bg-warm);
-            padding: 5rem 2rem 4rem;
+            padding: 6rem 2rem 5rem;
             text-align: center;
-            border-bottom: 1px solid var(--border-light);
         }
-        .hero-inner { max-width: 720px; margin: 0 auto; }
+        .hero-inner { max-width: 700px; margin: 0 auto; }
         .hero-badge {
-            display: inline-flex; align-items: center; gap: 0.5rem;
-            padding: 0.375rem 1rem; border-radius: 100px;
-            background: var(--coral-light); border: 1px solid var(--coral-mid);
-            font-size: 0.8rem; font-weight: 600; color: var(--coral);
-            margin-bottom: 1.75rem;
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            padding: 0.3rem 0.875rem; border-radius: 100px;
+            background: white; border: 1px solid var(--border);
+            font-size: 0.78rem; font-weight: 600; color: var(--text-2);
+            margin-bottom: 2.5rem;
         }
+        .hero-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--coral); }
         .hero h1 {
             font-family: var(--font-serif);
-            font-size: clamp(2.25rem, 5vw, 3.25rem);
+            font-size: clamp(2.5rem, 6vw, 3.75rem);
             font-weight: 900; color: var(--text);
-            line-height: 1.2; letter-spacing: -0.01em;
-            margin-bottom: 1.25rem;
+            line-height: 1.15; letter-spacing: -0.01em;
+            margin-bottom: 1.5rem;
         }
-        .hero h1 em {
-            font-style: normal; color: var(--coral);
-        }
+        .hero h1 em { font-style: italic; color: var(--coral); }
         .hero-sub {
-            font-size: 1.05rem; color: var(--text-2);
-            line-height: 1.7; margin-bottom: 2.5rem;
-            max-width: 560px; margin-left: auto; margin-right: auto;
+            font-size: 1rem; color: var(--text-2);
+            line-height: 1.75; margin-bottom: 0.5rem;
         }
-        .hero-actions { display: flex; gap: 0.875rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem; }
+        .hero-sub2 {
+            font-size: 1rem; color: var(--text-2);
+            line-height: 1.75; margin-bottom: 2.75rem;
+        }
+        .hero-actions { display: flex; gap: 0.875rem; justify-content: center; flex-wrap: wrap; margin-bottom: 4rem; }
         .btn-hero-primary {
             padding: 0.875rem 2rem; border-radius: 10px;
-            background: var(--coral); color: white;
-            font-size: 1rem; font-weight: 600; cursor: pointer;
-            border: none; font-family: var(--font-sans); transition: all 0.15s;
+            background: var(--text); color: white;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            border: none; font-family: var(--font-sans); transition: opacity 0.15s;
         }
-        .btn-hero-primary:hover { background: #d4604a; transform: translateY(-1px); }
+        .btn-hero-primary:hover { opacity: 0.85; }
         .btn-hero-ghost {
             padding: 0.875rem 2rem; border-radius: 10px;
             background: white; color: var(--text-2);
-            font-size: 1rem; font-weight: 500; cursor: pointer;
+            font-size: 0.95rem; font-weight: 500; cursor: pointer;
             border: 1.5px solid var(--border); font-family: var(--font-sans); transition: all 0.15s;
+            display: flex; align-items: center; gap: 0.5rem;
         }
         .btn-hero-ghost:hover { border-color: var(--text-3); color: var(--text); }
         .hero-stats {
-            display: flex; justify-content: center; gap: 3rem;
-            padding-top: 2.5rem; border-top: 1px solid var(--border-light);
+            display: flex; justify-content: center; gap: 4rem;
         }
         .hero-stat { text-align: center; }
         .hero-stat-num {
-            font-family: var(--font-serif); font-size: 2rem; font-weight: 900;
-            color: var(--text); line-height: 1;
+            font-family: var(--font-sans); font-size: 2.25rem; font-weight: 800;
+            color: var(--text); line-height: 1; margin-bottom: 0.375rem;
         }
-        .hero-stat-num span { color: var(--coral); }
-        .hero-stat-label { font-size: 0.8rem; color: var(--text-3); margin-top: 0.25rem; }
+        .hero-stat-label { font-size: 0.8rem; color: var(--text-3); }
 
-        /* ===== FILTER BAR ===== */
-        .filter-bar {
-            background: white; border-bottom: 1px solid var(--border-light);
-            padding: 0 2rem; position: sticky; top: 60px; z-index: 99;
+        /* ===== VIDEO SECTION ===== */
+        .video-section {
+            padding: 5rem 2rem;
+            text-align: center;
+            background: var(--bg);
         }
-        .filter-bar-inner {
-            max-width: var(--max); margin: 0 auto;
-            display: flex; align-items: center; gap: 1rem;
-            padding: 0.875rem 0; flex-wrap: wrap;
+        .video-inner { max-width: var(--max); margin: 0 auto; }
+        .section-eyebrow {
+            font-size: 0.8rem; font-weight: 600; color: var(--text-3);
+            text-transform: uppercase; letter-spacing: 0.08em;
+            margin-bottom: 1rem;
         }
-        .search-wrap { position: relative; flex: 1; min-width: 220px; max-width: 320px; }
-        .search-wrap input {
-            width: 100%; padding: 0.5rem 0.875rem 0.5rem 2.25rem;
-            border: 1.5px solid var(--border); border-radius: 8px;
-            font-size: 0.875rem; font-family: var(--font-sans);
-            background: var(--bg-warm); outline: none; transition: border-color 0.15s;
+        .section-title {
+            font-family: var(--font-serif);
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 900; color: var(--text);
+            line-height: 1.2; margin-bottom: 0.875rem;
         }
-        .search-wrap input:focus { border-color: var(--coral); background: white; }
-        .search-wrap .si {
-            position: absolute; left: 0.625rem; top: 50%;
-            transform: translateY(-50%); color: var(--text-3);
-            font-size: 0.9rem; pointer-events: none;
+        .section-title em { font-style: italic; color: var(--coral); }
+        .section-sub {
+            font-size: 0.95rem; color: var(--text-2);
+            margin-bottom: 2rem;
         }
-        .search-wrap .clr {
-            position: absolute; right: 0.5rem; top: 50%;
-            transform: translateY(-50%); background: none; border: none;
-            cursor: pointer; color: var(--text-3); font-size: 1rem;
-            display: none; line-height: 1;
+        .video-tabs {
+            display: flex; gap: 0.5rem; justify-content: center;
+            margin-bottom: 2rem; flex-wrap: wrap;
         }
-        .search-wrap .clr.show { display: block; }
-        .tabs { display: flex; gap: 0.375rem; flex-wrap: wrap; }
-        .tab {
-            padding: 0.4rem 0.875rem; border-radius: 100px;
-            font-size: 0.8rem; font-weight: 500; cursor: pointer;
+        .video-tab {
+            padding: 0.45rem 1.125rem; border-radius: 100px;
+            font-size: 0.825rem; font-weight: 500; cursor: pointer;
             border: 1.5px solid var(--border); background: white;
-            color: var(--text-2); transition: all 0.15s; white-space: nowrap;
+            color: var(--text-2); transition: all 0.15s;
         }
-        .tab:hover { border-color: var(--coral); color: var(--coral); }
-        .tab.active { background: var(--coral); border-color: var(--coral); color: white; }
-        .tab .cnt { margin-left: 0.25rem; opacity: 0.75; font-size: 0.75rem; }
-        .sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-3); }
-        .sort-wrap select {
-            padding: 0.375rem 0.625rem; border: 1.5px solid var(--border);
-            border-radius: 6px; font-size: 0.8rem; background: white;
-            cursor: pointer; font-family: var(--font-sans);
+        .video-tab:hover { border-color: var(--text-3); color: var(--text); }
+        .video-tab.active { background: var(--text); border-color: var(--text); color: white; }
+        .video-wrapper {
+            border-radius: 16px; overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+            background: #111;
+            max-width: 760px; margin: 0 auto;
+            aspect-ratio: 16/9; position: relative;
+        }
+        .video-wrapper iframe {
+            width: 100%; height: 100%; border: none;
+        }
+        .video-placeholder {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #1a1a1a; color: white; gap: 1rem;
+        }
+        .video-placeholder .play-btn {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .video-placeholder .play-btn:hover { background: rgba(255,255,255,0.25); }
+        .video-placeholder p { font-size: 0.9rem; opacity: 0.6; }
+
+        /* ===== FEATURES ===== */
+        .features-section {
+            padding: 5rem 2rem;
+            background: var(--bg-warm);
+        }
+        .features-inner { max-width: var(--max); margin: 0 auto; }
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 3rem;
+        }
+        .feature-card {
+            background: white; border-radius: 16px;
+            padding: 2rem; position: relative; overflow: hidden;
+            border: 1px solid var(--border-light);
+        }
+        .feature-card:nth-child(1) { background: #FFF0EC; }
+        .feature-card:nth-child(2) { background: #EBF3FE; }
+        .feature-card:nth-child(3) { background: #E8F7F0; }
+        .feature-card:nth-child(4) { background: #FEF5E7; }
+        .feature-num {
+            font-size: 0.75rem; font-weight: 700; color: var(--text-3);
+            margin-bottom: 1rem; letter-spacing: 0.05em;
+        }
+        .feature-title {
+            font-family: var(--font-serif);
+            font-size: 1.3rem; font-weight: 700; color: var(--text);
+            line-height: 1.3; margin-bottom: 0.875rem;
+        }
+        .feature-desc {
+            font-size: 0.875rem; color: var(--text-2); line-height: 1.65;
+        }
+        .feature-icon {
+            position: absolute; bottom: 1.25rem; right: 1.5rem;
+            font-size: 2.5rem; opacity: 0.5;
         }
 
-        /* ===== AGENT GRID ===== */
-        .agents-section { max-width: var(--max); margin: 0 auto; padding: 2rem 2rem 4rem; }
-        .agents-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 1.5rem;
+        /* ===== COMPANION ===== */
+        .companion-section {
+            padding: 5rem 2rem;
+            background: var(--bg);
         }
-        .agents-title {
-            font-family: var(--font-serif); font-size: 1.1rem; font-weight: 700;
-            color: var(--text); display: flex; align-items: center; gap: 0.5rem;
+        .companion-inner {
+            max-width: var(--max); margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 4rem; align-items: center;
         }
-        .agents-title-dot {
-            width: 8px; height: 8px; border-radius: 50%; background: var(--coral);
+        .companion-text h2 {
+            font-family: var(--font-serif);
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 900; color: var(--text);
+            line-height: 1.2; margin-bottom: 0.5rem;
+        }
+        .companion-text h2 em { font-style: italic; color: var(--coral); }
+        .companion-text p {
+            font-size: 0.95rem; color: var(--text-2);
+            line-height: 1.75; margin-top: 1.25rem;
+        }
+        .companion-visual {
+            background: var(--bg-warm); border-radius: 20px;
+            padding: 2rem; border: 1px solid var(--border-light);
+            min-height: 280px; display: flex; flex-direction: column; gap: 1rem;
+        }
+        .companion-agent-row {
+            display: flex; align-items: center; gap: 0.875rem;
+            padding: 0.875rem 1rem; background: white; border-radius: 12px;
+            border: 1px solid var(--border-light);
+        }
+        .companion-agent-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: var(--coral-light); display: flex;
+            align-items: center; justify-content: center; font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .companion-agent-name { font-weight: 600; font-size: 0.875rem; color: var(--text); }
+        .companion-agent-desc { font-size: 0.75rem; color: var(--text-3); margin-top: 0.1rem; }
+        .companion-agent-badge {
+            margin-left: auto; padding: 0.2rem 0.625rem; border-radius: 100px;
+            font-size: 0.7rem; font-weight: 600; background: var(--coral-light); color: var(--coral);
+            white-space: nowrap;
+        }
+
+        /* ===== AGENTS SECTION ===== */
+        .agents-section {
+            padding: 5rem 2rem;
+            background: var(--bg-warm);
+        }
+        .agents-inner { max-width: var(--max); margin: 0 auto; }
+        .agents-header { text-align: center; margin-bottom: 2.5rem; }
+        .agents-header h2 {
+            font-family: var(--font-serif);
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 900; color: var(--text);
+            margin-bottom: 0.75rem;
+        }
+        .agents-header h2 em { font-style: italic; color: var(--coral); }
+        .agents-header p { font-size: 0.95rem; color: var(--text-2); }
+        .agents-tabs {
+            display: flex; gap: 0.5rem; justify-content: center;
+            margin-bottom: 2.5rem; flex-wrap: wrap;
+        }
+        .agents-tab {
+            padding: 0.625rem 1.5rem; border-radius: 100px;
+            font-size: 0.875rem; font-weight: 600; cursor: pointer;
+            border: 1.5px solid var(--border); background: white;
+            color: var(--text-2); transition: all 0.15s;
+        }
+        .agents-tab:hover { border-color: var(--text-3); color: var(--text); }
+        .agents-tab.active {
+            background: var(--text); border-color: var(--text); color: white;
         }
         .agent-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
         }
-
-        /* ===== AGENT CARD ===== */
         .agent-card {
-            background: white; border: 1.5px solid var(--border);
-            border-radius: var(--r); padding: 1.25rem;
+            background: white; border: 1.5px solid var(--border-light);
+            border-radius: 16px; padding: 1.5rem;
             cursor: pointer; transition: all 0.18s;
-            position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
         }
-        .agent-card::before {
-            content: ''; position: absolute;
-            top: 0; left: 0; right: 0; height: 3px;
-            border-radius: var(--r) var(--r) 0 0;
-        }
-        .agent-card.upstream::before { background: linear-gradient(90deg, var(--blue), #7BC8FF); }
-        .agent-card.downstream::before { background: linear-gradient(90deg, var(--coral), #FF922B); }
         .agent-card:hover {
-            border-color: transparent;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            border-color: var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.07);
             transform: translateY(-2px);
         }
         .agent-card.hidden { display: none; }
-
-        .card-head { display: flex; align-items: flex-start; gap: 0.875rem; margin-bottom: 0.875rem; }
-        .card-avatar {
-            width: 44px; height: 44px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem; flex-shrink: 0;
-        }
-        .upstream .card-avatar { background: var(--blue-light); }
-        .downstream .card-avatar { background: var(--coral-light); }
-        .card-meta { flex: 1; min-width: 0; }
-        .card-name {
-            font-weight: 700; font-size: 0.95rem; color: var(--text);
-            margin-bottom: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .card-dept {
-            font-size: 0.75rem; color: var(--text-3);
-            display: flex; align-items: center; gap: 0.375rem;
-        }
-        .card-dept-badge {
-            padding: 0.1rem 0.5rem; border-radius: 100px;
-            font-size: 0.7rem; font-weight: 600;
-        }
-        .upstream .card-dept-badge { background: var(--blue-light); color: var(--blue); }
-        .downstream .card-dept-badge { background: var(--coral-light); color: var(--coral); }
-        .card-hot { color: #FF4444; font-size: 0.7rem; font-weight: 600; }
-
-        .card-desc {
-            font-size: 0.825rem; color: var(--text-2); line-height: 1.55;
-            margin-bottom: 1rem; display: -webkit-box;
-            -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-        }
-
-        .card-foot { display: flex; align-items: center; justify-content: space-between; }
-        .card-tags { display: flex; gap: 0.375rem; flex-wrap: wrap; }
-        .card-tag {
-            padding: 0.15rem 0.5rem; border-radius: 4px;
-            font-size: 0.7rem; font-weight: 500;
-            background: var(--bg-warm); color: var(--text-3);
-            border: 1px solid var(--border-light);
-        }
-        .card-actions { display: flex; gap: 0.375rem; align-items: center; }
-        .btn-fav {
-            width: 30px; height: 30px; border-radius: 7px;
-            background: none; border: 1.5px solid var(--border);
-            cursor: pointer; font-size: 0.875rem; transition: all 0.15s;
+        .agent-icon {
+            font-size: 2rem; margin-bottom: 1rem;
+            width: 52px; height: 52px; border-radius: 14px;
+            background: var(--bg-warm);
             display: flex; align-items: center; justify-content: center;
         }
-        .btn-fav:hover { border-color: var(--yellow); background: var(--yellow-light); }
-        .btn-fav.active { border-color: var(--yellow); background: var(--yellow-light); }
-        .btn-use {
-            padding: 0.4rem 1rem; border-radius: 7px;
-            background: var(--coral); color: white;
-            font-size: 0.8rem; font-weight: 600; cursor: pointer;
-            border: none; font-family: var(--font-sans); transition: all 0.15s;
+        .agent-name {
+            font-weight: 700; font-size: 1.1rem; color: var(--text);
+            margin-bottom: 0.5rem;
         }
-        .btn-use:hover { background: #d4604a; }
-        .btn-use.loading { opacity: 0.6; cursor: wait; }
+        .agent-desc {
+            font-size: 0.825rem; color: var(--text-2); line-height: 1.6;
+            margin-bottom: 1.25rem; flex: 1;
+            display: -webkit-box; -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .agent-meta {
+            display: flex; align-items: center; gap: 0.625rem;
+            margin-bottom: 1.25rem; font-size: 0.78rem; color: var(--text-3);
+        }
+        .agent-dept {
+            padding: 0.2rem 0.625rem; border-radius: 100px;
+            background: var(--bg-warm); font-weight: 600; color: var(--text-2);
+            font-size: 0.75rem;
+        }
+        .btn-launch {
+            width: 100%; padding: 0.75rem;
+            border-radius: 10px; font-weight: 600; font-size: 0.875rem;
+            cursor: pointer; border: none; font-family: var(--font-sans);
+            background: var(--text); color: white;
+            transition: opacity 0.15s;
+        }
+        .btn-launch:hover { opacity: 0.85; }
 
-        /* ===== EMPTY STATE ===== */
-        .empty-state {
-            text-align: center; padding: 4rem 2rem;
-            color: var(--text-3); display: none;
+        /* ===== CTA ===== */
+        .cta-section {
+            padding: 6rem 2rem;
+            text-align: center;
+            background: var(--bg);
         }
-        .empty-state h3 { font-size: 1.1rem; color: var(--text-2); margin-bottom: 0.5rem; }
-        .empty-state p { font-size: 0.875rem; }
+        .cta-inner { max-width: 560px; margin: 0 auto; }
+        .cta-section h2 {
+            font-family: var(--font-serif);
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 900; color: var(--text);
+            line-height: 1.2; margin-bottom: 0.5rem;
+        }
+        .cta-section h2 em { font-style: italic; color: var(--coral); }
+        .cta-sub {
+            font-size: 0.95rem; color: var(--text-2);
+            margin-bottom: 2rem; margin-top: 1rem;
+        }
+        .btn-cta {
+            padding: 1rem 2.5rem; border-radius: 12px;
+            background: var(--text); color: white;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            border: none; font-family: var(--font-sans); transition: opacity 0.15s;
+        }
+        .btn-cta:hover { opacity: 0.85; }
+
+        /* ===== FOOTER ===== */
+        footer {
+            padding: 1.5rem 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border-light);
+            font-size: 0.8rem; color: var(--text-3);
+        }
 
         /* ===== MOBILE ===== */
-        .mobile-filter {
-            display: none; width: 100%;
-            padding: 0.5rem 0.875rem; border: 1.5px solid var(--border);
-            border-radius: 8px; font-size: 0.875rem; background: var(--bg-warm);
-            font-family: var(--font-sans); cursor: pointer;
-        }
-
         @media (max-width: 768px) {
             .nav-links { display: none; }
-            .hero { padding: 3rem 1.25rem 2.5rem; }
-            .hero-stats { gap: 1.5rem; }
-            .filter-bar { padding: 0 1.25rem; }
-            .tabs { display: none; }
-            .mobile-filter { display: block; }
-            .sort-wrap { display: none; }
-            .agents-section { padding: 1.5rem 1.25rem 3rem; }
+            .hero { padding: 4rem 1.25rem 3rem; }
+            .hero-stats { gap: 2rem; }
+            .features-grid { grid-template-columns: 1fr; }
+            .companion-inner { grid-template-columns: 1fr; gap: 2rem; }
             .agent-grid { grid-template-columns: 1fr; }
+            .video-section, .features-section, .companion-section, .agents-section, .cta-section { padding: 3rem 1.25rem; }
+        }
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .agent-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -329,12 +411,11 @@
             MedAgent Hub
         </a>
         <div class="nav-links">
-            <a href="#agents">智能助手</a>
-            <a href="https://medagent.filldmy.com/login.html">登录</a>
+            <a href="#features">特性</a>
+            <a href="#agents">助手</a>
         </div>
         <div class="nav-right" id="navRight">
-            <button class="btn-nav btn-nav-ghost" onclick="window.location.href='/login.html'">登录</button>
-            <button class="btn-nav btn-nav-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">开始使用</button>
+            <button class="btn-nav-primary" onclick="window.location.href='/login.html'">开始使用</button>
         </div>
     </div>
 </nav>
@@ -343,692 +424,365 @@
 <section class="hero">
     <div class="hero-inner">
         <div class="hero-badge">
-            🏥 专为医美行业打造
+            <span class="hero-badge-dot"></span>
+            21 个精品 Agent · 全链路覆盖
         </div>
-        <h1>医美行业的<br><em>AI 助手团队</em></h1>
-        <p class="hero-sub">
-            覆盖上游厂商到下游机构的全链路业务场景——<br>
-            从 GTM 战略到销售转化，从学术推广到术后管理，21 个精品 Agent 随时待命。
-        </p>
+        <h1>每个医美人，<br>都值得一个 <em>AI 搭档</em></h1>
+        <p class="hero-sub">MedAgent Hub 是你的医美 AI 工作台。</p>
+        <p class="hero-sub2">21 个专业搭档随时待命，<br>帮你写方案、做总结、拆材料、练话术。</p>
         <div class="hero-actions">
-            <button class="btn-hero-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">
-                立即体验 →
-            </button>
-            <button class="btn-hero-ghost" onclick="window.location.href='/login.html'">
-                邀请码登录
+            <button class="btn-hero-primary" onclick="window.location.href='/login.html'">免费开始 →</button>
+            <button class="btn-hero-ghost" onclick="document.getElementById('video-section').scrollIntoView({behavior:'smooth'})">
+                <span>▶</span> 观看演示
             </button>
         </div>
         <div class="hero-stats">
             <div class="hero-stat">
-                <div class="hero-stat-num"><span>21</span></div>
+                <div class="hero-stat-num">21</div>
                 <div class="hero-stat-label">精品 Agent</div>
             </div>
             <div class="hero-stat">
-                <div class="hero-stat-num"><span>12</span></div>
-                <div class="hero-stat-label">上游厂商场景</div>
+                <div class="hero-stat-num">55%</div>
+                <div class="hero-stat-label">AI 推荐客户占比</div>
             </div>
             <div class="hero-stat">
-                <div class="hero-stat-num"><span>9</span></div>
-                <div class="hero-stat-label">下游机构场景</div>
-            </div>
-            <div class="hero-stat">
-                <div class="hero-stat-num"><span>100%</span></div>
-                <div class="hero-stat-label">全链路覆盖</div>
+                <div class="hero-stat-num">100%</div>
+                <div class="hero-stat-label">业务场景覆盖</div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- FILTER BAR -->
-<div class="filter-bar" id="agents">
-    <div class="filter-bar-inner">
-        <div class="search-wrap">
-            <span class="si">🔍</span>
-            <input type="text" id="searchInput" placeholder="搜索 Agent..." oninput="filterAgents(this.value)">
-            <button class="clr" id="clrBtn" onclick="clearSearch()">×</button>
+<!-- VIDEO SECTION -->
+<section class="video-section" id="video-section">
+    <div class="video-inner">
+        <div class="section-title">看看它怎么 <em>工作</em></div>
+        <p class="section-sub">金牌咨询师实战对话 · 话术陪练 · 材料学硬核拆解</p>
+        <div class="video-tabs">
+            <button class="video-tab active" onclick="switchTab(this, 'consultant')">金牌医美咨询师</button>
+            <button class="video-tab" onclick="switchTab(this, 'sparring')">咨询师陪练</button>
+            <button class="video-tab" onclick="switchTab(this, 'materials')">医美材料学硬核导师</button>
         </div>
-        <div class="tabs">
-            <button class="tab active" data-filter="all" onclick="setFilter('all')">全部 <span class="cnt">21</span></button>
-            <button class="tab" data-filter="upstream" onclick="setFilter('upstream')">🏭 上游 <span class="cnt">12</span></button>
-            <button class="tab" data-filter="downstream" onclick="setFilter('downstream')">🏥 下游 <span class="cnt">9</span></button>
-            <button class="tab" data-filter="favorites" onclick="setFilter('favorites')">⭐ 收藏</button>
-            <button class="tab" data-filter="strategy" onclick="setFilter('strategy')">战略</button>
-            <button class="tab" data-filter="sales" onclick="setFilter('sales')">销售</button>
-            <button class="tab" data-filter="medical" onclick="setFilter('medical')">医疗</button>
-        </div>
-        <select class="mobile-filter" onchange="setFilter(this.value)">
-            <option value="all">全部 (21)</option>
-            <option value="upstream">🏭 上游 (12)</option>
-            <option value="downstream">🏥 下游 (9)</option>
-            <option value="favorites">⭐ 收藏</option>
-            <option value="strategy">战略</option>
-            <option value="sales">销售</option>
-            <option value="medical">医疗</option>
-        </select>
-        <div class="sort-wrap">
-            <span>排序：</span>
-            <select id="sortSel" onchange="sortAgents(this.value)">
-                <option value="default">默认</option>
-                <option value="usage">使用频率</option>
-                <option value="name">名称</option>
-            </select>
-        </div>
-    </div>
-</div>
-
-<!-- AGENTS SECTION -->
-<section class="agents-section">
-    <div class="agents-header">
-        <h2 class="agents-title">
-            <span class="agents-title-dot"></span>
-            <span id="sectionTitle">全部 Agent</span>
-        </h2>
-    </div>
-
-    <div class="agent-grid" id="agentGrid">
-
-        <!-- ===== UPSTREAM AGENTS ===== -->
-        <div class="agent-card upstream" data-category="upstream strategy" data-usage="128" data-name="GTM战略大师" data-id="gtm-strategy">
-            <div class="card-head">
-                <div class="card-avatar">🎯</div>
-                <div class="card-meta">
-                    <div class="card-name">GTM战略大师</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">战略部</span>
-                        <span>本周 128 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">整合战略定位、循证背书、组品方案、价格控盘的超级战略 Agent</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">战略</span><span class="card-tag">GTM</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'gtm-strategy')">☆</button>
-                    <button class="btn-use" onclick="useAgent('gtm-strategy')">使用</button>
-                </div>
+        <div class="video-wrapper">
+            <div class="video-placeholder" id="videoPlaceholder">
+                <div class="play-btn" onclick="window.location.href='/login.html'">▶</div>
+                <p>点击进入，立即体验 AI 搭档</p>
             </div>
         </div>
-
-        <div class="agent-card upstream" data-category="upstream product" data-usage="96" data-name="产品材料专家" data-id="product-expert">
-            <div class="card-head">
-                <div class="card-avatar">🧪</div>
-                <div class="card-meta">
-                    <div class="card-name">产品材料专家</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">产品部</span>
-                        <span>本周 96 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">精通流变学、PACER 模型、材料选择与机理拆解的技术专家</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">产品</span><span class="card-tag">材料</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'product-expert')">☆</button>
-                    <button class="btn-use" onclick="useAgent('product-expert')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream medical" data-usage="84" data-name="学术推广专家" data-id="academic-liaison">
-            <div class="card-head">
-                <div class="card-avatar">🎓</div>
-                <div class="card-meta">
-                    <div class="card-name">学术推广专家</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">医学部</span>
-                        <span>本周 84 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">首席医学联络官，擅长 KOL 征服与学术叙事</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">学术</span><span class="card-tag">KOL</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'academic-liaison')">☆</button>
-                    <button class="btn-use" onclick="useAgent('academic-liaison')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream marketing" data-usage="112" data-name="市场创意总监" data-id="marketing-director">
-            <div class="card-head">
-                <div class="card-avatar">✨</div>
-                <div class="card-meta">
-                    <div class="card-name">市场创意总监</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">市场部</span>
-                        <span>本周 112 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">整合新媒体、视觉创意、种草运营、科学视觉的超级创意 Agent</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">市场</span><span class="card-tag">创意</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'marketing-director')">☆</button>
-                    <button class="btn-use" onclick="useAgent('marketing-director')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream sales" data-usage="156" data-name="销售作战总监" data-id="sales-director">
-            <div class="card-head">
-                <div class="card-avatar">⚔️</div>
-                <div class="card-meta">
-                    <div class="card-name">销售作战总监</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">销售部</span>
-                        <span>本周 156 次 <span class="card-hot">🔥</span></span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">整合销售总监、大区经理、商务经理的超级销售 Agent</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">销售</span><span class="card-tag">渠道</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'sales-director')">☆</button>
-                    <button class="btn-use" onclick="useAgent('sales-director')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream operations" data-usage="72" data-name="运营效能总监" data-id="operations-director">
-            <div class="card-head">
-                <div class="card-avatar">⚙️</div>
-                <div class="card-meta">
-                    <div class="card-name">运营效能总监</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">运营部</span>
-                        <span>本周 72 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">整合 SFE、财务、采购的综合运营 Agent</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">运营</span><span class="card-tag">SFE</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'operations-director')">☆</button>
-                    <button class="btn-use" onclick="useAgent('operations-director')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream training" data-usage="88" data-name="培训赋能总监" data-id="training-director">
-            <div class="card-head">
-                <div class="card-avatar">📚</div>
-                <div class="card-meta">
-                    <div class="card-name">培训赋能总监</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">培训部</span>
-                        <span>本周 88 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">ASK 模型、反差教学、通关护照的培训专家</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">培训</span><span class="card-tag">ASK</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'training-director')">☆</button>
-                    <button class="btn-use" onclick="useAgent('training-director')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== UPSTREAM AGENTS (新增5个) ===== -->
-        <div class="agent-card upstream" data-category="upstream sales" data-usage="91" data-name="大区经理" data-id="area-manager">
-            <div class="card-head">
-                <div class="card-avatar">🗺️</div>
-                <div class="card-meta">
-                    <div class="card-name">大区经理</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">销售部</span>
-                        <span>本周 91 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">Forecast分级测谎、进销存逻辑闭环、情境模拟辅导</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">销售</span><span class="card-tag">区域</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'area-manager')">☆</button>
-                    <button class="btn-use" onclick="useAgent('area-manager')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream sales" data-usage="78" data-name="商务经理" data-id="channel-manager">
-            <div class="card-head">
-                <div class="card-avatar">🤝</div>
-                <div class="card-meta">
-                    <div class="card-name">商务经理</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">销售部</span>
-                        <span>本周 78 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">ROI利润精算、反向背调、窜货雷霆管控、库存博弈</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">渠道</span><span class="card-tag">商务</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'channel-manager')">☆</button>
-                    <button class="btn-use" onclick="useAgent('channel-manager')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream operations" data-usage="65" data-name="财务BP" data-id="finance-bp">
-            <div class="card-head">
-                <div class="card-avatar">💰</div>
-                <div class="card-meta">
-                    <div class="card-name">财务BP</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">财务部</span>
-                        <span>本周 65 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">税务合规与交易结构优化，货折替代票折保护利润</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">财务</span><span class="card-tag">合规</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'finance-bp')">☆</button>
-                    <button class="btn-use" onclick="useAgent('finance-bp')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream operations" data-usage="59" data-name="战略HRBP" data-id="hrbp">
-            <div class="card-head">
-                <div class="card-avatar">🎯</div>
-                <div class="card-meta">
-                    <div class="card-name">战略HRBP</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">人力部</span>
-                        <span>本周 59 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">精准猎聘竞品人才，背调侦查与竞业攻防</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">HR</span><span class="card-tag">猎聘</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'hrbp')">☆</button>
-                    <button class="btn-use" onclick="useAgent('hrbp')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card upstream" data-category="upstream operations" data-usage="54" data-name="采购经理" data-id="procurement-manager">
-            <div class="card-head">
-                <div class="card-avatar">📦</div>
-                <div class="card-meta">
-                    <div class="card-name">采购经理</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">采购部</span>
-                        <span>本周 54 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">Kraljic矩阵与Should-Cost模型优化TCO</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">采购</span><span class="card-tag">供应链</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'procurement-manager')">☆</button>
-                    <button class="btn-use" onclick="useAgent('procurement-manager')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== DOWNSTREAM AGENTS ===== -->
-        <div class="agent-card downstream" data-category="downstream consultation" data-usage="203" data-name="高定美学设计总监" data-id="aesthetic-design">
-            <div class="card-head">
-                <div class="card-avatar">💎</div>
-                <div class="card-meta">
-                    <div class="card-name">高定美学设计总监</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">咨询部</span>
-                        <span>本周 203 次 <span class="card-hot">🔥</span></span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">服务于 Top 1% 高净值人群的面部美学设计专家</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">美学</span><span class="card-tag">设计</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'aesthetic-design')">☆</button>
-                    <button class="btn-use" onclick="useAgent('aesthetic-design')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card downstream" data-category="downstream consultation" data-usage="267" data-name="金牌医美咨询师" data-id="senior-consultant">
-            <div class="card-head">
-                <div class="card-avatar">🥇</div>
-                <div class="card-meta">
-                    <div class="card-name">金牌医美咨询师</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">咨询部</span>
-                        <span>本周 267 次 <span class="card-hot">🔥</span></span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">10 年一线经验的销冠级咨询师，精通 SPIN 与三明治报价</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">咨询</span><span class="card-tag">销售</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'senior-consultant')">☆</button>
-                    <button class="btn-use" onclick="useAgent('senior-consultant')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card downstream" data-category="downstream training" data-usage="134" data-name="医美实战陪练机器人" data-id="sparring-robot">
-            <div class="card-head">
-                <div class="card-avatar">🥊</div>
-                <div class="card-meta">
-                    <div class="card-name">医美实战陪练机器人</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">培训部</span>
-                        <span>本周 134 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">HP 动态情绪系统，高压仿真话术训练</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">培训</span><span class="card-tag">陪练</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'sparring-robot')">☆</button>
-                    <button class="btn-use" onclick="useAgent('sparring-robot')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card downstream" data-category="downstream service" data-usage="189" data-name="医美术后私域管家" data-id="post-op-guardian">
-            <div class="card-head">
-                <div class="card-avatar">🛡️</div>
-                <div class="card-meta">
-                    <div class="card-name">医美术后私域管家</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">客服部</span>
-                        <span>本周 189 次 <span class="card-hot">🔥</span></span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">红绿灯风险分诊，将术后焦虑转化为复购信任</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">术后</span><span class="card-tag">私域</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'post-op-guardian')">☆</button>
-                    <button class="btn-use" onclick="useAgent('post-op-guardian')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card downstream" data-category="downstream marketing" data-usage="145" data-name="医美爆款种草官" data-id="trend-setter">
-            <div class="card-head">
-                <div class="card-avatar">🔥</div>
-                <div class="card-meta">
-                    <div class="card-name">医美爆款种草官</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">运营部</span>
-                        <span>本周 145 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">小红书算法与医美合规风控的内容炼金术师</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">种草</span><span class="card-tag">内容</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'trend-setter')">☆</button>
-                    <button class="btn-use" onclick="useAgent('trend-setter')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card downstream" data-category="downstream medical" data-usage="98" data-name="医美解剖决策建筑师" data-id="anatomy-architect">
-            <div class="card-head">
-                <div class="card-avatar">🏗️</div>
-                <div class="card-meta">
-                    <div class="card-name">医美解剖决策建筑师</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">医疗部</span>
-                        <span>本周 98 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">PACER 模型，面部建筑结构分析，安全预警</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">解剖</span><span class="card-tag">PACER</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'anatomy-architect')">☆</button>
-                    <button class="btn-use" onclick="useAgent('anatomy-architect')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card downstream" data-category="downstream medical" data-usage="76" data-name="医美材料学硬核导师" data-id="materials-mentor">
-            <div class="card-head">
-                <div class="card-avatar">🧬</div>
-                <div class="card-meta">
-                    <div class="card-name">医美材料学硬核导师</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">医疗部</span>
-                        <span>本周 76 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">营销剥离，PACER 深度拆解，灵魂拷问</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">材料</span><span class="card-tag">硬核</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'materials-mentor')">☆</button>
-                    <button class="btn-use" onclick="useAgent('materials-mentor')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card downstream" data-category="downstream medical" data-usage="82" data-name="医美材料学架构师" data-id="material-architect">
-            <div class="card-head">
-                <div class="card-avatar">🏗️</div>
-                <div class="card-meta">
-                    <div class="card-name">医美材料学架构师</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">医疗部</span>
-                        <span>本周 82 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">6 维评估模型，场景判别，合规底线，专业决策</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">评估</span><span class="card-tag">决策</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'material-architect')">☆</button>
-                    <button class="btn-use" onclick="useAgent('material-architect')">使用</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="agent-card downstream" data-category="downstream marketing" data-usage="67" data-name="医美视觉通译官" data-id="visual-translator">
-            <div class="card-head">
-                <div class="card-avatar">🎨</div>
-                <div class="card-meta">
-                    <div class="card-name">医美视觉通译官</div>
-                    <div class="card-dept">
-                        <span class="card-dept-badge">运营部</span>
-                        <span>本周 67 次</span>
-                    </div>
-                </div>
-            </div>
-            <p class="card-desc">机理转视觉画面，设计师 Brief，3D 渲染指导</p>
-            <div class="card-foot">
-                <div class="card-tags"><span class="card-tag">视觉</span><span class="card-tag">设计</span></div>
-                <div class="card-actions">
-                    <button class="btn-fav" onclick="toggleFav(event,'visual-translator')">☆</button>
-                    <button class="btn-use" onclick="useAgent('visual-translator')">使用</button>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="empty-state" id="emptyState">
-        <h3>未找到匹配的 Agent</h3>
-        <p>请尝试其他关键词或筛选条件</p>
     </div>
 </section>
+
+<!-- FEATURES -->
+<section class="features-section" id="features">
+    <div class="features-inner">
+        <div style="text-align:center">
+            <div class="section-title">为 <em>医美行业</em>而生</div>
+            <p class="section-sub" style="margin-top:0.5rem">每一个 Agent 都经过医美行业深度调教</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-num">01</div>
+                <div class="feature-title">21 个精品 Agent<br>开箱即用</div>
+                <div class="feature-desc">覆盖 GTM 战略、产品材料、学术推广、市场营销、销售管理、培训赋能等全链路场景。每个 Agent 都经过医美行业深度调教。</div>
+                <div class="feature-icon">🎯</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-num">02</div>
+                <div class="feature-title">上游 + 下游<br>全链路覆盖</div>
+                <div class="feature-desc">无论你是医美品牌方的市场总监，还是下游机构的咨询师，都能找到专属的 AI 助手。</div>
+                <div class="feature-icon">🔗</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-num">03</div>
+                <div class="feature-title">对话即服务<br>无需学习成本</div>
+                <div class="feature-desc">不需要写 prompt，不需要调参数。像和一位资深同事聊天一样，直接说出你的需求。</div>
+                <div class="feature-icon">💬</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-num">04</div>
+                <div class="feature-title">AI 生图能力<br>所见即所得</div>
+                <div class="feature-desc">内置 AI 生图引擎，咨询师和美学顾问可以在对话中直接生成效果示意图、方案图和营销素材。</div>
+                <div class="feature-icon">🎨</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- COMPANION -->
+<section class="companion-section">
+    <div class="companion-inner">
+        <div class="companion-text">
+            <h2>你的搭档，<br><em>随叫随到</em></h2>
+            <p>不是藏在黑盒子里，<br>而是站在你面前。</p>
+            <p>每个 Agent 都有清晰的专业边界，<br>你知道该找谁、问什么、得到什么。</p>
+        </div>
+        <div class="companion-visual">
+            <div class="companion-agent-row">
+                <div class="companion-agent-icon">🎯</div>
+                <div>
+                    <div class="companion-agent-name">GTM战略大师</div>
+                    <div class="companion-agent-desc">整合战略定位、循证背书、组品方案</div>
+                </div>
+                <div class="companion-agent-badge">上游</div>
+            </div>
+            <div class="companion-agent-row">
+                <div class="companion-agent-icon" style="background:#E8F7F0">🥇</div>
+                <div>
+                    <div class="companion-agent-name">金牌医美咨询师</div>
+                    <div class="companion-agent-desc">10年一线经验，精通SPIN与三明治报价</div>
+                </div>
+                <div class="companion-agent-badge" style="background:#E8F7F0;color:#3DB88C">下游</div>
+            </div>
+            <div class="companion-agent-row">
+                <div class="companion-agent-icon">🗺️</div>
+                <div>
+                    <div class="companion-agent-name">大区经理</div>
+                    <div class="companion-agent-desc">Forecast分级测谎、进销存逻辑闭环</div>
+                </div>
+                <div class="companion-agent-badge">上游</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AGENTS -->
+<section class="agents-section" id="agents">
+    <div class="agents-inner">
+        <div class="agents-header">
+            <h2>选择你的 <em>AI 搭档</em></h2>
+            <p>从上游厂商到下游机构，我们都有专业的解决方案。</p>
+        </div>
+        <div class="agents-tabs">
+            <button class="agents-tab active" onclick="setFilter('all', this)">全部 (21)</button>
+            <button class="agents-tab" onclick="setFilter('upstream', this)">上游厂商 (12)</button>
+            <button class="agents-tab" onclick="setFilter('downstream', this)">下游机构 (9)</button>
+        </div>
+        <div class="agent-grid" id="agentGrid">
+            <!-- Upstream Agents -->
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">🎯</div>
+                <h3 class="agent-name">GTM战略大师</h3>
+                <p class="agent-desc">整合战略定位、循证背书、组品方案、价格控盘的超级战略Agent</p>
+                <div class="agent-meta"><span class="agent-dept">战略部</span><span>🔥 本周128次</span></div>
+                <button class="btn-launch" onclick="launchAgent('gtm-strategy')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">🧪</div>
+                <h3 class="agent-name">产品材料专家</h3>
+                <p class="agent-desc">精通流变学、PACER模型、材料选择与机理拆解的技术专家</p>
+                <div class="agent-meta"><span class="agent-dept">产品部</span><span>本周95次</span></div>
+                <button class="btn-launch" onclick="launchAgent('product-expert')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">🎓</div>
+                <h3 class="agent-name">学术推广专家</h3>
+                <p class="agent-desc">首席医学联络官，擅长KOL征服与学术叙事</p>
+                <div class="agent-meta"><span class="agent-dept">医学部</span><span>本周82次</span></div>
+                <button class="btn-launch" onclick="launchAgent('academic-liaison')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">✨</div>
+                <h3 class="agent-name">市场创意总监</h3>
+                <p class="agent-desc">整合新媒体、视觉创意、种草运营、科学视觉的超级创意Agent</p>
+                <div class="agent-meta"><span class="agent-dept">市场部</span><span>本周110次</span></div>
+                <button class="btn-launch" onclick="launchAgent('marketing-director')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">⚔️</div>
+                <h3 class="agent-name">销售作战总监</h3>
+                <p class="agent-desc">整合销售总监、大区经理、商务经理的超级销售Agent</p>
+                <div class="agent-meta"><span class="agent-dept">销售部</span><span>🔥 本周156次</span></div>
+                <button class="btn-launch" onclick="launchAgent('sales-director')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">⚙️</div>
+                <h3 class="agent-name">运营效能总监</h3>
+                <p class="agent-desc">整合SFE、财务、采购的综合运营Agent</p>
+                <div class="agent-meta"><span class="agent-dept">运营部</span><span>本周72次</span></div>
+                <button class="btn-launch" onclick="launchAgent('operations-director')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">📚</div>
+                <h3 class="agent-name">培训赋能总监</h3>
+                <p class="agent-desc">ASK模型、反差教学、通关护照的培训专家</p>
+                <div class="agent-meta"><span class="agent-dept">培训部</span><span>本周88次</span></div>
+                <button class="btn-launch" onclick="launchAgent('training-director')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">🗺️</div>
+                <h3 class="agent-name">大区经理</h3>
+                <p class="agent-desc">Forecast分级测谎、进销存逻辑闭环、情境模拟辅导、填坑战术拆解</p>
+                <div class="agent-meta"><span class="agent-dept">销售部</span><span>本周91次</span></div>
+                <button class="btn-launch" onclick="launchAgent('area-manager')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">🤝</div>
+                <h3 class="agent-name">商务经理</h3>
+                <p class="agent-desc">ROI利润精算、反向背调、窜货雷霆管控、库存博弈</p>
+                <div class="agent-meta"><span class="agent-dept">销售部</span><span>本周78次</span></div>
+                <button class="btn-launch" onclick="launchAgent('channel-manager')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">💰</div>
+                <h3 class="agent-name">财务BP</h3>
+                <p class="agent-desc">税务合规与交易结构优化，货折替代票折保护利润，AR挂钩机制</p>
+                <div class="agent-meta"><span class="agent-dept">财务部</span><span>本周65次</span></div>
+                <button class="btn-launch" onclick="launchAgent('finance-bp')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">🎯</div>
+                <h3 class="agent-name">战略HRBP</h3>
+                <p class="agent-desc">精准猎聘竞品人才，背调侦查与竞业攻防，人才九宫格优化组织效能</p>
+                <div class="agent-meta"><span class="agent-dept">人力部</span><span>本周59次</span></div>
+                <button class="btn-launch" onclick="launchAgent('hrbp')">使用</button>
+            </div>
+            <div class="agent-card" data-category="upstream">
+                <div class="agent-icon">📦</div>
+                <h3 class="agent-name">采购经理</h3>
+                <p class="agent-desc">精通GMP规范与供应链博弈，Kraljic矩阵与Should-Cost模型优化TCO</p>
+                <div class="agent-meta"><span class="agent-dept">采购部</span><span>本周54次</span></div>
+                <button class="btn-launch" onclick="launchAgent('procurement-manager')">使用</button>
+            </div>
+            <!-- Downstream Agents -->
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">💎</div>
+                <h3 class="agent-name">高定美学设计总监</h3>
+                <p class="agent-desc">服务于Top 1%高净值人群的面部美学设计专家</p>
+                <div class="agent-meta"><span class="agent-dept">咨询部</span><span>🔥 本周203次</span></div>
+                <button class="btn-launch" onclick="launchAgent('aesthetic-design')">使用</button>
+            </div>
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">🥇</div>
+                <h3 class="agent-name">金牌医美咨询师</h3>
+                <p class="agent-desc">10年一线经验的销冠级咨询师，精通SPIN与三明治报价</p>
+                <div class="agent-meta"><span class="agent-dept">咨询部</span><span>🔥 本周267次</span></div>
+                <button class="btn-launch" onclick="launchAgent('senior-consultant')">使用</button>
+            </div>
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">🥊</div>
+                <h3 class="agent-name">医美实战陪练机器人</h3>
+                <p class="agent-desc">HP动态情绪系统，高压仿真话术训练</p>
+                <div class="agent-meta"><span class="agent-dept">培训部</span><span>本周134次</span></div>
+                <button class="btn-launch" onclick="launchAgent('sparring-robot')">使用</button>
+            </div>
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">🛡️</div>
+                <h3 class="agent-name">医美术后私域管家</h3>
+                <p class="agent-desc">红绿灯风险分诊，将术后焦虑转化为复购信任</p>
+                <div class="agent-meta"><span class="agent-dept">客服部</span><span>🔥 本周189次</span></div>
+                <button class="btn-launch" onclick="launchAgent('post-op-guardian')">使用</button>
+            </div>
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">🔥</div>
+                <h3 class="agent-name">医美爆款种草官</h3>
+                <p class="agent-desc">三品一规合规专家，生成有传播力又不踩红线的医美内容</p>
+                <div class="agent-meta"><span class="agent-dept">运营部</span><span>本周145次</span></div>
+                <button class="btn-launch" onclick="launchAgent('trend-setter')">使用</button>
+            </div>
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">🏗️</div>
+                <h3 class="agent-name">医美解剖决策建筑师</h3>
+                <p class="agent-desc">PACER模型，面部建筑结构分析，安全预警</p>
+                <div class="agent-meta"><span class="agent-dept">医疗部</span><span>本周98次</span></div>
+                <button class="btn-launch" onclick="launchAgent('anatomy-architect')">使用</button>
+            </div>
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">🧬</div>
+                <h3 class="agent-name">医美材料学硬核导师</h3>
+                <p class="agent-desc">营销剥离，PACER深度拆解，灵魂拷问</p>
+                <div class="agent-meta"><span class="agent-dept">医疗部</span><span>本周76次</span></div>
+                <button class="btn-launch" onclick="launchAgent('materials-mentor')">使用</button>
+            </div>
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">🏗️</div>
+                <h3 class="agent-name">医美材料学架构师</h3>
+                <p class="agent-desc">6维评估模型，场景判别，合规底线，专业决策</p>
+                <div class="agent-meta"><span class="agent-dept">医疗部</span><span>本周82次</span></div>
+                <button class="btn-launch" onclick="launchAgent('material-architect')">使用</button>
+            </div>
+            <div class="agent-card" data-category="downstream">
+                <div class="agent-icon">🎨</div>
+                <h3 class="agent-name">医美视觉通译官</h3>
+                <p class="agent-desc">机理转视觉画面，设计师Brief，3D渲染指导</p>
+                <div class="agent-meta"><span class="agent-dept">运营部</span><span>本周67次</span></div>
+                <button class="btn-launch" onclick="launchAgent('visual-translator')">使用</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+    <div class="cta-inner">
+        <h2>准备好了吗？<br>找到你的 <em>AI 搭档</em></h2>
+        <p class="cta-sub">免费开始，无需信用卡。</p>
+        <button class="btn-cta" onclick="window.location.href='/login.html'">免费开始 →</button>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    © 2026 MedAgent Hub. 医美行业智能助手平台.
+</footer>
 
 <script>
-    var currentFilter = 'all';
-    var currentSearch = '';
-    var favorites = JSON.parse(localStorage.getItem('medagent_favorites') || '[]');
-
-    // Init
-    document.addEventListener('DOMContentLoaded', function() {
-        updateFavBtns();
-        sortAgentsByRole();
-        checkAuth();
-    });
-
-    // Role-based sorting
-    function sortAgentsByRole() {
-        var role = localStorage.getItem('medagent_role');
-        if (!role || role === 'all') return;
-        var grid = document.getElementById('agentGrid');
-        var cards = Array.from(grid.querySelectorAll('.agent-card'));
-        var roleMap = { upstream: 'upstream', downstream: 'downstream' };
-        var target = roleMap[role];
-        if (!target) return;
-        cards.sort(function(a, b) {
-            var aM = a.classList.contains(target) ? 0 : 1;
-            var bM = b.classList.contains(target) ? 0 : 1;
-            return aM - bM;
-        });
-        cards.forEach(function(c) { grid.appendChild(c); });
-        // Auto-filter
-        setFilter(role);
-    }
-
-    // Filter
-    function setFilter(f) {
-        currentFilter = f;
-        document.querySelectorAll('.tab').forEach(function(t) {
-            t.classList.toggle('active', t.dataset.filter === f);
-        });
-        var sel = document.querySelector('.mobile-filter');
-        if (sel) sel.value = f;
-        applyFilters();
-        var titles = {
-            all: '全部 Agent (21)', upstream: '上游厂商 Agent (12)', downstream: '下游机构 Agent (9)',
-            favorites: '收藏的 Agent', strategy: '战略类 Agent', sales: '销售类 Agent', medical: '医疗类 Agent'
-        };
-        document.getElementById('sectionTitle').textContent = titles[f] || '全部 Agent';
-    }
-
-    function filterAgents(val) {
-        currentSearch = val || '';
-        var clr = document.getElementById('clrBtn');
-        if (clr) clr.classList.toggle('show', currentSearch.length > 0);
-        applyFilters();
-    }
-
-    function clearSearch() {
-        document.getElementById('searchInput').value = '';
-        filterAgents('');
-    }
-
-    function applyFilters() {
-        var cards = document.querySelectorAll('.agent-card');
-        var visible = 0;
-        cards.forEach(function(card) {
-            var cat = card.dataset.category || '';
-            var name = (card.dataset.name || '').toLowerCase();
-            var desc = (card.querySelector('.card-desc') || {}).textContent || '';
-            var id = card.dataset.id || '';
-            var matchFilter = true;
-            if (currentFilter === 'favorites') {
-                matchFilter = favorites.indexOf(id) > -1;
-            } else if (currentFilter !== 'all') {
-                matchFilter = cat.indexOf(currentFilter) > -1;
-            }
-            var matchSearch = !currentSearch || name.indexOf(currentSearch.toLowerCase()) > -1 || desc.toLowerCase().indexOf(currentSearch.toLowerCase()) > -1;
-            if (matchFilter && matchSearch) {
+    // Filter agents
+    function setFilter(category, btn) {
+        document.querySelectorAll('.agents-tab').forEach(t => t.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        document.querySelectorAll('.agent-card').forEach(card => {
+            if (category === 'all' || card.dataset.category === category) {
                 card.classList.remove('hidden');
-                visible++;
             } else {
                 card.classList.add('hidden');
             }
         });
-        var empty = document.getElementById('emptyState');
-        if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
     }
 
-    function sortAgents(val) {
-        var grid = document.getElementById('agentGrid');
-        var cards = Array.from(grid.querySelectorAll('.agent-card'));
-        if (val === 'usage') {
-            cards.sort(function(a, b) { return parseInt(b.dataset.usage||0) - parseInt(a.dataset.usage||0); });
-        } else if (val === 'name') {
-            cards.sort(function(a, b) { return (a.dataset.name||'').localeCompare(b.dataset.name||''); });
-        }
-        cards.forEach(function(c) { grid.appendChild(c); });
+    // Launch agent
+    function launchAgent(agentId) {
+        window.location.href = '/login.html?redirect=/chat.html?agent=' + agentId;
     }
 
-    // Favorites
-    function toggleFav(e, id) {
-        e.stopPropagation();
-        var btn = e.target;
-        var idx = favorites.indexOf(id);
-        if (idx > -1) {
-            favorites.splice(idx, 1);
-            btn.textContent = '☆';
-            btn.classList.remove('active');
-        } else {
-            favorites.push(id);
-            btn.textContent = '★';
-            btn.classList.add('active');
-        }
-        localStorage.setItem('medagent_favorites', JSON.stringify(favorites));
-        if (currentFilter === 'favorites') applyFilters();
+    // Video tab switch
+    function switchTab(btn, tab) {
+        document.querySelectorAll('.video-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
     }
 
-    function updateFavBtns() {
-        favorites.forEach(function(id) {
-            var card = document.querySelector('[data-id="' + id + '"]');
-            if (card) {
-                var btn = card.querySelector('.btn-fav');
-                if (btn) { btn.textContent = '★'; btn.classList.add('active'); }
-            }
-        });
-    }
-
-    // Use Agent
-    function useAgent(id) {
-        var btn = event.target;
-        btn.classList.add('loading');
-        btn.textContent = '启动中';
-        setTimeout(function() {
-            btn.classList.remove('loading');
-            btn.textContent = '使用';
-            window.open('chat.html?agent=' + id, '_blank', 'width=1000,height=800');
-        }, 400);
-    }
-
-    // Auth check
+    // Check auth and update nav
     async function checkAuth() {
         try {
-            var res = await fetch('/api/auth/status');
+            const res = await fetch('/api/auth/status');
             if (res.ok) {
-                var data = await res.json();
+                const data = await res.json();
                 if (data.authenticated) {
-                    document.getElementById('navRight').innerHTML =
-                        '<span class="nav-user">👋 ' + (data.userName || '已登录') + '</span>' +
-                        '<button class="btn-nav btn-nav-primary" onclick="document.getElementById(\'agents\').scrollIntoView({behavior:\'smooth\'})">选择助手 →</button>';
+                    document.getElementById('navRight').innerHTML = `
+                        <span style="font-size:0.8rem;color:var(--text-3)">👋 ${data.userName || '已登录'}</span>
+                        <button class="btn-nav-primary" onclick="document.getElementById('agents').scrollIntoView({behavior:'smooth'})">选择助手</button>
+                    `;
                 }
             }
         } catch(e) {}
     }
+    checkAuth();
+
+    // Scroll animation
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.agent-card, .feature-card').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        observer.observe(el);
+    });
 </script>
 </body>
 </html>

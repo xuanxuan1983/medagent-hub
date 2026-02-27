@@ -1015,6 +1015,122 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ===== CORPUS API =====
+  // Corpus stats overview
+  if (url.pathname === '/api/admin/corpus/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+    let total = 0, labeled = 0, needsReview = 0, agentCounts = {};
+    if (fs.existsSync(logPath)) {
+      const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
+      total = lines.length;
+      lines.forEach(line => {
+        try {
+          const entry = JSON.parse(line);
+          const agentId = entry.agentId || 'unknown';
+          agentCounts[agentId] = (agentCounts[agentId] || 0) + 1;
+          if (entry.feedback === 'up') labeled++;
+          if (entry.feedback === 'down') needsReview++;
+        } catch {}
+      });
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ total, labeled, needsReview, agentCounts }));
+    return;
+  }
+
+  // Corpus list (paginated)
+  if (url.pathname === '/api/admin/corpus' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
+    const agentFilter = url.searchParams.get('agent') || '';
+    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+    let items = [];
+    if (fs.existsSync(logPath)) {
+      const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
+      lines.forEach((line, idx) => {
+        try {
+          const entry = JSON.parse(line);
+          if (!agentFilter || entry.agentId === agentFilter) {
+            items.push({ ...entry, _idx: idx });
+          }
+        } catch {}
+      });
+    }
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    const data = items.slice(start, start + pageSize);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ total, page, pageSize, data }));
+    return;
+  }
+
+  // Needs analysis (demand analysis from conversations)
+  if (url.pathname === '/api/admin/needs' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const needsPath = path.join(DATA_DIR, 'needs-summary.json');
+    if (fs.existsSync(needsPath)) {
+      const data = fs.readFileSync(needsPath, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(data);
+    } else {
+      // Generate basic needs analysis from conversations
+      const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+      const agentFreq = {};
+      if (fs.existsSync(logPath)) {
+        const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
+        lines.forEach(line => {
+          try {
+            const entry = JSON.parse(line);
+            const a = entry.agentId || 'unknown';
+            agentFreq[a] = (agentFreq[a] || 0) + 1;
+          } catch {}
+        });
+      }
+      const topAgents = Object.entries(agentFreq)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([agentId, count]) => ({ agentId, count }));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ topAgents, generatedAt: new Date().toISOString() }));
+    }
+    return;
+  }
+
+  // Export corpus as JSONL
+  if (url.pathname === '/api/admin/corpus/export' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+    if (!fs.existsSync(logPath)) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'No corpus data yet' }));
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/x-ndjson',
+      'Content-Disposition': `attachment; filename="corpus-${new Date().toISOString().slice(0,10)}.jsonl"`
+    });
+    fs.createReadStream(logPath).pipe(res);
+    return;
+  }
+
   // Serve static files
   const staticDir = path.join(__dirname);
   let filePath = path.join(staticDir, url.pathname === '/' ? 'index.html' : url.pathname);
@@ -1022,7 +1138,7 @@ const server = http.createServer(async (req, res) => {
   const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
   const contentType = mimeTypes[ext] || 'text/plain';
   const protectedPages = ['chat.html'];
-  const adminPages = ['admin.html'];
+  const adminPages = ['admin.html', 'corpus.html'];
   const requestedFile = path.basename(filePath);
   if (adminPages.includes(requestedFile) && !isAdmin(req)) {
     res.writeHead(302, { Location: '/login.html' });
