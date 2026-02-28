@@ -627,6 +627,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     .chat-input-left { display: flex; align-items: center; gap: 0.375rem; }
     .chat-input-hint { font-size: 0.72rem; color: #AEAAA5; }
+    .search-toggle-btn {
+      background: var(--bg-warm); border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 0.3rem 0.7rem;
+      font-size: 0.78rem; cursor: pointer; color: #888;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.25rem;
+    }
+    .search-toggle-btn:hover { border-color: #AEAAA5; color: #666; }
+    .search-toggle-btn.active {
+      background: var(--coral); border-color: var(--coral);
+      color: white; font-weight: 600;
+    }
+    .search-toggle-btn.active:hover { background: #C85A4A; }
     .chat-send-btn {
       padding: 0.5rem 1.25rem; border-radius: 8px;
       background: var(--text); color: white;
@@ -1016,6 +1028,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           <div class="chat-input-left">
             <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
               📎 上传文件
+            </button>
+            <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
+              🌐 联网
             </button>
             <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
           </div>
@@ -1594,16 +1609,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.getElementById('messageInput').placeholder = '输入您的问题... (Enter 发送，Shift+Enter 换行)';
   }
 
-  // ===== SEARCH KEYWORDS (client-side detection for UI hint) =====
-  // 与后端 needsWebSearch 保持一致
-  const SEARCH_INTENT_KW = ['查一下', '搜一下', '搜索', '查找', '查询', '帮我查', '帮我搜',
-    '有没有最新', '最新进展', '最新研究', '最新指南', '最新数据', '最新消息',
-    '最新动态', '最新报告', '最新文献', '最新临床',
-    '文献综述', '临床试验', '循证', 'RCT', 'meta分析',
-    '2025年', '2026年', '今年最新'];
-  const SEARCH_TIME_KW = ['今天', '今日', '昨天', '本周', '本月', '近期新闻'];
+  // ===== WEB SEARCH TOGGLE =====
+  let webSearchEnabled = false;
+
+  function toggleWebSearch() {
+    webSearchEnabled = !webSearchEnabled;
+    const btn = document.getElementById('searchToggleBtn');
+    btn.classList.toggle('active', webSearchEnabled);
+    btn.title = webSearchEnabled ? '已开启联网搜索（点击关闭）' : '开启联网搜索';
+  }
+
   function willSearch(msg) {
-    return SEARCH_INTENT_KW.some(k => msg.includes(k)) || SEARCH_TIME_KW.some(k => msg.includes(k));
+    return webSearchEnabled;
   }
 
   async function sendMessage() {
@@ -1631,6 +1648,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const settings = loadSettings();
       const body = { sessionId, message: msg || '请分析这个文件', ...settings };
       if (fileCtx) body.fileContext = fileCtx;
+      if (webSearchEnabled) body.webSearch = true;
+
+      // Reset search toggle after sending
+      if (webSearchEnabled) {
+        webSearchEnabled = false;
+        document.getElementById('searchToggleBtn').classList.remove('active');
+        document.getElementById('searchToggleBtn').title = '开启联网搜索';
+      }
 
       // Try streaming endpoint first
       const res = await fetch('/api/chat/message-stream', {

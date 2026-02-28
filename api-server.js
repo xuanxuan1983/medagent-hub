@@ -1192,7 +1192,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const { sessionId, message, fileContext, provider: userProvider, apiKey: userApiKey, model: userModel } = await parseRequestBody(req);
+      const { sessionId, message, fileContext, provider: userProvider, apiKey: userApiKey, model: userModel, webSearch } = await parseRequestBody(req);
 
       if (!sessionId || !sessions.has(sessionId)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1205,16 +1205,16 @@ const server = http.createServer(async (req, res) => {
       // Build user message content
       let userContent = message;
       if (fileContext) {
-        userContent = `\u7528\u6237\u4e0a\u4f20\u4e86\u6587\u4ef6\u300a${fileContext.name}\u300b\uff0c\u5185\u5bb9\u5982\u4e0b\uff1a\n\n---\n${fileContext.content.substring(0, 8000)}\n---\n\n\u7528\u6237\u95ee\u9898\uff1a${message}`;
+        userContent = `用户上传了文件《${fileContext.name}》，内容如下：\n\n---\n${fileContext.content.substring(0, 8000)}\n---\n\n用户问题：${message}`;
       }
 
       session.messages.push({ role: 'user', content: userContent });
       console.log(`\ud83d\udcac [${session.agentName}] User: ${message.substring(0, 50)}...`);
 
-      // Web search injection
+      // Web search injection - only when user explicitly enables it
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
-      if (needsWebSearch(message)) {
+      if (webSearch) {
         const searchQuery = extractSearchQuery(message);
         console.log(`\ud83d\udd0d [\u8054\u7f51\u641c\u7d22] \u641c\u7d22: ${searchQuery.substring(0, 60)}`);
         const searchData = await bochaSearch(searchQuery, 5);
@@ -1326,7 +1326,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const { sessionId, message, fileContext, provider: userProvider, apiKey: userApiKey, model: userModel } = await parseRequestBody(req);
+      const { sessionId, message, fileContext, provider: userProvider, apiKey: userApiKey, model: userModel, webSearch } = await parseRequestBody(req);
 
       if (!sessionId || !sessions.has(sessionId)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1336,29 +1336,19 @@ const server = http.createServer(async (req, res) => {
 
       const session = sessions.get(sessionId);
 
-      // Build user message content (may include file context)
+      // Build user message content
       let userContent = message;
       if (fileContext) {
-        userContent = `用户上传了文件《${fileContext.name}》，内容如下：
-
----
-${fileContext.content.substring(0, 8000)}
----
-
-用户问题：${message}`;
+        userContent = `用户上传了文件《${fileContext.name}》，内容如下：\n\n---\n${fileContext.content.substring(0, 8000)}\n---\n\n用户问题：${message}`;
       }
 
-      session.messages.push({
-        role: 'user',
-        content: userContent
-      });
+      session.messages.push({ role: 'user', content: userContent });
+      console.log(`\ud83d\udcac [${session.agentName}] User: ${message.substring(0, 50)}...`);
 
-      console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
-
-      // ===== WEB SEARCH INJECTION =====
+      // Web search injection - only when user explicitly enables it
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
-      if (needsWebSearch(message)) {
+      if (webSearch) {
         const searchQuery = extractSearchQuery(message);
         console.log(`🔍 [联网搜索] 搜索: ${searchQuery.substring(0, 60)}`);
         const searchData = await bochaSearch(searchQuery, 5);
