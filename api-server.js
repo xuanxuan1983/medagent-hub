@@ -392,9 +392,9 @@ const REFERRAL_FILE = path.join(DATA_DIR, 'referral-codes.json');    // { userCo
 const REFERRAL_RECORDS_FILE = path.join(DATA_DIR, 'referral-records.json'); // [{ refCode, referrer, invitee, time, creditStatus }]
 const MAX_USES_PER_CODE = parseInt(process.env.MAX_USES_PER_CODE || '5');
 const REFERRAL_MAX_USES = 10;       // 推荐码最多邀请10人
-const REFERRAL_CREDIT_REFERRER = 200; // 推荐人每邀请一人获得¥200
-const REFERRAL_CREDIT_INVITEE = 50;   // 被邀请人获得¥50
-const REFERRAL_CREDIT_MAX = 2000;     // 赠金上限¥2000
+const REFERRAL_CREDIT_REFERRER = 30;  // 推荐人每邀请一人获得¥30
+const REFERRAL_CREDIT_INVITEE = 30;   // 被邀请人获得¥30
+const REFERRAL_CREDIT_MAX = 300;      // 赠金上限¥300（最多10人）
 const ADMIN_WECHAT = 'xuanyi9747';   // 管理员微信号（赠金兑现联系）
 
 // ===== REFERRAL CODE FUNCTIONS =====
@@ -456,7 +456,9 @@ function getReferralStats(userCode) {
   const myRecords = allRecords.filter(r => r.referrer === userCode);
   const inviteCount = myRecords.length;
   const totalCredit = Math.min(inviteCount * REFERRAL_CREDIT_REFERRER, REFERRAL_CREDIT_MAX);
-  return { refCode, inviteCount, totalCredit, records: myRecords };
+  const paidCredit = Math.min(myRecords.filter(r => r.creditStatus === 'paid').length * REFERRAL_CREDIT_REFERRER, REFERRAL_CREDIT_MAX);
+  const pendingCredit = totalCredit - paidCredit;
+  return { refCode, inviteCount, totalCredit, paidCredit, pendingCredit, records: myRecords };
 }
 
 function loadProfiles() {
@@ -2341,8 +2343,36 @@ const server = http.createServer(async (req, res) => {
       if (!profiles[code].trial_start) profiles[code].trial_start = now.toISOString();
       saveProfiles(profiles);
       console.log(`💳 管理员将 ${code} 升级为 Pro，到期: ${expires.toISOString()}`);
+
+      // 自动给邀请人标记赠金（将该用户对应的邀请记录状态改为 paid）
+      let referrerCredited = null;
+      try {
+        const records = loadReferralRecords();
+        // 找到该用户作为 invitee 的记录（通过邀请码登录时记录的）
+        // invitee 字段存的是手机号，也可能是邀请码本身，需要查 profiles 中的 phone
+        const userPhone = profiles[code] && profiles[code].phone ? profiles[code].phone : null;
+        let updated = false;
+        for (let i = 0; i < records.length; i++) {
+          const r = records[i];
+          if (r.creditStatus === 'pending' && (
+            (userPhone && r.inviteePhone === userPhone) ||
+            r.inviteeCode === code
+          )) {
+            records[i].creditStatus = 'paid';
+            records[i].paidAt = now.toISOString();
+            referrerCredited = r.referrer;
+            updated = true;
+            console.log(`🎁 自动赠金: ${r.referrer} 邀请了 ${code}，¥${REFERRAL_CREDIT_REFERRER} 余额已到账`);
+            break;
+          }
+        }
+        if (updated) saveReferralRecords(records);
+      } catch(e) {
+        console.error('自动赠金处理失败:', e.message);
+      }
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, code, plan: 'pro', plan_expires: expires.toISOString(), months: m }));
+      res.end(JSON.stringify({ ok: true, code, plan: 'pro', plan_expires: expires.toISOString(), months: m, referrerCredited }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));

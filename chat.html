@@ -1314,8 +1314,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (data.referralStats) {
         document.getElementById('inviteCount').textContent = data.referralStats.inviteCount || 0;
         const credit = data.referralStats.totalCredit || 0;
-        document.getElementById('totalCredit').textContent = '\u00a5' + credit;
-        document.getElementById('creditMax').textContent = '\u4e0a\u9650 \u00a5' + (data.referralStats.maxCredit || 2000).toLocaleString();
+        const paidCredit = data.referralStats.paidCredit || 0;
+        const pendingCredit = credit - paidCredit;
+        document.getElementById('totalCredit').textContent = '\u00a5' + paidCredit;
+        let creditSubText = '\u4e0a\u9650 \u00a5' + (data.referralStats.maxCredit || 300).toLocaleString();
+        if (pendingCredit > 0) creditSubText = '\u5f85\u5230\u8d26 \u00a5' + pendingCredit;
+        document.getElementById('creditMax').textContent = creditSubText;
       }
       if (data.adminWechat) {
         document.getElementById('adminWechatDisplay').textContent = data.adminWechat;
