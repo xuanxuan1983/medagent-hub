@@ -184,6 +184,67 @@ async function bochaSearch(query, count = 5) {
   });
 }
 
+// ===== NMPA 药监局产品查询 =====
+// 需要药监局查询的 Agent（产品/学术/咨询/材料类）
+const AGENTS_NEED_NMPA = new Set([
+  'product-expert', 'academic-liaison', 'senior-consultant', 'sparring-robot',
+  'materials-mentor', 'material-architect', 'anatomy-architect', 'trend-setter',
+  'aesthetic-design', 'post-op-guardian', 'neuro-aesthetic-architect'
+]);
+
+// 常见医美产品关键词（用于触发药监局查询）
+const NMPA_PRODUCT_KEYWORDS = [
+  // 玻尿酸品牌
+  '瑞蓝', '乔雅登', '润百颜', '海薇', '宝尼达', '伊婉', '逸美', '艾莉薇', '铂悦',
+  // 胶原蛋白
+  '薇旖', '锦波', '巨子', '双美', '爱贝芙', '创健',
+  // 胶原刺激剂
+  '童颜针', 'Sculptra', '艾维岚', '少女针', 'Ellansé', '微晶瓷', 'Radiesse',
+  // 肉毒素
+  '保妥适', 'Botox', '衡力', '吉适', 'Dysport', 'Xeomin', '肉毒',
+  // 能量设备
+  '热玛吉', '超声炮', 'HIFU', '皮秒', '热拉提', '欧洲之星', '赛诺秀',
+  // 通用词
+  '注册证', '批准文号', '适应症', '说明书', '获证', '备案号', '注册号'
+];
+
+// 检测消息中是否包含医美产品名，返回提取到的产品名
+function detectNmpaProduct(message) {
+  const found = NMPA_PRODUCT_KEYWORDS.filter(kw => message.includes(kw));
+  return found.length > 0 ? found : null;
+}
+
+// 构建药监局定向搜索 query
+function buildNmpaQuery(message, products) {
+  // 如果消息中已经有注册证/批准文号等意图，直接用原消息
+  if (message.includes('注册证') || message.includes('批准文号') || message.includes('说明书') || message.includes('获证')) {
+    return `site:nmpa.gov.cn ${products[0]} 医疗器械注册`;
+  }
+  return `国家药监局 ${products[0]} 医疗器械注册证 适应症`;
+}
+
+// 药监局查询（通过博查搜索定向查询药监局数据）
+async function nmpaSearch(message, products) {
+  const query = buildNmpaQuery(message, products);
+  console.log(`[药监局查询] 产品: ${products.join(', ')} | 搜索: ${query}`);
+  const result = await bochaSearch(query, 3);
+  if (result.success && result.results.length > 0) {
+    // 过滤出药监局相关结果
+    const nmpaResults = result.results.filter(r =>
+      r.url.includes('nmpa.gov.cn') || r.url.includes('udi.nmpa') ||
+      r.title.includes('注册') || r.title.includes('批准') || r.snippet.includes('注册证')
+    );
+    const allResults = nmpaResults.length > 0 ? nmpaResults : result.results;
+    return {
+      success: true,
+      products,
+      results: allResults,
+      query
+    };
+  }
+  return { success: false, products, results: [], query };
+}
+
 // Determine if a message needs web search
 function needsWebSearch(message) {
   // 明确搜索意图关键词（用户主动要求查询）
@@ -1520,22 +1581,41 @@ const server = http.createServer(async (req, res) => {
       }
 
       session.messages.push({ role: 'user', content: userContent });
-      console.log(`\ud83d\udcac [${session.agentName}] User: ${message.substring(0, 50)}...`);
+      console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
 
-      // Web search injection - only when user explicitly enables it
+      // 药监局产品查询 + 联网搜索注入
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
+
+      // 1️⃣ 药监局自动查询（针对产品相关 Agent，无需用户手动开启）
+      const agentId = session.agentId;
+      if (AGENTS_NEED_NMPA.has(agentId)) {
+        const detectedProducts = detectNmpaProduct(message);
+        if (detectedProducts) {
+          const nmpaData = await nmpaSearch(message, detectedProducts);
+          if (nmpaData.success && nmpaData.results.length > 0) {
+            const nmpaContext = nmpaData.results.map(r =>
+              `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
+            ).join('\n\n');
+            enrichedSystemPrompt = session.systemPrompt + `\n\n===== 药监局实时注册信息 =====\n以下是关于「${detectedProducts.join('、')}」的药监局官方注册信息，请将这些信息结合你的专业知识进行回答，并在回答末尾标注数据来源：\n\n${nmpaContext}\n\n重要：如有注册证号、适应症范围、有效期等官方信息，请明确引用。`;
+            searchResults = nmpaData.results;
+            console.log(`✅ [药监局查询] 找到 ${nmpaData.results.length} 条结果`);
+          }
+        }
+      }
+
+      // 2️⃣ 联网搜索（用户手动开启）
       if (webSearch) {
         const searchQuery = extractSearchQuery(message);
-        console.log(`\ud83d\udd0d [\u8054\u7f51\u641c\u7d22] \u641c\u7d22: ${searchQuery.substring(0, 60)}`);
+        console.log(`🔍 [联网搜索] 搜索: ${searchQuery.substring(0, 60)}`);
         const searchData = await bochaSearch(searchQuery, 5);
         if (searchData.success && searchData.results.length > 0) {
-          searchResults = searchData.results;
+          searchResults = (searchResults || []).concat(searchData.results);
           const searchContext = searchData.results.map(r =>
-            `[${r.index}] ${r.title}\n\u6765\u6e90: ${r.url}\n\u6458\u8981: ${r.snippet}`
+            `[${r.index}] ${r.title}\n来源: ${r.url}\n摘要: ${r.snippet}`
           ).join('\n\n');
-          enrichedSystemPrompt = session.systemPrompt + `\n\n===== \u8054\u7f51\u641c\u7d22\u7ed3\u679c =====\n\u4ee5\u4e0b\u662f\u5bf9\u4e8e\u201c${message.substring(0, 50)}\u201d\u7684\u6700\u65b0\u641c\u7d22\u7ed3\u679c\uff0c\u8bf7\u5c06\u8fd9\u4e9b\u4fe1\u606f\u7ed3\u5408\u4f60\u7684\u4e13\u4e1a\u77e5\u8bc6\u8fdb\u884c\u56de\u7b54\uff0c\u5e76\u5728\u56de\u7b54\u672b\u5c3e\u6807\u6ce8\u4fe1\u606f\u6765\u6e90\uff1a\n\n${searchContext}\n\n\u8bf7\u5728\u56de\u7b54\u4e2d\u9002\u5f53\u5f15\u7528\u6765\u6e90\uff0c\u5e76\u5728\u56de\u7b54\u672b\u5c3e\u6dfb\u52a0\u53c2\u8003\u94fe\u63a5\u5217\u8868\u3002`;
-          console.log(`\u2705 \u641c\u7d22\u5b8c\u6210\uff0c\u83b7\u5f97 ${searchData.results.length} \u6761\u7ed3\u679c`);
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果 =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
+          console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
         }
       }
 
@@ -1665,28 +1745,40 @@ const server = http.createServer(async (req, res) => {
       }
 
       session.messages.push({ role: 'user', content: userContent });
-      console.log(`\ud83d\udcac [${session.agentName}] User: ${message.substring(0, 50)}...`);
+      console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
 
-      // Web search injection - only when user explicitly enables it
+      // 药监局产品查询 + 联网搜索注入
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
+
+      // 1️⃣ 药监局自动查询
+      const agentId2 = session.agentId;
+      if (AGENTS_NEED_NMPA.has(agentId2)) {
+        const detectedProducts2 = detectNmpaProduct(message);
+        if (detectedProducts2) {
+          const nmpaData2 = await nmpaSearch(message, detectedProducts2);
+          if (nmpaData2.success && nmpaData2.results.length > 0) {
+            const nmpaContext2 = nmpaData2.results.map(r =>
+              `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
+            ).join('\n\n');
+            enrichedSystemPrompt = session.systemPrompt + `\n\n===== 药监局实时注册信息 =====\n以下是关于「${detectedProducts2.join('、')}」的药监局官方注册信息，请将这些信息结合你的专业知识进行回答，并在回答末尾标注数据来源：\n\n${nmpaContext2}\n\n重要：如有注册证号、适应症范围、有效期等官方信息，请明确引用。`;
+            searchResults = nmpaData2.results;
+            console.log(`✅ [药监局查询] 找到 ${nmpaData2.results.length} 条结果`);
+          }
+        }
+      }
+
+      // 2️⃣ 联网搜索（用户手动开启）
       if (webSearch) {
         const searchQuery = extractSearchQuery(message);
         console.log(`🔍 [联网搜索] 搜索: ${searchQuery.substring(0, 60)}`);
         const searchData = await bochaSearch(searchQuery, 5);
         if (searchData.success && searchData.results.length > 0) {
-          searchResults = searchData.results;
+          searchResults = (searchResults || []).concat(searchData.results);
           const searchContext = searchData.results.map(r =>
             `[${r.index}] ${r.title}\n来源: ${r.url}\n摘要: ${r.snippet}`
           ).join('\n\n');
-          enrichedSystemPrompt = session.systemPrompt + `
-
-===== 联网搜索结果 =====
-以下是对于“${message.substring(0, 50)}”的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：
-
-${searchContext}
-
-请在回答中适当引用来源，格式为《来源标题》，并在回答末尾添加参考链接列表。`;
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果 =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
           console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
         }
       }
