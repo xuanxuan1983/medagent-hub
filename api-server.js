@@ -371,13 +371,50 @@ const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini'; // gemini, kimi, deepse
 // Load skill prompts
 const skillsDir = path.join(__dirname, 'skills');
 
+const FORMAT_RULES = `
+
+---
+## 回复格式规范（必须严格遵守）
+
+你的所有回复必须使用标准 Markdown 格式输出，以便在网页中正确渲染。
+
+**允许使用：**
+- 标题：## 一级标题、### 二级标题、#### 三级标题
+- 列表：- 或 1. 2. 3.（支持多级缩进）
+- 加粗：**重要内容**
+- 斜体：*辅助说明*
+- 引用块：> 重要提示或关键结论
+- 表格：| 列名 | 内容 |（数据对比时使用）
+- 分隔线：---（用于分隔不同部分）
+- 行内代码：`专业术语`
+
+**严禁使用：**
+- 禁止 ASCII 树形图（即 │ ├── └── 等字符）
+- 禁止用 ▶️ ✅ ❌ ⚠️ ➡️ ⭐ 等 emoji 作为列表标记或结构符号
+- 禁止用全角符号、特殊线条字符构建分隔线
+- 禁止使用 【 】《 》 『 』 等中文书名号作为标题装饰
+
+**格式示例：**
+正确：
+## 一、核心优势分析
+### 1. 技术可验证性
+- 需有流变学数据支撑
+- **G'値要求**：高于 800Pa
+
+错误：
+│
+├── 技术可验证性
+└── G'値要求
+`;
+
 function loadSkillPrompt(skillName) {
   const skillPath = path.join(skillsDir, `${skillName}.md`);
   try {
     const content = fs.readFileSync(skillPath, 'utf8');
     // Remove YAML frontmatter
     const withoutFrontmatter = content.replace(/^---\n[\s\S]*?\n---\n/, '');
-    return withoutFrontmatter;
+    // Append global format rules
+    return withoutFrontmatter + FORMAT_RULES;
   } catch (error) {
     console.error(`Error loading skill ${skillName}:`, error.message);
     return null;
