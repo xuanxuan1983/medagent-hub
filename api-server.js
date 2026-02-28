@@ -3,6 +3,7 @@
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const ExcelJS = require('exceljs');
 const Database = require('better-sqlite3');
@@ -23,6 +24,18 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 // Bocha Search API
 const BOCHA_API_KEY = process.env.BOCHA_API_KEY || 'sk-51d7d709eb6d4150b76dc131663330d3';
 const BOCHA_API_URL = 'https://api.bochaai.com/v1/web-search';
+
+// LibLib AI 图片生成
+const LIBLIB_ACCESS_KEY = process.env.LIBLIB_ACCESS_KEY || 'JP004_52azfkydBDkipUeQ';
+const LIBLIB_SECRET_KEY = process.env.LIBLIB_SECRET_KEY || 'Nx1rqfvE88V1KdX_7L5jaEwyUklmL0Z7';
+const LIBLIB_API_URL = 'https://openapi.liblibai.cloud';
+
+// ===== 权限体系常量 =====
+const TRIAL_DAYS = 7;                  // 免费试用天数
+const FREE_DAILY_MSG_LIMIT = 200;      // 免费版每日消息上限
+const PRO_DAILY_MSG_LIMIT = 1000;      // Pro 版每日消息上限
+const PRO_MONTHLY_IMG_LIMIT = 50;      // Pro 版每月图片生成上限
+const PRO_MONTHLY_SEARCH_LIMIT = 300;  // Pro 版每月联网搜索上限
 
 // ===== FILE UPLOAD SETUP =====
 const storage = multer.diskStorage({
@@ -455,6 +468,122 @@ function loadProfiles() {
 
 function saveProfiles(profiles) {
   fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2));
+}
+
+// ===== 权限体系辅助函数 =====
+
+// 获取用户 profile，如果不存在则初始化
+function getOrInitProfile(code) {
+  const profiles = loadProfiles();
+  if (!profiles[code]) profiles[code] = {};
+  const p = profiles[code];
+  // 初始化试用期开始时间
+  if (!p.trial_start) {
+    p.trial_start = new Date().toISOString();
+    saveProfiles(profiles);
+  }
+  return p;
+}
+
+// 检查用户权限状态
+function getUserPlanStatus(code) {
+  if (code === ADMIN_CODE) {
+    return { plan: 'admin', canChat: true, canSearch: true, canImage: true,
+             dailyRemaining: 9999, trialDaysLeft: 999, isExpired: false };
+  }
+  const profiles = loadProfiles();
+  const p = profiles[code] || {};
+
+  // 初始化试用期
+  const trialStart = p.trial_start ? new Date(p.trial_start) : new Date();
+  const now = new Date();
+  const trialElapsed = (now - trialStart) / (1000 * 60 * 60 * 24); // 天数
+  const trialDaysLeft = Math.max(0, TRIAL_DAYS - Math.floor(trialElapsed));
+
+  // 判断是否 Pro
+  const isPro = p.plan === 'pro' && p.plan_expires && new Date(p.plan_expires) > now;
+
+  // 判断试用期是否到期
+  const isTrialExpired = !isPro && trialDaysLeft === 0;
+
+  // 每日消息计数
+  const today = now.toISOString().slice(0, 10);
+  const dailyCount = (p.daily_msg_date === today) ? (p.daily_msg_count || 0) : 0;
+  const dailyLimit = isPro ? PRO_DAILY_MSG_LIMIT : FREE_DAILY_MSG_LIMIT;
+  const dailyRemaining = Math.max(0, dailyLimit - dailyCount);
+
+  // 每月图片计数
+  const thisMonth = now.toISOString().slice(0, 7);
+  const imgCount = (p.img_month === thisMonth) ? (p.img_month_count || 0) : 0;
+  const imgRemaining = isPro ? Math.max(0, PRO_MONTHLY_IMG_LIMIT - imgCount) : 0;
+
+  // 每月搜索计数
+  const searchCount = (p.search_month === thisMonth) ? (p.search_month_count || 0) : 0;
+  const searchRemaining = isPro ? Math.max(0, PRO_MONTHLY_SEARCH_LIMIT - searchCount) : 0;
+
+  return {
+    plan: isPro ? 'pro' : (isTrialExpired ? 'expired' : 'free'),
+    isPro,
+    isTrialExpired,
+    trialDaysLeft,
+    trialStart: trialStart.toISOString(),
+    planExpires: p.plan_expires || null,
+    canChat: !isTrialExpired && dailyRemaining > 0,
+    canSearch: isPro && searchRemaining > 0,
+    canImage: isPro && imgRemaining > 0,
+    dailyCount,
+    dailyLimit,
+    dailyRemaining,
+    imgCount,
+    imgRemaining,
+    searchCount,
+    searchRemaining
+  };
+}
+
+// 记录今日消息数
+function incrementDailyMsg(code) {
+  const profiles = loadProfiles();
+  if (!profiles[code]) profiles[code] = {};
+  const p = profiles[code];
+  const today = new Date().toISOString().slice(0, 10);
+  if (p.daily_msg_date !== today) {
+    p.daily_msg_date = today;
+    p.daily_msg_count = 0;
+  }
+  p.daily_msg_count = (p.daily_msg_count || 0) + 1;
+  saveProfiles(profiles);
+  return p.daily_msg_count;
+}
+
+// 记录当月图片生成数
+function incrementMonthlyImg(code) {
+  const profiles = loadProfiles();
+  if (!profiles[code]) profiles[code] = {};
+  const p = profiles[code];
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  if (p.img_month !== thisMonth) {
+    p.img_month = thisMonth;
+    p.img_month_count = 0;
+  }
+  p.img_month_count = (p.img_month_count || 0) + 1;
+  saveProfiles(profiles);
+  return p.img_month_count;
+}
+
+// 记录当月搜索数
+function incrementMonthlySearch(code) {
+  const profiles = loadProfiles();
+  if (!profiles[code]) profiles[code] = {};
+  const p = profiles[code];
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  if (p.search_month !== thisMonth) {
+    p.search_month = thisMonth;
+    p.search_month_count = 0;
+  }
+  p.search_month_count = (p.search_month_count || 0) + 1;
+  saveProfiles(profiles);
+  return p.search_month_count;
 }
 
 function loadCodes() {
@@ -1075,32 +1204,89 @@ const MEDAESTHETIC_IMAGE_PROMPTS = {
   }
 };
 
-// Image generation via SiliconFlow
-async function generateImage(promptKey, customPrompt) {
-  const apiKey = process.env.SILICONFLOW_API_KEY;
-  if (!apiKey) throw new Error('SILICONFLOW_API_KEY not configured');
+// ===== LibLib AI 图片生成 =====
+const crypto = require('crypto');
 
+function liblibSign(uri, timestamp, nonce) {
+  const content = `${uri}&${timestamp}&${nonce}`;
+  const hmac = crypto.createHmac('sha1', LIBLIB_SECRET_KEY);
+  hmac.update(content);
+  return hmac.digest('base64');
+}
+
+async function generateImageLibLib(promptKey, customPrompt) {
   const template = MEDAESTHETIC_IMAGE_PROMPTS[promptKey];
   const finalPrompt = customPrompt
     ? `${template ? template.prompt + ', ' : ''}${customPrompt}`
     : (template ? template.prompt : customPrompt);
 
-  const response = await fetch('https://api.siliconflow.cn/v1/images/generations', {
+  if (!finalPrompt) throw new Error('Prompt is required');
+
+  const uri = '/api/generate/webui/text2img/ultra';
+  const timestamp = Date.now().toString();
+  const nonce = Math.random().toString(36).substring(2, 10);
+  const signature = liblibSign(uri, timestamp, nonce);
+
+  // Step 1: 提交生成任务
+  const submitResp = await fetch(`${LIBLIB_API_URL}${uri}?AccessKey=${LIBLIB_ACCESS_KEY}&Timestamp=${timestamp}&SignatureNonce=${nonce}&Signature=${encodeURIComponent(signature)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'black-forest-labs/FLUX.1-dev',
-      prompt: finalPrompt,
-      image_size: '1024x1024',
-      num_inference_steps: 28,
-      guidance_scale: 3.5
+      templateUuid: '5d7e67009b344550bc1aa6ccbfa1d7f4', // Star-3 Alpha
+      generateParams: {
+        prompt: finalPrompt,
+        negativePrompt: 'ugly, blurry, low quality, watermark, text, deformed',
+        width: 1024,
+        height: 1024,
+        imgCount: 1,
+        steps: 20,
+        cfgScale: 7
+      }
     })
   });
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || 'Image generation failed');
-  return { url: data.images[0].url, prompt: finalPrompt };
+  const submitData = await submitResp.json();
+  if (!submitResp.ok || submitData.code !== 0) {
+    throw new Error(submitData.msg || `LibLib submit failed: ${submitResp.status}`);
+  }
+
+  const generateUuid = submitData.data?.generateUuid;
+  if (!generateUuid) throw new Error('No generateUuid returned');
+
+  // Step 2: 轮询结果（最多等 60 秒）
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+
+    const queryUri = '/api/generate/webui/query';
+    const qTs = Date.now().toString();
+    const qNonce = Math.random().toString(36).substring(2, 10);
+    const qSig = liblibSign(queryUri, qTs, qNonce);
+
+    const queryResp = await fetch(`${LIBLIB_API_URL}${queryUri}?AccessKey=${LIBLIB_ACCESS_KEY}&Timestamp=${qTs}&SignatureNonce=${qNonce}&Signature=${encodeURIComponent(qSig)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ generateUuid })
+    });
+
+    const queryData = await queryResp.json();
+    if (queryData.code !== 0) throw new Error(queryData.msg || 'Query failed');
+
+    const status = queryData.data?.generateStatus;
+    // 5 = 完成, 6 = 失败
+    if (status === 5) {
+      const imgUrl = queryData.data?.images?.[0]?.imageUrl;
+      if (!imgUrl) throw new Error('No image URL in response');
+      return { url: imgUrl, prompt: finalPrompt };
+    } else if (status === 6) {
+      throw new Error('图片生成失败');
+    }
+    // 其他状态继续等待
+  }
+  throw new Error('图片生成超时，请稍后重试');
 }
+
+// 兼容旧函数名
+const generateImage = generateImageLibLib;
 
 // Providers config exposed to frontend
 const PROVIDERS_CONFIG = {
@@ -1356,12 +1542,15 @@ const server = http.createServer(async (req, res) => {
     // Generate or get referral code
     const refCode = code === ADMIN_CODE ? null : getOrCreateReferralCode(code);
     const referralStats = code === ADMIN_CODE ? { inviteCount: 0, totalCredit: 0 } : getReferralStats(code);
+    // 获取真实权限状态
+    const planStatus = getUserPlanStatus(code);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       code,
       name,
       phone: profile.phone || null,
-      plan: 'free',
+      plan: planStatus.plan,
+      planStatus,
       usage,
       maxUses,
       isAdmin: code === ADMIN_CODE,
@@ -1405,14 +1594,21 @@ const server = http.createServer(async (req, res) => {
         console.log(`📝 邀请码 ${code} 使用次数: ${currentUsage}/${maxUses}`);
       }
       
-      // Save phone number if provided
-      if (phone && code !== ADMIN_CODE) {
+      // Save phone number and initialize trial_start if first login
+      if (code !== ADMIN_CODE) {
         const profiles = loadProfiles();
         if (!profiles[code]) profiles[code] = {};
-        profiles[code].phone = phone;
+        if (phone) {
+          profiles[code].phone = phone;
+        }
         profiles[code].loginAt = new Date().toISOString();
+        // 首次登录初始化试用期
+        if (!profiles[code].trial_start) {
+          profiles[code].trial_start = new Date().toISOString();
+          console.log(`🎯 用户 ${code} 开始 ${TRIAL_DAYS} 天免费试用期`);
+        }
         saveProfiles(profiles);
-        console.log(`📱 邮请码 ${code} 绑定手机号: ${phone}`);
+        if (phone) console.log(`📱 邀请码 ${code} 绑定手机号: ${phone}`);
       }
 
       // Record referral relationship if this is a referral code (ref_xxx)
@@ -1481,11 +1677,28 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'promptKey or customPrompt required' }));
         return;
       }
-      const result = await generateImage(promptKey, customPrompt);
-      // Record image generation cost
+
+      // ===== 图片生成权限检查 =====
       const imgUserCode = getUserCode(req);
+      const imgPlanStatus = getUserPlanStatus(imgUserCode);
+      if (!imgPlanStatus.canImage) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'image_not_allowed',
+          message: imgPlanStatus.isPro
+            ? `本月图片生成配额已用尽（${PRO_MONTHLY_IMG_LIMIT}张/月）`
+            : '图片生成为 Pro 会员专属功能，请升级以使用',
+          planStatus: imgPlanStatus
+        }));
+        return;
+      }
+      // ===== 权限检查结束 =====
+
+      const result = await generateImage(promptKey, customPrompt);
+      // Record image generation cost and quota
       const imgUserName = getUserName(req);
       recordImageUsage(imgUserCode, imgUserName);
+      incrementMonthlyImg(imgUserCode);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result));
     } catch (error) {
@@ -1573,6 +1786,46 @@ const server = http.createServer(async (req, res) => {
       }
 
       const session = sessions.get(sessionId);
+      const userCode = session.userCode || getUserCode(req);
+
+      // ===== 权限检查 =====
+      const planStatus = getUserPlanStatus(userCode);
+
+      // 检查试用期是否到期
+      if (planStatus.isTrialExpired) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'trial_expired',
+          message: '免费试用期已结束，请升级为 Pro 会员继续使用',
+          planStatus
+        }));
+        return;
+      }
+
+      // 检查每日消息配额
+      if (planStatus.dailyRemaining <= 0) {
+        res.writeHead(429, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'daily_limit_exceeded',
+          message: `今日消息配额已用尽（${planStatus.dailyLimit}条/天），明日自动重置`,
+          planStatus
+        }));
+        return;
+      }
+
+      // 检查联网搜索权限
+      if (webSearch && !planStatus.canSearch) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'search_not_allowed',
+          message: planStatus.isPro
+            ? `本月联网搜索配额已用尽（${PRO_MONTHLY_SEARCH_LIMIT}次/月）`
+            : '联网搜索为 Pro 会员专属功能，请升级以使用',
+          planStatus
+        }));
+        return;
+      }
+      // ===== 权限检查结束 =====
 
       // Build user message content
       let userContent = message;
@@ -1701,6 +1954,10 @@ const server = http.createServer(async (req, res) => {
         recordBochaUsage(session.userCode, session.userName);
       }
 
+      // 记录消息配额和搜索配额
+      incrementDailyMsg(userCode);
+      if (webSearch) incrementMonthlySearch(userCode);
+
       // Send done event
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       res.end();
@@ -1737,6 +1994,26 @@ const server = http.createServer(async (req, res) => {
       }
 
       const session = sessions.get(sessionId);
+      const userCode2 = session.userCode || getUserCode(req);
+
+      // ===== 权限检查 =====
+      const planStatus2 = getUserPlanStatus(userCode2);
+      if (planStatus2.isTrialExpired) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'trial_expired', message: '免费试用期已结束，请升级为 Pro 会员继续使用', planStatus: planStatus2 }));
+        return;
+      }
+      if (planStatus2.dailyRemaining <= 0) {
+        res.writeHead(429, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'daily_limit_exceeded', message: `今日消息配额已用尽（${planStatus2.dailyLimit}条/天），明日自动重置`, planStatus: planStatus2 }));
+        return;
+      }
+      if (webSearch && !planStatus2.canSearch) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'search_not_allowed', message: planStatus2.isPro ? `本月联网搜索配额已用尽` : '联网搜索为 Pro 会员专属功能', planStatus: planStatus2 }));
+        return;
+      }
+      // ===== 权限检查结束 =====
 
       // Build user message content
       let userContent = message;
@@ -1834,6 +2111,10 @@ const server = http.createServer(async (req, res) => {
       if (webSearch && searchResults) {
         recordBochaUsage(session.userCode, session.userName);
       }
+
+      // 记录消息配额和搜索配额
+      incrementDailyMsg(userCode2);
+      if (webSearch) incrementMonthlySearch(userCode2);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
@@ -2029,6 +2310,91 @@ const server = http.createServer(async (req, res) => {
     });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(users));
+    return;
+  }
+
+  // Admin: 升级用户为 Pro
+  if (url.pathname === '/api/admin/set-pro' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const { code, months } = await parseRequestBody(req);
+      if (!code) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请提供用户邀请码' }));
+        return;
+      }
+      const profiles = loadProfiles();
+      if (!profiles[code]) profiles[code] = {};
+      const m = parseInt(months) || 1;
+      const now = new Date();
+      // 如果已是 Pro 且未过期，在现有到期时间基础上延长
+      const currentExpires = profiles[code].plan_expires ? new Date(profiles[code].plan_expires) : null;
+      const base = (currentExpires && currentExpires > now) ? currentExpires : now;
+      const expires = new Date(base);
+      expires.setMonth(expires.getMonth() + m);
+      profiles[code].plan = 'pro';
+      profiles[code].plan_expires = expires.toISOString();
+      if (!profiles[code].trial_start) profiles[code].trial_start = now.toISOString();
+      saveProfiles(profiles);
+      console.log(`💳 管理员将 ${code} 升级为 Pro，到期: ${expires.toISOString()}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, code, plan: 'pro', plan_expires: expires.toISOString(), months: m }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: 降级用户为免费
+  if (url.pathname === '/api/admin/revoke-pro' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const { code } = await parseRequestBody(req);
+      if (!code) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请提供用户邀请码' }));
+        return;
+      }
+      const profiles = loadProfiles();
+      if (!profiles[code]) profiles[code] = {};
+      profiles[code].plan = 'free';
+      profiles[code].plan_expires = null;
+      saveProfiles(profiles);
+      console.log(`🔒 管理员将 ${code} 降级为免费`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, code, plan: 'free' }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: 查询用户权限状态
+  if (url.pathname === '/api/admin/user-plan' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const queryCode = url.searchParams.get('code');
+    if (!queryCode) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '请提供 code 参数' }));
+      return;
+    }
+    const planInfo = getUserPlanStatus(queryCode);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ code: queryCode, ...planInfo }));
     return;
   }
 
