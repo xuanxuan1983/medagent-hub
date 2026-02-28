@@ -396,6 +396,10 @@ const REFERRAL_CREDIT_REFERRER = 30;  // 推荐人每邀请一人获得¥30
 const REFERRAL_CREDIT_INVITEE = 30;   // 被邀请人获得¥30
 const REFERRAL_CREDIT_MAX = 300;      // 赠金上限¥300（最多10人）
 const ADMIN_WECHAT = 'xuanyi9747';   // 管理员微信号（赠金兑现联系）
+const CHANNEL_FILE = path.join(DATA_DIR, 'channels.json');         // 渠道代理列表 [{ id, name, wechat, commissionRate, createdAt }]
+const CHANNEL_RECORDS_FILE = path.join(DATA_DIR, 'channel-records.json'); // 渠道转化记录 [{ channelId, userCode, plan, amount, commission, status, createdAt }]
+const CHANNEL_COMMISSION_SUBSCRIPTION = 0.20; // 订阅分润比例 20%
+const CHANNEL_COMMISSION_LEVEL2 = 0.15;       // Level 2 介绍费比例 15%
 
 // ===== REFERRAL CODE FUNCTIONS =====
 function loadReferralCodes() {
@@ -2752,6 +2756,121 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
+
+  // ===== CHANNEL PARTNER APIS =====
+
+  // 加载/保存渠道数据
+  function loadChannels() {
+    try { if (fs.existsSync(CHANNEL_FILE)) return JSON.parse(fs.readFileSync(CHANNEL_FILE, 'utf8')); } catch {}
+    return [];
+  }
+  function saveChannels(data) { fs.writeFileSync(CHANNEL_FILE, JSON.stringify(data, null, 2)); }
+  function loadChannelRecords() {
+    try { if (fs.existsSync(CHANNEL_RECORDS_FILE)) return JSON.parse(fs.readFileSync(CHANNEL_RECORDS_FILE, 'utf8')); } catch {}
+    return [];
+  }
+  function saveChannelRecords(data) { fs.writeFileSync(CHANNEL_RECORDS_FILE, JSON.stringify(data, null, 2)); }
+
+  // Admin: 创建渠道代理
+  if (url.pathname === '/api/admin/channel/create' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const { name, wechat, commissionRate } = await parseRequestBody(req);
+      if (!name) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '请提供渠道名称' })); return; }
+      const channels = loadChannels();
+      // 生成渠道专属邀请码：ch_ + 6位随机
+      const channelCode = 'ch_' + Math.random().toString(36).substr(2, 6);
+      // 将渠道码注册为可用邀请码（复用现有邀请码系统）
+      const codes = loadCodes();
+      codes[channelCode] = name + '（渠道）';
+      saveCodes(codes);
+      // 设置渠道码使用次数上限（999，基本无限）
+      const limits = loadUsageLimits();
+      limits[channelCode] = 999;
+      saveUsageLimits(limits);
+      const channel = {
+        id: channelCode,
+        name,
+        wechat: wechat || '',
+        commissionRate: parseFloat(commissionRate) || CHANNEL_COMMISSION_SUBSCRIPTION,
+        createdAt: new Date().toISOString(),
+        totalConversions: 0,
+        totalRevenue: 0,
+        totalCommission: 0,
+        paidCommission: 0
+      };
+      channels.push(channel);
+      saveChannels(channels);
+      console.log(`📢 新渠道代理: ${name} (${channelCode})`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, channel }));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
+  // Admin: 查询所有渠道及转化统计
+  if (url.pathname === '/api/admin/channel/list' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const channels = loadChannels();
+      const records = loadChannelRecords();
+      const result = channels.map(ch => {
+        const myRecords = records.filter(r => r.channelId === ch.id);
+        const totalRevenue = myRecords.reduce((s, r) => s + (r.amount || 0), 0);
+        const totalCommission = myRecords.reduce((s, r) => s + (r.commission || 0), 0);
+        const paidCommission = myRecords.filter(r => r.status === 'paid').reduce((s, r) => s + (r.commission || 0), 0);
+        const pendingCommission = totalCommission - paidCommission;
+        return { ...ch, totalConversions: myRecords.length, totalRevenue, totalCommission, paidCommission, pendingCommission, records: myRecords };
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, channels: result }));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
+  // Admin: 记录渠道转化（开通订阅或 Level 2 成交时调用）
+  if (url.pathname === '/api/admin/channel/record' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const { channelId, userCode, plan, amount, type } = await parseRequestBody(req);
+      if (!channelId || !userCode) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '请提供渠道ID和用户码' })); return; }
+      const channels = loadChannels();
+      const channel = channels.find(c => c.id === channelId);
+      if (!channel) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '渠道不存在' })); return; }
+      const commissionRate = type === 'level2' ? CHANNEL_COMMISSION_LEVEL2 : (channel.commissionRate || CHANNEL_COMMISSION_SUBSCRIPTION);
+      const commission = Math.round((amount || 0) * commissionRate);
+      const records = loadChannelRecords();
+      const record = { channelId, channelName: channel.name, userCode, plan: plan || '', amount: amount || 0, commission, commissionRate, type: type || 'subscription', status: 'pending', createdAt: new Date().toISOString() };
+      records.push(record);
+      saveChannelRecords(records);
+      console.log(`💰 渠道转化: ${channel.name} 带来 ${userCode}，金额 ¥${amount}，佣金 ¥${commission}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, record }));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
+  // Admin: 标记渠道佣金已结算
+  if (url.pathname === '/api/admin/channel/settle' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const { channelId, recordIndex } = await parseRequestBody(req);
+      const records = loadChannelRecords();
+      if (typeof recordIndex === 'number') {
+        if (records[recordIndex]) { records[recordIndex].status = 'paid'; records[recordIndex].paidAt = new Date().toISOString(); }
+      } else if (channelId) {
+        records.forEach((r, i) => { if (r.channelId === channelId && r.status === 'pending') { records[i].status = 'paid'; records[i].paidAt = new Date().toISOString(); } });
+      }
+      saveChannelRecords(records);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
+  // Admin: 自动检测用户是否通过渠道码注册（set-pro 时联动）
+  // 当用户通过渠道码（ch_xxx）登录时，记录渠道关系到 user-profiles
+  // 这部分在登录逻辑中已通过 invited_by_channel 字段记录
 
   // Admin: download conversations.jsonl
   if (url.pathname === '/api/admin/export' && req.method === 'GET') {

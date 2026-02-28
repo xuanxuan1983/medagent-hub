@@ -270,6 +270,27 @@
             <div class="section-body" id="referralStatsContent"><div class="loading">加载中...</div></div>
         </div>
 
+        <!-- 渠道代理管理 -->
+        <div class="section" style="margin-top:1.5rem">
+            <div class="section-header">
+                <div class="section-title">渠道代理管理</div>
+                <button class="btn btn-secondary btn-sm" onclick="loadChannels()">刷新</button>
+            </div>
+            <div class="section-body">
+                <div class="code-form" style="margin-bottom:1rem">
+                    <input class="code-input" id="channelName" placeholder="渠道名称，如：张老师" maxlength="30">
+                    <input class="code-input" id="channelWechat" placeholder="微信号（选填）" maxlength="30" style="max-width:160px">
+                    <select id="channelCommission" class="code-input" style="max-width:140px">
+                        <option value="0.20">订阅分润 20%</option>
+                        <option value="0.25">订阅分润 25%</option>
+                        <option value="0.30">订阅分润 30%</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="createChannel()">创建渠道</button>
+                </div>
+                <div id="channelTable" style="margin-top:1rem"><div class="loading">加载中...</div></div>
+            </div>
+        </div>
+
         <!-- 部请码管理 -->
         <div class="section" style="margin-top:1.5rem">
             <div class="section-header">
@@ -697,6 +718,133 @@
         loadCodes();
         loadTokenStats();
         loadReferralStats();
+        loadChannels();
+
+        // ===== 渠道代理管理 =====
+        async function createChannel() {
+            const name = document.getElementById('channelName').value.trim();
+            const wechat = document.getElementById('channelWechat').value.trim();
+            const commissionRate = parseFloat(document.getElementById('channelCommission').value);
+            if (!name) { alert('请输入渠道名称'); return; }
+            try {
+                const res = await fetch('/api/admin/channel/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, wechat, commissionRate })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(`渠道创建成功！专属邀请码：${data.channel.id}`);
+                    document.getElementById('channelName').value = '';
+                    document.getElementById('channelWechat').value = '';
+                    loadChannels();
+                } else { alert('创建失败: ' + (data.error || '')); }
+            } catch (e) { alert('请求失败'); }
+        }
+
+        async function loadChannels() {
+            try {
+                const res = await fetch('/api/admin/channel/list');
+                if (!res.ok) { document.getElementById('channelTable').innerHTML = '<div class="empty-state">无权限或服务器错误</div>'; return; }
+                const data = await res.json();
+                renderChannels(data.channels || []);
+            } catch (e) {
+                document.getElementById('channelTable').innerHTML = '<div class="empty-state">加载失败</div>';
+            }
+        }
+
+        function renderChannels(channels) {
+            if (!channels.length) {
+                document.getElementById('channelTable').innerHTML = '<div class="empty-state">暂无渠道代理，创建第一个吧</div>';
+                return;
+            }
+            let html = `<table class="conv-table">
+                <thead><tr>
+                    <th>渠道名称</th><th>微信号</th><th>专属邀请码</th>
+                    <th>分润比例</th><th>转化人数</th>
+                    <th>总收入</th><th>应付佣金</th><th>待结算</th><th>操作</th>
+                </tr></thead><tbody>`;
+            channels.forEach(ch => {
+                const rate = Math.round((ch.commissionRate || 0.2) * 100);
+                const inviteLink = `${location.origin}/login.html?ref=${ch.id}`;
+                html += `<tr>
+                    <td style="font-weight:500">${escHtml(ch.name)}</td>
+                    <td>${escHtml(ch.wechat || '-')}</td>
+                    <td>
+                        <span class="code-cell">${ch.id}</span>
+                        <button class="btn-copy" onclick="navigator.clipboard.writeText('${inviteLink}').then(()=>alert('邀请链接已复制'))">copy链接</button>
+                    </td>
+                    <td>${rate}%</td>
+                    <td>${ch.totalConversions || 0}</td>
+                    <td>¥${(ch.totalRevenue || 0).toLocaleString()}</td>
+                    <td>¥${(ch.totalCommission || 0).toLocaleString()}</td>
+                    <td style="color:${(ch.pendingCommission||0)>0?'#e74c3c':'#27ae60'}">¥${(ch.pendingCommission || 0).toLocaleString()}</td>
+                    <td>
+                        <button class="btn-copy" onclick="recordConversion('${ch.id}','${escHtml(ch.name)}')">记录转化</button>
+                        ${(ch.pendingCommission||0)>0 ? `<button class="btn-copy" style="background:#27ae60;color:#fff" onclick="settleChannel('${ch.id}')">结算</button>` : ''}
+                    </td>
+                </tr>`;
+                // 展开该渠道的转化明细
+                if (ch.records && ch.records.length) {
+                    html += `<tr><td colspan="9" style="padding:0">
+                        <table style="width:100%;font-size:0.82rem;background:#f9f7f4">
+                            <thead><tr style="background:#ede9e3">
+                                <th style="padding:6px 12px">时间</th><th>用户码</th><th>类型</th>
+                                <th>金额</th><th>佣金</th><th>状态</th>
+                            </tr></thead><tbody>`;
+                    ch.records.forEach(r => {
+                        const typeLabel = r.type === 'level2' ? 'Level 2' : '订阅';
+                        const statusLabel = r.status === 'paid' ? '<span style="color:#27ae60">已结算</span>' : '<span style="color:#e74c3c">待结算</span>';
+                        html += `<tr>
+                            <td style="padding:4px 12px">${r.createdAt ? r.createdAt.replace('T',' ').slice(0,16) : '-'}</td>
+                            <td>${escHtml(r.userCode)}</td>
+                            <td>${typeLabel}</td>
+                            <td>¥${r.amount}</td>
+                            <td>¥${r.commission}</td>
+                            <td>${statusLabel}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table></td></tr>';
+                }
+            });
+            html += '</tbody></table>';
+            document.getElementById('channelTable').innerHTML = html;
+        }
+
+        async function recordConversion(channelId, channelName) {
+            const userCode = prompt(`记录渠道「${channelName}」的转化\n\n输入用户邀请码：`);
+            if (!userCode) return;
+            const typeChoice = confirm('是订阅转化吗？\n点「确定」= 订阅，点「取消」= Level 2');
+            const type = typeChoice ? 'subscription' : 'level2';
+            const defaultAmount = type === 'subscription' ? 2380 : 29800;
+            const amountStr = prompt(`输入成交金额（元）：`, defaultAmount);
+            if (!amountStr) return;
+            const amount = parseFloat(amountStr);
+            try {
+                const res = await fetch('/api/admin/channel/record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channelId, userCode, type, amount, plan: type === 'subscription' ? 'pro' : 'level2' })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(`转化已记录！佣金：¥${data.record.commission}`);
+                    loadChannels();
+                } else { alert('记录失败: ' + (data.error || '')); }
+            } catch (e) { alert('请求失败'); }
+        }
+
+        async function settleChannel(channelId) {
+            if (!confirm('确认将该渠道所有待结算佣金标记为已结算？')) return;
+            try {
+                await fetch('/api/admin/channel/settle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channelId })
+                });
+                loadChannels();
+            } catch (e) { alert('操作失败'); }
+        }
     </script>
 </body>
 </html>
