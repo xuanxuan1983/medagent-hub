@@ -149,6 +149,21 @@
     .faq-item.open .faq-a { display: block; }
     .faq-item.open .faq-arrow { transform: rotate(180deg); }
     .faq-arrow { transition: transform 0.2s; font-size: 0.75rem; color: #767676; }
+      .modal {
+      display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+      width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);
+      align-items: center; justify-content: center;
+    }
+    .modal-content {
+      background-color: #fefefe; margin: auto; padding: 2.5rem;
+      border: 1px solid #888; width: 90%; max-width: 380px;
+      border-radius: 18px; text-align: center; animation: fadeInUp 0.4s;
+    }
+    .modal-content h2 { font-family: 'Noto Serif SC', serif; font-size: 1.5rem; margin-bottom: 1rem; }
+    .modal-content p { color: #5a5a5a; margin-bottom: 1.5rem; }
+    #qrcode { width: 200px; height: 200px; margin: 0 auto 1.5rem; border: 1px solid #E8E5E0; border-radius: 8px; }
+    .close-btn { position: absolute; top: 1rem; right: 1.25rem; color: #aaa; font-size: 1.75rem; font-weight: bold; cursor: pointer; }
+    .close-btn:hover, .close-btn:focus { color: black; }
   </style>
 </head>
 <body>
@@ -204,9 +219,10 @@
     <div class="plan-name">专业版 Pro</div>
     <div class="plan-tagline">无限制使用，专属支持</div>
     <div class="plan-price" id="proPriceWrap">
-      <span class="plan-price-main" id="proPrice">即将开放</span>
+      <span class="plan-price-main" id="proPrice">¥299</span>
+      <span class="plan-price-unit"> / 月</span>
     </div>
-    <button class="plan-cta solid" disabled>即将开放</button>
+    <button class="plan-cta solid" onclick="purchase('pro')">立即订阅</button>
     <div class="plan-features-title">免费版全部功能，加上</div>
     <ul class="plan-features">
       <li>无限次 AI 对话</li>
@@ -279,6 +295,59 @@
   function toggleFaq(el) {
     el.closest('.faq-item').classList.toggle('open');
   }
+
+  const plans = {
+    pro: { name: '专业版 Pro', price: 29900 },
+    team: { name: '团队版 Team', price: 59900 }
+  };
+
+  async function purchase(planKey) {
+    const plan = plans[planKey];
+    document.getElementById('modal-plan-name').textContent = plan.name;
+    document.getElementById('paymentModal').style.display = 'flex';
+
+    try {
+      const res = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        new QRCode(document.getElementById('qrcode'), {
+          text: data.codeUrl,
+          width: 200,
+          height: 200,
+        });
+      } else {
+        alert(data.error || '创建订单失败');
+      }
+    } catch (err) {
+      alert('无法连接到服务器，请稍后重试。');
+    }
+  }
+
+  document.querySelector('.close-btn').onclick = () => {
+    document.getElementById('paymentModal').style.display = 'none';
+    document.getElementById('qrcode').innerHTML = '';
+  }
+
+  window.onclick = (event) => {
+    if (event.target == document.getElementById('paymentModal')) {
+      document.getElementById('paymentModal').style.display = 'none';
+      document.getElementById('qrcode').innerHTML = '';
+    }
+  }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<div id="paymentModal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn">&times;</span>
+    <h2 id="modal-plan-name">专业版 Pro</h2>
+    <p>请使用微信扫描下方二维码完成支付</p>
+    <div id="qrcode"></div>
+    <p style="font-size:0.8rem; color:#767676;">支付成功后，页面将自动刷新</p>
+  </div>
+</div>
 </body>
 </html>
