@@ -1111,7 +1111,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       </div>
       <!-- Invite -->
       <div class="modal-pane" id="pane-invite">
-        <div class="modal-pane-title">邀请好友·赚余额</div>
+        <div class="modal-pane-title">邀请好友 · 共享权益</div>
         <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1rem;line-height:1.6">每成功邀请 1 位好友订阅，你和好友各获得 <b style="color:var(--text)">¥30 账户余额</b>，可直接抵扣下月订阅费。</p>
         <!-- 赠金统计卡片 -->
         <div style="display:flex;gap:0.75rem;margin-bottom:1rem">
@@ -1138,13 +1138,32 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         </div>
         <div style="background:var(--bg-2);border-radius:8px;padding:0.75rem;margin-top:0.25rem">
           <div style="font-size:0.775rem;font-weight:600;margin-bottom:0.375rem">余额如何使用？</div>
-          <p style="font-size:0.725rem;color:var(--text-3);line-height:1.6;margin:0">账户余额可直接抵扣订阅费用。请添加管理员微信 <b id="adminWechatDisplay" style="color:var(--text)">xuanyi9747</b>，备注「余额抵扣」即可兑现。</p>
+          <p style="font-size:0.725rem;color:var(--text-3);line-height:1.6;margin:0 0 0.75rem 0">账户余额可直接抵扣下月订阅费。点击下方按钮提交申请，管理员将在 24 小时内处理。</p>
+          <button class="btn-save" onclick="openCreditApply()" style="width:100%;font-size:0.8rem">申请余额抵扣</button>
+        </div>
+      </div>
+
+      <!-- Credit Apply Modal -->
+      <div id="creditApplyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">
+        <div style="background:var(--bg);border-radius:16px;padding:1.5rem;width:min(360px,90vw);box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+          <div style="font-size:1rem;font-weight:700;margin-bottom:0.25rem">申请余额抵扣</div>
+          <p style="font-size:0.775rem;color:var(--text-3);margin-bottom:1rem;line-height:1.5">填写联系方式，管理员核实后将为您抵扣订阅费用。</p>
+          <label class="modal-label">手机号或微信号 <span style="color:#ef4444">*</span></label>
+          <input class="modal-input" id="creditContact" placeholder="请填写手机号或微信号" style="margin-bottom:0.75rem">
+          <label class="modal-label">申请抵扣金额（元）<span style="color:#ef4444">*</span></label>
+          <input class="modal-input" id="creditAmount" type="number" placeholder="例如：30" min="1" style="margin-bottom:0.75rem">
+          <label class="modal-label">备注（选填）</label>
+          <input class="modal-input" id="creditNote" placeholder="如：邀请了张三、李四" style="margin-bottom:1rem">
+          <div style="display:flex;gap:0.5rem">
+            <button onclick="closeCreditApply()" style="flex:1;padding:0.6rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:0.85rem">取消</button>
+            <button onclick="submitCreditApply()" class="btn-save" style="flex:2;font-size:0.85rem" id="btnSubmitCredit">提交申请</button>
+          </div>
         </div>
       </div>
       <!-- Pricing -->
       <div class="modal-pane" id="pane-pricing">
         <div class="modal-pane-title">升级套餐</div>
-        <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1.25rem;line-height:1.6">解锁更多 Agent 使用次数、优先响应速度与专属功能。</p>
+        <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1.25rem;line-height:1.6">解锁全部 21 个医美专属 Agent，无限对话，优先响应。</p>
         <div style="border:1.5px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:0.75rem">
           <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">免费版</div>
           <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">每日有限次数，体验核心功能</div>
@@ -1152,14 +1171,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         </div>
         <div style="border:2px solid var(--text);border-radius:12px;padding:1rem;margin-bottom:0.75rem">
           <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">专业版 Pro</div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">无限对话，优先响应，专属客服</div>
+          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">12 个核心 Agent，无限对话，优先响应</div>
           <div style="font-size:1.25rem;font-weight:700">¥299 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">/ 月</span></div>
           <button class="btn-save" id="btnBuyPro" style="width:100%;margin-top:0.75rem" onclick="startPayment({name:'专业版Pro',price:29900})">立即订阅</button>
         </div>
         <div style="border:1.5px solid var(--border);border-radius:12px;padding:1rem">
-          <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">团队版 Team</div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">多账号管理，数据看板，定制培训</div>
-          <div style="font-size:1.25rem;font-weight:700">联系我们 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">获取报价</span></div>
+          <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">全能版 Pro+</div>
+          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">全部 21 个 Agent，图片生成，联网搜索</div>
+          <div style="font-size:1.25rem;font-weight:700">¥499 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">/ 月</span></div>
+          <button class="btn-save" id="btnBuyProPlus" style="width:100%;margin-top:0.75rem;background:linear-gradient(135deg,#7c3aed,#4f46e5)" onclick="startPayment({name:'全能版Pro+',price:49900})">立即订阅</button>
         </div>
       </div>
     </div>
@@ -2101,6 +2121,53 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       document.execCommand('copy');
       showToast('邀请链接已复制！');
     });
+  }
+
+  function openCreditApply() {
+    const modal = document.getElementById('creditApplyModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      document.getElementById('creditContact').value = '';
+      document.getElementById('creditAmount').value = '';
+      document.getElementById('creditNote').value = '';
+    }
+  }
+
+  function closeCreditApply() {
+    const modal = document.getElementById('creditApplyModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function submitCreditApply() {
+    const contact = document.getElementById('creditContact').value.trim();
+    const amount = document.getElementById('creditAmount').value.trim();
+    const note = document.getElementById('creditNote').value.trim();
+    if (!contact) { showToast('请填写手机号或微信号'); return; }
+    if (!amount || isNaN(amount) || Number(amount) < 1) { showToast('请填写有效的抵扣金额'); return; }
+    const btn = document.getElementById('btnSubmitCredit');
+    btn.disabled = true;
+    btn.textContent = '提交中...';
+    try {
+      const res = await fetch('/api/credit-apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ contact, amount: Number(amount), note })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeCreditApply();
+        showToast('申请已提交，管理员將24小时内处理 ✅');
+      } else {
+        showToast(data.error || '提交失败，请重试');
+        btn.disabled = false;
+        btn.textContent = '提交申请';
+      }
+    } catch (e) {
+      showToast('网络错误，请重试');
+      btn.disabled = false;
+      btn.textContent = '提交申请';
+    }
   }
 
   function showToast(msg) {

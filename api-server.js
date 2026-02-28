@@ -2398,6 +2398,59 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Credit apply: 用户申请余额抵扣
+  if (url.pathname === '/api/credit-apply' && req.method === 'POST') {
+    const session = getSession(req);
+    if (!session) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '请先登录' }));
+      return;
+    }
+    try {
+      const { contact, amount, note } = await parseRequestBody(req);
+      if (!contact || !amount || amount < 1) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请填写联系方式和金额' }));
+        return;
+      }
+      // 记录申请到文件
+      const applyFile = path.join(DATA_DIR, 'credit_applies.json');
+      let applies = [];
+      try { applies = JSON.parse(fs.readFileSync(applyFile, 'utf8')); } catch(e) {}
+      applies.push({
+        code: session.code,
+        contact,
+        amount,
+        note: note || '',
+        time: new Date().toISOString(),
+        status: 'pending'
+      });
+      fs.writeFileSync(applyFile, JSON.stringify(applies, null, 2));
+      console.log(`💰 余额抵扣申请: ${session.code} 联系方式:${contact} 金额:${amount}元`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: 查看余额抵扣申请列表
+  if (url.pathname === '/api/admin/credit-applies' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const applyFile = path.join(DATA_DIR, 'credit_applies.json');
+    let applies = [];
+    try { applies = JSON.parse(fs.readFileSync(applyFile, 'utf8')); } catch(e) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ applies }));
+    return;
+  }
+
   // Admin: create invite code
   if (url.pathname === '/api/admin/codes' && req.method === 'POST') {
     if (!isAdmin(req)) {
