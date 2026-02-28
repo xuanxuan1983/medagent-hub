@@ -173,18 +173,29 @@ const agentNames = {
   'procurement-manager': '采购经理'
 };
 
-// Store conversation sessions
-const WechatPay = require('wechatpay-node-v3');
-const sessions = new Map();
+// 微信支付初始化
+let wechatPay = null;
+try {
+  const WechatPay = require('wechatpay-node-v3');
+  const certPath = path.join(__dirname, 'wechat_cert', 'apiclient_cert.pem');
+  const keyPath = path.join(__dirname, 'wechat_cert', 'apiclient_key.pem');
+  if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    wechatPay = new WechatPay({
+      appid: 'wx10951656e9a582db',
+      mchid: '1684977594',
+      publicKey: fs.readFileSync(certPath),
+      privateKey: fs.readFileSync(keyPath),
+    });
+    console.log('✅ 微信支付初始化成功');
+  } else {
+    console.warn('⚠️  微信支付证书文件不存在，支付功能不可用');
+  }
+} catch (e) {
+  console.error('❌ 微信支付初始化失败:', e.message);
+}
 
-// 微信支付配置
-const wechatPay = new WechatPay({
-  appid: 'wx10951656e9a582db',
-  mchid: '1684977594',
-  publicKey: fs.readFileSync('/home/ubuntu/medagent-hub/wechat_cert/apiclient_cert.pem'),
-  privateKey: fs.readFileSync('/home/ubuntu/medagent-hub/wechat_cert/apiclient_key.pem'),
-  secret: '1275734831Chenxuanyiwoyeaiwoziji',
-});
+// Store conversation sessions
+const sessions = new Map();
 
 // AI Provider adapters
 class GeminiProvider {
@@ -738,82 +749,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Create payment order
-  if (url.pathname === '/api/payment/create-order' && req.method === 'POST') {
-    try {
-      if (!isAuthenticated(req)) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
-        return;
-      }
-      const { plan } = await parseRequestBody(req);
-      const out_trade_no = `medagent_${Date.now()}`;
-      const params = {
-        appid: 'wx10951656e9a582db',
-        mchid: '1684977594',
-        description: `MedAgent Hub - ${plan.name}`,
-        out_trade_no: out_trade_no,
-        amount: {
-          total: plan.price,
-        },
-        notify_url: 'https://medagent.filldmy.com/api/payment/notify',
-      };
-      const result = await wechatPay.transactions_native(params);
-      console.log('WeChat Pay result:', JSON.stringify(result));
-      const codeUrl = (result.data && result.data.code_url) || result.code_url;
-      if (!codeUrl) {
-        console.error('No code_url in response:', result);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '支付二维码生成失败，请稍后重试' }));
-        return;
-      }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ codeUrl, out_trade_no }));
-    } catch (error) {
-      console.error('Error creating WeChat Pay order:', error);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '创建支付订单失败' }));
-    }
-    return;
-  }
-
-  // Payment notification
-  if (url.pathname === 
-'/api/payment/notify' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', async () => {
-      try {
-        const result = wechatPay.verify(req.headers, body);
-        if (result && result.trade_state === 'SUCCESS') {
-          console.log('✅ Payment successful:', result);
-          // TODO: Update user subscription status
-          const paymentLog = path.join(DATA_DIR, 'payment-log.json');
-          let payments = [];
-          try {
-            if(fs.existsSync(paymentLog)) {
-              payments = JSON.parse(fs.readFileSync(paymentLog, 'utf8'));
-            }
-          } catch {}
-          payments.push(result);
-          fs.writeFileSync(paymentLog, JSON.stringify(payments, null, 2));
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ code: 'SUCCESS', message: '成功' }));
-        } else {
-          console.warn('⚠️ Payment notification verification failed or not successful:', result);
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ code: 'FAIL', message: '失败' }));
-        }
-      } catch (error) {
-        console.error('Error handling WeChat Pay notification:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ code: 'FAIL', message: '处理失败' }));
-      }
-    });
-    return;
-  }
-
   // Send message
   if (url.pathname === '/api/chat/message' && req.method === 'POST') {
     try {
@@ -1214,6 +1149,73 @@ const server = http.createServer(async (req, res) => {
       'Content-Disposition': `attachment; filename="corpus-${new Date().toISOString().slice(0,10)}.jsonl"`
     });
     fs.createReadStream(logPath).pipe(res);
+    return;
+  }
+
+  // 微信支付 - 创建订单
+  if (url.pathname === '/api/payment/create-order' && req.method === 'POST') {
+    try {
+      if (!isAuthenticated(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+      if (!wechatPay) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '支付功能暂不可用，请联系客服' }));
+        return;
+      }
+      const { plan } = await parseRequestBody(req);
+      const out_trade_no = `medagent_${Date.now()}`;
+      const params = {
+        appid: 'wx10951656e9a582db',
+        mchid: '1684977594',
+        description: `MedAgent Hub - ${plan.name}`,
+        out_trade_no,
+        amount: { total: plan.price },
+        notify_url: 'https://medagent.filldmy.com/api/payment/notify',
+      };
+      const result = await wechatPay.transactions_native(params);
+      console.log('WeChat Pay result:', JSON.stringify(result));
+      const codeUrl = (result.data && result.data.code_url) || result.code_url;
+      if (!codeUrl) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '支付二维码生成失败，请稍后重试' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ codeUrl, out_trade_no }));
+    } catch (error) {
+      console.error('Error creating WeChat Pay order:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '创建支付订单失败' }));
+    }
+    return;
+  }
+
+  // 微信支付 - 支付回调
+  if (url.pathname === '/api/payment/notify' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', async () => {
+      try {
+        const paymentLog = path.join(DATA_DIR, 'payment-log.json');
+        let payments = [];
+        try {
+          if (fs.existsSync(paymentLog)) payments = JSON.parse(fs.readFileSync(paymentLog, 'utf8'));
+        } catch {}
+        const data = JSON.parse(body);
+        payments.push({ ...data, received_at: new Date().toISOString() });
+        fs.writeFileSync(paymentLog, JSON.stringify(payments, null, 2));
+        console.log('✅ 支付回调收到:', data);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ code: 'SUCCESS', message: '成功' }));
+      } catch (error) {
+        console.error('Error handling payment notify:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ code: 'FAIL', message: '处理失败' }));
+      }
+    });
     return;
   }
 
