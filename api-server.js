@@ -816,6 +816,7 @@ const server = http.createServer(async (req, res) => {
       const logEntry = JSON.stringify({
         ts: new Date().toISOString(),
         agent: session.agentId,
+        agent_name: session.agentName,
         user_name: session.userName,
         user: message,
         assistant: response.message,
@@ -1113,7 +1114,8 @@ const server = http.createServer(async (req, res) => {
       const convSheet = workbook.addWorksheet('对话记录');
       convSheet.columns = [
         { header: '时间', key: 'ts', width: 22 },
-        { header: 'Agent', key: 'agent', width: 20 },
+        { header: 'Agent ID', key: 'agent', width: 24 },
+        { header: 'Agent 名称', key: 'agent_name', width: 20 },
         { header: '用户邀请码', key: 'user_name', width: 20 },
         { header: '用户提问', key: 'user', width: 40 },
         { header: 'Agent 回复', key: 'assistant', width: 50 },
@@ -1130,7 +1132,8 @@ const server = http.createServer(async (req, res) => {
             const entry = JSON.parse(line);
             convSheet.addRow({
               ts: entry.ts ? entry.ts.replace('T', ' ').slice(0, 19) : '',
-              agent: entry.agentId || '',
+              agent: entry.agent || entry.agentId || '',
+              agent_name: entry.agent_name || agentNames[entry.agent || entry.agentId] || '',
               user_name: entry.user_name || '',
               user: entry.user || '',
               assistant: entry.assistant || '',
