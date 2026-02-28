@@ -1404,15 +1404,33 @@
       if (!res.ok) throw new Error('上传失败');
       const data = await res.json();
 
-      pendingFile = { name: file.name, size: file.size, content: data.extractedContent, type: data.contentType };
+      // Store object URL for image preview in chat bubble
+      const isImage = file.type.startsWith('image/');
+      const objectUrl = isImage ? URL.createObjectURL(file) : null;
+      pendingFile = { name: file.name, size: file.size, content: data.extractedContent, type: data.contentType, isImage, objectUrl };
 
-      previewArea.innerHTML = `
-        <div class="file-preview-card">
-          <span class="file-preview-icon">${getFileIcon(file.name)}</span>
-          <span class="file-preview-name">${file.name}</span>
-          <span class="file-preview-size">${formatFileSize(file.size)}</span>
-          <button class="file-preview-remove" onclick="removePendingFile()" title="移除">✕</button>
-        </div>`;
+      // If image, show thumbnail in preview area
+      if (isImage && objectUrl) {
+        previewArea.innerHTML = `
+          <div class="file-preview-card" style="flex-direction:column;align-items:flex-start;gap:0.4rem;padding:0.5rem">
+            <img src="${objectUrl}" alt="${file.name}" style="max-height:120px;max-width:240px;border-radius:6px;object-fit:cover;display:block">
+            <div style="display:flex;align-items:center;gap:0.4rem;width:100%">
+              <span class="file-preview-name" style="font-size:0.75rem">${file.name}</span>
+              <span class="file-preview-size">${formatFileSize(file.size)}</span>
+              <button class="file-preview-remove" onclick="removePendingFile()" title="移除">✕</button>
+            </div>
+          </div>`;
+      } else {
+        previewArea.innerHTML = `
+          <div class="file-preview-card">
+            <span class="file-preview-icon">${getFileIcon(file.name)}</span>
+            <span class="file-preview-name">${file.name}</span>
+            <span class="file-preview-size">${formatFileSize(file.size)}</span>
+            <button class="file-preview-remove" onclick="removePendingFile()" title="移除">✕</button>
+          </div>`;
+      }
+
+      // (image preview handled above)
 
       document.getElementById('messageInput').placeholder = '对文件提问，或直接发送让 AI 分析...';
       document.getElementById('messageInput').focus();
@@ -1440,7 +1458,9 @@
     const msg = input.value.trim();
     if ((!msg && !pendingFile) || !sessionId) return;
     const displayMsg = msg || ('分析文件《' + (pendingFile ? pendingFile.name : '') + '》');
-    addMessage('user', displayMsg);
+    // Pass image URL for preview in chat bubble
+    const filePreviewUrl = (pendingFile && pendingFile.isImage) ? pendingFile.objectUrl : null;
+    addMessage('user', displayMsg, null, { isImage: filePreviewUrl, fileName: pendingFile ? pendingFile.name : null });
     input.value = '';
     input.style.height = 'auto';
 
@@ -1513,7 +1533,7 @@
     if (el) el.remove();
   }
 
-  function addMessage(role, content, searchResults) {
+  function addMessage(role, content, searchResults, fileAttachment) {
     const container = document.getElementById('chatMessages');
     const welcome = document.getElementById('welcomeWrap');
     if (welcome) welcome.remove();
@@ -1544,7 +1564,22 @@
     if (role === 'assistant' && typeof marked !== 'undefined') {
       bubble.innerHTML = marked.parse(mainContent);
     } else {
-      bubble.textContent = mainContent;
+      // For user messages: render text + optional image thumbnail
+      if (fileAttachment && fileAttachment.isImage) {
+        // Show image thumbnail above the text
+        const imgEl = document.createElement('img');
+        imgEl.src = fileAttachment.isImage;
+        imgEl.alt = fileAttachment.fileName || '图片';
+        imgEl.style.cssText = 'max-width:220px;max-height:160px;border-radius:8px;display:block;margin-bottom:0.4rem;object-fit:cover;';
+        bubble.appendChild(imgEl);
+        if (mainContent) {
+          const textEl = document.createElement('span');
+          textEl.textContent = mainContent;
+          bubble.appendChild(textEl);
+        }
+      } else {
+        bubble.textContent = mainContent;
+      }
     }
     if (role === 'assistant') {
       // Append search sources if available
