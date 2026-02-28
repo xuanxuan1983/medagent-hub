@@ -6,6 +6,7 @@
   <title>MedAgent Hub</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -391,6 +392,29 @@
     .feedback-btn.active-up { background: #DCFCE7; border-color: #16A34A; }
     .feedback-btn.active-down { background: #FEE2E2; border-color: #DC2626; }
 
+    /* Suggested question chips */
+    .suggested-chips {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      padding: 0.25rem 0 0.75rem 3rem;
+      max-width: 720px;
+    }
+    .suggested-chip {
+      padding: 0.375rem 0.875rem;
+      border-radius: 20px;
+      border: 1.5px solid var(--coral);
+      background: white;
+      color: var(--coral);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      line-height: 1.4;
+      text-align: left;
+    }
+    .suggested-chip:hover {
+      background: var(--coral);
+      color: white;
+    }
+
     .typing-dots {
       display: flex; align-items: center; gap: 4px;
       padding: 0.75rem 1rem; background: white;
@@ -737,8 +761,8 @@
         <div style="border:2px solid var(--text);border-radius:12px;padding:1rem;margin-bottom:0.75rem">
           <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">专业版 Pro</div>
           <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">无限对话，优先响应，专属客服</div>
-          <div style="font-size:1.25rem;font-weight:700">即将开放 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">敬请期待</span></div>
-          <button class="btn-save" style="width:100%;margin-top:0.75rem;opacity:0.5;cursor:not-allowed" disabled>即将开放</button>
+          <div style="font-size:1.25rem;font-weight:700">¥299 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">/ 月</span></div>
+          <button class="btn-save" id="btnBuyPro" style="width:100%;margin-top:0.75rem" onclick="startPayment({name:'专业版Pro',price:29900})">立即订阅</button>
         </div>
         <div style="border:1.5px solid var(--border);border-radius:12px;padding:1rem">
           <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">团队版 Team</div>
@@ -1027,10 +1051,25 @@
     avatar.textContent = role === 'user' ? '我' : (agent ? agent.icon : '🤖');
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
+
+    // Parse suggested questions from assistant replies (separated by ---)
+    let mainContent = content;
+    let suggestedQuestions = [];
+    if (role === 'assistant') {
+      const parts = content.split(/\n---+\n/);
+      if (parts.length >= 2) {
+        mainContent = parts[0].trim();
+        const qBlock = parts.slice(1).join('\n---\n');
+        suggestedQuestions = qBlock.split('\n')
+          .map(l => l.replace(/^[-*]\s*/, '').trim())
+          .filter(l => l.length > 4);
+      }
+    }
+
     if (role === 'assistant' && typeof marked !== 'undefined') {
-      bubble.innerHTML = marked.parse(content);
+      bubble.innerHTML = marked.parse(mainContent);
     } else {
-      bubble.textContent = content;
+      bubble.textContent = mainContent;
     }
     if (role === 'assistant') {
       const feedback = document.createElement('div');
@@ -1045,6 +1084,25 @@
       row.appendChild(avatar);
     }
     container.appendChild(row);
+
+    // Render suggested question chips below the message row
+    if (suggestedQuestions.length > 0) {
+      const chips = document.createElement('div');
+      chips.className = 'suggested-chips';
+      suggestedQuestions.slice(0, 3).forEach(q => {
+        const btn = document.createElement('button');
+        btn.className = 'suggested-chip';
+        btn.textContent = q;
+        btn.onclick = () => {
+          document.getElementById('messageInput').value = q;
+          chips.remove();
+          sendMessage();
+        };
+        chips.appendChild(btn);
+      });
+      container.appendChild(chips);
+    }
+
     container.scrollTop = container.scrollHeight;
   }
 
@@ -1163,6 +1221,95 @@
   }
 
   init();
+
+  // ===== 微信支付 =====
+  let payCheckTimer = null;
+  let payTradeNo = null;
+
+  async function startPayment(plan) {
+    const btn = document.getElementById('btnBuyPro');
+    btn.disabled = true;
+    btn.textContent = '生成支付码...';
+    try {
+      const res = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.codeUrl) {
+        alert(data.error || '创建支付订单失败，请稍后重试');
+        btn.disabled = false;
+        btn.textContent = '立即订阅';
+        return;
+      }
+      payTradeNo = data.out_trade_no;
+      showPayModal(plan, data.codeUrl);
+    } catch (e) {
+      alert('网络错误，请稍后重试');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '立即订阅';
+    }
+  }
+
+  function showPayModal(plan, codeUrl) {
+    // 移除旧弹窗
+    const old = document.getElementById('payModal');
+    if (old) old.remove();
+    if (payCheckTimer) clearInterval(payCheckTimer);
+
+    const modal = document.createElement('div');
+    modal.id = 'payModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:2rem;width:320px;text-align:center;position:relative">
+        <button onclick="closePayModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.25rem;cursor:pointer;color:#767676">✕</button>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:0.25rem">微信扫码支付</div>
+        <div style="font-size:0.8rem;color:#767676;margin-bottom:1rem">${plan.name} · ¥${(plan.price/100).toFixed(0)}/月</div>
+        <div id="qrcodeBox" style="display:inline-block;padding:0.75rem;border:1.5px solid #e8e5e0;border-radius:10px;margin-bottom:1rem"></div>
+        <div style="font-size:0.75rem;color:#767676">请在 5 分钟内完成支付</div>
+        <div id="payStatus" style="margin-top:0.75rem;font-size:0.8rem;color:#5a5a5a">等待支付...</div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 生成二维码
+    new QRCode(document.getElementById('qrcodeBox'), {
+      text: codeUrl,
+      width: 180,
+      height: 180,
+      colorDark: '#191919',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    // 轮询支付结果（每 3 秒查询一次，最多 5 分钟）
+    let elapsed = 0;
+    payCheckTimer = setInterval(async () => {
+      elapsed += 3;
+      if (elapsed > 300) {
+        clearInterval(payCheckTimer);
+        document.getElementById('payStatus').textContent = '支付超时，请重新发起';
+        return;
+      }
+      try {
+        const r = await fetch(`/api/payment/query?trade_no=${payTradeNo}`);
+        const d = await r.json();
+        if (d.paid) {
+          clearInterval(payCheckTimer);
+          document.getElementById('payStatus').innerHTML = '✅ 支付成功！正在刷新...';
+          setTimeout(() => { closePayModal(); location.reload(); }, 1500);
+        }
+      } catch {}
+    }, 3000);
+  }
+
+  function closePayModal() {
+    if (payCheckTimer) clearInterval(payCheckTimer);
+    const m = document.getElementById('payModal');
+    if (m) m.remove();
+  }
 </script>
 </body>
 </html>

@@ -1314,6 +1314,56 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 微信支付 - 查询订单状态
+  if (url.pathname === '/api/payment/query' && req.method === 'GET') {
+    try {
+      if (!isAuthenticated(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+      if (!wechatPay) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '支付功能暂不可用', paid: false }));
+        return;
+      }
+      const tradeNo = url.searchParams.get('trade_no');
+      if (!tradeNo) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '缺少 trade_no 参数', paid: false }));
+        return;
+      }
+      const result = await wechatPay.query({ mchid: '1684977594', out_trade_no: tradeNo });
+      const tradeState = (result.data && result.data.trade_state) || result.trade_state;
+      const paid = tradeState === 'SUCCESS';
+      if (paid) {
+        // 支付成功，升级用户套餐
+        const cookies = parseCookies(req);
+        const username = getUserName(req);
+        const usersPath = path.join(DATA_DIR, 'users.json');
+        try {
+          if (fs.existsSync(usersPath)) {
+            let users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
+            const user = users.find(u => u.username === username || u.name === username);
+            if (user) {
+              user.plan = 'pro';
+              user.plan_expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+              fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+              console.log('✅ 用户', username, '已升级为专业版 Pro');
+            }
+          }
+        } catch (e) { console.error('升级用户套餐失败:', e.message); }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ paid, trade_state: tradeState }));
+    } catch (error) {
+      console.error('Error querying WeChat Pay order:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '查询订单失败', paid: false }));
+    }
+    return;
+  }
+
   // 微信支付 - 支付回调
   if (url.pathname === '/api/payment/notify' && req.method === 'POST') {
     let body = '';
