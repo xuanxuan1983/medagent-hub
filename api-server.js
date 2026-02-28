@@ -85,14 +85,11 @@ async function extractFileContent(filePath, mimeType, originalName, openaiApiKey
       const content = fs.readFileSync(filePath, 'utf8');
       return { type: 'text', content: content.trim() };
     }
-    // Image - use OpenAI Vision
+    // Image - use Gemini Vision (works on domestic servers)
     if (mimeType.startsWith('image/')) {
       const imageBuffer = fs.readFileSync(filePath);
       const base64 = imageBuffer.toString('base64');
-      const imageUrl = `data:${mimeType};base64,${base64}`;
-      // Use OpenAI Vision API to describe the image
-      const apiKey = openaiApiKey || process.env.OPENAI_API_KEY;
-      const visionRes = await callOpenAIVision(imageUrl, apiKey);
+      const visionRes = await callGeminiVision(base64, mimeType);
       return { type: 'image', content: visionRes };
     }
     return { type: 'unknown', content: '[无法解析此文件类型]' };
@@ -102,24 +99,24 @@ async function extractFileContent(filePath, mimeType, originalName, openaiApiKey
   }
 }
 
-async function callOpenAIVision(imageUrl, apiKey) {
-  return new Promise((resolve, reject) => {
+async function callGeminiVision(imageBase64, mimeType) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) return '[图片识别服务未配置：缺少 GEMINI_API_KEY]';
+
+  return new Promise((resolve) => {
     const body = JSON.stringify({
-      model: 'gpt-4o',
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: '请详细描述这张图片的内容，包括文字、数据、图表等所有信息。如果是医学图像，请提供专业分析。' },
-          { type: 'image_url', image_url: { url: imageUrl } }
+      contents: [{
+        parts: [
+          { text: '请详细描述这张图片的内容，包括文字、数据、图表等所有信息。如果是医学图像或医美相关图像，请提供专业分析。请用中文回答。' },
+          { inline_data: { mime_type: mimeType, data: imageBase64 } }
         ]
-      }],
-      max_tokens: 1000
+      }]
     });
     const options = {
-      hostname: 'api.openai.com',
-      path: '/v1/chat/completions',
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`, 'Content-Length': Buffer.byteLength(body) }
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
     };
     const req = https.request(options, res => {
       let data = '';
@@ -127,11 +124,12 @@ async function callOpenAIVision(imageUrl, apiKey) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          resolve(json.choices?.[0]?.message?.content || '[图片识别失败]');
-        } catch { resolve('[图片识别失败]'); }
+          const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+          resolve(text || '[图片识别失败：无法获取结果]');
+        } catch { resolve('[图片识别失败：响应解析错误]'); }
       });
     });
-    req.on('error', () => resolve('[图片识别服务不可用]'));
+    req.on('error', (err) => resolve(`[图片识别服务不可用: ${err.message}]`));
     req.write(body);
     req.end();
   });
