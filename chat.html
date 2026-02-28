@@ -20,7 +20,7 @@
       --border-light: #F0EDEA;
       --coral: #E8715A;
       --coral-light: #FFF0EC;
-      --sidebar-w: 220px;
+      --sidebar-w: 240px;
     }
     html, body { height: 100%; overflow: hidden; }
     body {
@@ -112,11 +112,50 @@
     .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
     .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+    .sidebar-section-label {
+      padding: 0.75rem 0.625rem 0.25rem;
+      font-size: 0.62rem; font-weight: 700; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      display: flex; align-items: center; justify-content: space-between;
+    }
     .sidebar-group-label {
       padding: 0.625rem 0.625rem 0.25rem;
       font-size: 0.62rem; font-weight: 700; color: var(--text-3);
       text-transform: uppercase; letter-spacing: 0.07em;
     }
+
+    /* Favorites & History items in sidebar */
+    .sidebar-history-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 0.625rem; border-radius: 7px;
+      cursor: pointer; transition: all 0.1s;
+      font-size: 0.78rem; color: var(--text-2);
+      text-decoration: none; width: 100%;
+      border: none; background: transparent; font-family: inherit;
+      text-align: left; margin-bottom: 0.05rem;
+    }
+    .sidebar-history-item:hover { background: var(--border-light); color: var(--text); }
+    .sidebar-history-item-icon { flex-shrink: 0; font-size: 0.9rem; }
+    .sidebar-history-item-text {
+      flex: 1; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-history-item-star {
+      flex-shrink: 0; font-size: 0.75rem; color: #F59E0B;
+    }
+    .sidebar-history-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--border); flex-shrink: 0;
+    }
+    .sidebar-history-dot.active { background: var(--coral); }
+
+    /* Collapse toggle */
+    .sidebar-collapse-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); padding: 0; font-size: 0.7rem;
+      transition: transform 0.2s;
+    }
+    .sidebar-collapse-btn.collapsed { transform: rotate(-90deg); }
     .sidebar-agent {
       display: flex; align-items: center; gap: 0.5rem;
       padding: 0.4rem 0.625rem; border-radius: 7px;
@@ -181,29 +220,38 @@
     .desktop-view {
       flex: 1; display: none; flex-direction: column; overflow: hidden;
       align-items: center; justify-content: center;
+      background: var(--bg);
     }
     .desktop-view.active { display: flex; }
     .desktop-welcome {
       text-align: center;
       animation: fadeInUp 0.4s ease-out;
+      width: 100%; max-width: 640px;
+      padding: 0 2rem;
     }
     .desktop-mascot {
-      width: 120px; height: 120px;
-      margin: 0 auto 1.25rem;
+      width: 100px; height: 100px;
+      margin: 0 auto 1.5rem;
       animation: float 3.5s ease-in-out infinite;
     }
     .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; }
     .desktop-greeting {
-      font-size: 1.75rem; font-weight: 700; color: var(--text);
-      font-family: 'Noto Serif SC', serif; margin-bottom: 0.5rem;
+      font-size: 2rem; font-weight: 700; color: var(--text);
+      font-family: 'Noto Serif SC', serif; margin-bottom: 0.375rem;
+      letter-spacing: -0.01em;
     }
-    .desktop-sub { font-size: 0.9rem; color: var(--text-3); margin-bottom: 2rem; }
+    .desktop-sub { font-size: 0.875rem; color: var(--text-3); margin-bottom: 2rem; }
     .desktop-input-wrap {
-      width: 100%; max-width: 560px;
+      width: 100%;
       background: white; border: 1.5px solid var(--border);
-      border-radius: 14px; padding: 0.875rem 1rem;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border-radius: 16px; padding: 1rem 1.125rem;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
       margin-bottom: 1.25rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .desktop-input-wrap:focus-within {
+      border-color: #AEAAA5;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
     .desktop-input {
       width: 100%; border: none; outline: none;
@@ -213,7 +261,8 @@
     .desktop-input::placeholder { color: #AEAAA5; }
     .desktop-input-footer {
       display: flex; align-items: center; justify-content: space-between;
-      margin-top: 0.625rem;
+      margin-top: 0.75rem; padding-top: 0.625rem;
+      border-top: 1px solid var(--border-light);
     }
     .desktop-input-left { display: flex; align-items: center; gap: 0.5rem; }
     .desktop-input-btn {
@@ -225,24 +274,25 @@
     }
     .desktop-input-btn:hover { background: var(--bg-warm); border-color: #AEAAA5; }
     .desktop-send-btn {
-      width: 32px; height: 32px; border-radius: 8px;
-      background: var(--coral); color: white;
+      width: 34px; height: 34px; border-radius: 10px;
+      background: var(--text); color: white;
       border: none; cursor: pointer; display: flex;
       align-items: center; justify-content: center;
       transition: opacity 0.15s;
     }
-    .desktop-send-btn:hover { opacity: 0.85; }
+    .desktop-send-btn:hover { opacity: 0.8; }
     .desktop-quick-btns {
       display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
     }
     .desktop-quick-btn {
       display: flex; align-items: center; gap: 0.375rem;
-      padding: 0.5rem 0.875rem; border-radius: 20px;
-      border: 1px solid var(--border); background: white;
+      padding: 0.5rem 1rem; border-radius: 20px;
+      border: 1.5px solid var(--border); background: white;
       font-size: 0.8rem; color: var(--text-2); cursor: pointer;
       font-family: inherit; transition: all 0.12s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
-    .desktop-quick-btn:hover { background: var(--bg-warm); border-color: #AEAAA5; color: var(--text); }
+    .desktop-quick-btn:hover { background: var(--bg-warm); border-color: #AEAAA5; color: var(--text); transform: translateY(-1px); }
 
     /* ===== AGENT STORE VIEW ===== */
     .store-view {
@@ -635,7 +685,35 @@
   </div>
 
   <div class="sidebar-scroll" id="sidebarScroll">
-    <!-- Groups injected by JS -->
+    <!-- Favorites Section -->
+    <div class="sidebar-section-label">
+      <span>收藏</span>
+      <button class="sidebar-collapse-btn" id="favCollapseBtn" onclick="toggleSection('fav')">▾</button>
+    </div>
+    <div id="favSection">
+      <div id="favList">
+        <div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">暂无收藏对话</div>
+      </div>
+    </div>
+
+    <!-- History Section -->
+    <div class="sidebar-section-label" style="margin-top:0.25rem">
+      <span>历史对话</span>
+      <button class="sidebar-collapse-btn" id="histCollapseBtn" onclick="toggleSection('hist')">▾</button>
+    </div>
+    <div id="histSection">
+      <div id="sidebarHistList">
+        <div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">加载中...</div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div style="height:1px;background:var(--border-light);margin:0.5rem 0.625rem"></div>
+
+    <!-- Agent Groups -->
+    <div id="agentGroupsSection">
+      <!-- Groups injected by JS -->
+    </div>
   </div>
 
   <div class="sidebar-bottom">
@@ -684,7 +762,7 @@
         <img src="/meiling-sitting.png" alt="美灵" onerror="this.src='/meiling-main.png'">
       </div>
       <div class="desktop-greeting" id="desktopGreeting">你好！</div>
-      <div class="desktop-sub">选择一个 Agent 开始对话，或直接向美灵提问</div>
+      <div class="desktop-sub" id="desktopSub">选择一个 Agent 开始对话，或直接向美灵提问</div>
       <div class="desktop-input-wrap">
         <textarea class="desktop-input" id="desktopInput" placeholder="问美灵任何医美问题..." rows="1" onkeydown="desktopKeydown(event)" oninput="autoResize(this)"></textarea>
         <div class="desktop-input-footer">
@@ -694,8 +772,8 @@
               <span id="modelLabel">默认模型</span>
             </button>
           </div>
-          <button class="desktop-send-btn" onclick="desktopSend()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <button class="desktop-send-btn" onclick="desktopSend()" title="发送">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>
@@ -931,10 +1009,13 @@
   };
 
   // ===== INIT =====
+  let currentUserName = '';
+  let currentUserPlan = '免费版';
+
   function init() {
-    buildSidebar();
     buildStore();
-    setGreeting();
+    loadUserInfo();
+    loadSidebarHistory();
 
     const params = new URLSearchParams(window.location.search);
     const agentParam = params.get('agent');
@@ -950,14 +1031,41 @@
     updateModelLabel();
   }
 
-  function setGreeting() {
+  async function loadUserInfo() {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) return;
+      const data = await res.json();
+      const name = data.name || data.phone || data.code || '用户';
+      currentUserName = name;
+      currentUserPlan = data.plan === 'pro' ? '专业版 Pro' : '免费版';
+
+      // Update sidebar user info
+      const avatar = name.charAt(0).toUpperCase();
+      document.getElementById('userAvatar').textContent = avatar;
+      document.getElementById('userName').textContent = name;
+      document.querySelector('.sidebar-user-plan').textContent = currentUserPlan;
+      document.getElementById('infoUser').textContent = name;
+
+      // Update greeting with user name
+      setGreeting(name);
+
+      // Update invite code
+      if (data.code) document.getElementById('inviteCode').value = data.code;
+    } catch(e) {
+      setGreeting();
+    }
+  }
+
+  function setGreeting(name) {
     const h = new Date().getHours();
     let g = '你好';
     if (h >= 5 && h < 12) g = '早上好';
     else if (h >= 12 && h < 14) g = '中午好';
     else if (h >= 14 && h < 18) g = '下午好';
     else g = '晚上好';
-    document.getElementById('desktopGreeting').textContent = g + '！';
+    const greeting = name ? g + '，' + name : g + '！';
+    document.getElementById('desktopGreeting').textContent = greeting;
   }
 
     async function loadGuidedQuestions(agentId) {
@@ -992,7 +1100,8 @@
   }
 
   function buildSidebar() {
-    const container = document.getElementById('sidebarScroll');
+    const container = document.getElementById('agentGroupsSection');
+    if (!container) return;
     container.innerHTML = '';
     AGENT_GROUPS.forEach(group => {
       const label = document.createElement('div');
@@ -1009,6 +1118,88 @@
         container.appendChild(a);
       });
     });
+  }
+
+  // ===== SIDEBAR HISTORY & FAVORITES =====
+  let sidebarSessions = [];
+  let favorites = JSON.parse(localStorage.getItem('ma_favorites') || '[]');
+
+  async function loadSidebarHistory() {
+    buildSidebar();
+    try {
+      const res = await fetch('/api/chat/sessions');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      sidebarSessions = data.sessions || [];
+      renderSidebarHistory();
+    } catch(e) {
+      document.getElementById('sidebarHistList').innerHTML =
+        '<div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">暂无历史对话</div>';
+    }
+  }
+
+  function renderSidebarHistory() {
+    const favList = document.getElementById('favList');
+    const histList = document.getElementById('sidebarHistList');
+
+    function getAgentIcon(agentId) {
+      for (const g of AGENT_GROUPS) {
+        const a = g.agents.find(x => x.id === agentId);
+        if (a) return a.icon;
+      }
+      return '🤖';
+    }
+
+    // Render favorites
+    const favSessions = sidebarSessions.filter(s => favorites.includes(s.id));
+    if (favSessions.length === 0) {
+      favList.innerHTML = '<div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">暂无收藏对话</div>';
+    } else {
+      favList.innerHTML = '';
+      favSessions.forEach(s => {
+        const btn = document.createElement('button');
+        btn.className = 'sidebar-history-item';
+        btn.innerHTML = `<span class="sidebar-history-item-icon">${getAgentIcon(s.agentId)}</span><span class="sidebar-history-item-text">${s.preview || s.agentName || s.agentId}</span><span class="sidebar-history-item-star">★</span>`;
+        btn.onclick = () => loadHistorySession(s.id, s.agentId);
+        favList.appendChild(btn);
+      });
+    }
+
+    // Render history (latest 8)
+    const recent = sidebarSessions.slice(0, 8);
+    if (recent.length === 0) {
+      histList.innerHTML = '<div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">暂无历史对话</div>';
+    } else {
+      histList.innerHTML = '';
+      recent.forEach(s => {
+        const isFav = favorites.includes(s.id);
+        const btn = document.createElement('button');
+        btn.className = 'sidebar-history-item';
+        btn.dataset.sessionId = s.id;
+        btn.innerHTML = `
+          <span class="sidebar-history-item-icon">${getAgentIcon(s.agentId)}</span>
+          <span class="sidebar-history-item-text">${s.preview || s.agentName || s.agentId}</span>
+          <span class="sidebar-history-item-star" style="opacity:${isFav?1:0.25};cursor:pointer" title="${isFav?'取消收藏':'添加收藏'}" onclick="event.stopPropagation();toggleFavorite('${s.id}')">${isFav?'★':'☆'}</span>`;
+        btn.onclick = () => loadHistorySession(s.id, s.agentId);
+        histList.appendChild(btn);
+      });
+    }
+  }
+
+  function toggleFavorite(sessionId) {
+    const idx = favorites.indexOf(sessionId);
+    if (idx >= 0) favorites.splice(idx, 1);
+    else favorites.push(sessionId);
+    localStorage.setItem('ma_favorites', JSON.stringify(favorites));
+    renderSidebarHistory();
+  }
+
+  function toggleSection(type) {
+    const section = document.getElementById(type === 'fav' ? 'favSection' : 'histSection');
+    const btn = document.getElementById(type === 'fav' ? 'favCollapseBtn' : 'histCollapseBtn');
+    const isHidden = section.style.display === 'none';
+    section.style.display = isHidden ? '' : 'none';
+    btn.classList.toggle('collapsed', !isHidden);
   }
 
   function buildStore(filter) {
@@ -1142,6 +1333,8 @@
       const data = await res.json();
       hideTyping();
       addMessage('assistant', data.message);
+      // Refresh sidebar history after each exchange
+      setTimeout(() => loadSidebarHistory(), 500);
     } catch(e) {
       hideTyping();
       addMessage('assistant', '抱歉，遇到了问题，请稍后再试。');
@@ -1170,7 +1363,7 @@
     row.className = 'msg-row ' + role;
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
-    avatar.textContent = role === 'user' ? '我' : (agent ? agent.icon : '🤖');
+    avatar.textContent = role === 'user' ? (currentUserName ? currentUserName.charAt(0).toUpperCase() : '我') : (agent ? agent.icon : '🤖');
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
 
