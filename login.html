@@ -325,7 +325,13 @@
         var data = await res.json();
         if (res.ok) {
           if (data.isAdmin) {
-            window.location.href = '/admin.html';
+            var params = new URLSearchParams(window.location.search);
+            var redirect = params.get('redirect');
+            if (redirect) {
+              window.location.href = decodeURIComponent(redirect);
+            } else {
+              window.location.href = '/admin.html';
+            }
           } else {
             var params = new URLSearchParams(window.location.search);
             var redirect = params.get('redirect');
