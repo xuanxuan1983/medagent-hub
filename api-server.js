@@ -89,6 +89,8 @@ function parseCookies(req) {
 function isAuthenticated(req) {
   const cookies = parseCookies(req);
   const code = cookies[COOKIE_NAME];
+  // Admin code is always authenticated
+  if (code === ADMIN_CODE) return true;
   const codes = loadCodes();
   // Only check if code exists, not usage count (usage is checked at login time)
   return code in codes;
