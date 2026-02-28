@@ -1699,9 +1699,19 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 searchResults = evt.results;
               } else if (evt.type === 'delta') {
                 fullText += evt.content;
-                // Re-render markdown on each delta
+                // Re-render markdown on each delta with incomplete marker fix
                 if (typeof marked !== 'undefined') {
-                  bubble.innerHTML = marked.parse(fullText);
+                  // Fix incomplete markdown markers during streaming
+                  let renderText = fullText;
+                  // Count unmatched ** and * for bold/italic
+                  const dblAst = (renderText.match(/\*\*/g) || []).length;
+                  if (dblAst % 2 !== 0) renderText += '**';
+                  const sglAst = (renderText.replace(/\*\*/g, '').match(/\*/g) || []).length;
+                  if (sglAst % 2 !== 0) renderText += '*';
+                  // Count unmatched ` for inline code
+                  const backticks = (renderText.match(/`/g) || []).length;
+                  if (backticks % 2 !== 0) renderText += '`';
+                  bubble.innerHTML = marked.parse(renderText);
                 } else {
                   bubble.textContent = fullText;
                 }
