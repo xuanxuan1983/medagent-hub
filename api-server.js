@@ -4,6 +4,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const ExcelJS = require('exceljs');
 
 const PORT = process.env.PORT || 3002;
 const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
@@ -1057,6 +1058,102 @@ const server = http.createServer(async (req, res) => {
       'Content-Disposition': `attachment; filename="conversations-${new Date().toISOString().slice(0,10)}.jsonl"`
     });
     fs.createReadStream(logPath).pipe(res);
+    return;
+  }
+
+  // Export Excel
+  if (url.pathname === '/api/admin/export-excel' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'MedAgent Hub';
+      workbook.created = new Date();
+
+      // Sheet 1: 用户列表
+      const usersSheet = workbook.addWorksheet('用户列表');
+      usersSheet.columns = [
+        { header: '用户名', key: 'name', width: 16 },
+        { header: '邀请码', key: 'code', width: 20 },
+        { header: '手机号', key: 'phone', width: 16 },
+        { header: '职业身份', key: 'role', width: 20 },
+        { header: '已使用次数', key: 'usage', width: 12 },
+        { header: '上限次数', key: 'maxUses', width: 12 },
+        { header: '剩余次数', key: 'remaining', width: 12 },
+        { header: '首次登录时间', key: 'loginAt', width: 22 },
+      ];
+      usersSheet.getRow(1).font = { bold: true };
+      usersSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E5E0' } };
+
+      const codes = loadCodes();
+      const usage = loadUsage();
+      const usageLimits = loadUsageLimits();
+      const profiles = loadProfiles();
+
+      Object.entries(codes).forEach(([code, name]) => {
+        const currentUsage = usage[code] || 0;
+        const maxUses = usageLimits[code] || MAX_USES_PER_CODE;
+        const profile = profiles[code] || {};
+        usersSheet.addRow({
+          name: name || '',
+          code: code,
+          phone: profile.phone || '',
+          role: profile.role || '',
+          usage: currentUsage,
+          maxUses: maxUses,
+          remaining: Math.max(0, maxUses - currentUsage),
+          loginAt: profile.loginAt ? profile.loginAt.replace('T', ' ').slice(0, 19) : '',
+        });
+      });
+
+      // Sheet 2: 对话记录
+      const convSheet = workbook.addWorksheet('对话记录');
+      convSheet.columns = [
+        { header: '时间', key: 'ts', width: 22 },
+        { header: 'Agent', key: 'agent', width: 20 },
+        { header: '用户邀请码', key: 'user_name', width: 20 },
+        { header: '用户提问', key: 'user', width: 40 },
+        { header: 'Agent 回复', key: 'assistant', width: 50 },
+        { header: '反馈', key: 'feedback', width: 8 },
+      ];
+      convSheet.getRow(1).font = { bold: true };
+      convSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E5E0' } };
+
+      const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+      if (fs.existsSync(logPath)) {
+        const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
+        lines.forEach(line => {
+          try {
+            const entry = JSON.parse(line);
+            convSheet.addRow({
+              ts: entry.ts ? entry.ts.replace('T', ' ').slice(0, 19) : '',
+              agent: entry.agentId || '',
+              user_name: entry.user_name || '',
+              user: entry.user || '',
+              assistant: entry.assistant || '',
+              feedback: entry.feedback === 'up' ? '👍' : entry.feedback === 'down' ? '👎' : '',
+            });
+          } catch {}
+        });
+      }
+
+      const filename = `MedAgent-数据导出-${new Date().toISOString().slice(0,10)}.xlsx`;
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+      });
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (e) {
+      console.error('Excel export error:', e);
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Export failed' }));
+      }
+    }
     return;
   }
 

@@ -233,9 +233,9 @@
         </div>
         <div class="topbar-actions">
             <button class="btn btn-secondary" onclick="loadData()">刷新</button>
+            <button class="btn btn-primary" onclick="exportExcel()">导出 Excel</button>
             <a href="/corpus.html" class="btn btn-secondary">语料中心</a>
             <a href="/chat.html" class="btn btn-secondary">使用 Agent</a>
-            <button class="btn btn-primary" onclick="exportData()">导出 JSONL</button>
         </div>
     </header>
 
@@ -372,6 +372,7 @@
         }
 
         function exportData() { window.location.href = '/api/admin/export'; }
+        function exportExcel() { window.location.href = '/api/admin/export-excel'; }
 
         async function loadCodes() {
             try {
