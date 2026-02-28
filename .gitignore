@@ -8,3 +8,8 @@ invite-codes-*.csv
 invite-usage*.json
 server.log
 medagent-hub.tar.gz
+wechat_cert/
+*.db
+*.db-wal
+*.db-shm
+user-profiles.json

@@ -5,6 +5,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs');
+const Database = require('better-sqlite3');
 
 const PORT = process.env.PORT || 3002;
 const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
@@ -12,6 +13,46 @@ const COOKIE_NAME = 'medagent_auth';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 const DATA_DIR = process.env.DATA_DIR || __dirname;
+
+// ===== SQLite Database =====
+const DB_PATH = path.join(DATA_DIR, 'medagent.db');
+const db = new Database(DB_PATH);
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+// Create tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS chat_sessions (
+    id TEXT PRIMARY KEY,
+    user_code TEXT NOT NULL,
+    user_name TEXT,
+    agent_id TEXT NOT NULL,
+    agent_name TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_sessions_user ON chat_sessions(user_code);
+  CREATE INDEX IF NOT EXISTS idx_sessions_agent ON chat_sessions(agent_id);
+  CREATE INDEX IF NOT EXISTS idx_messages_session ON chat_messages(session_id);
+`);
+console.log('\u2705 SQLite \u6570\u636e\u5e93\u521d\u59cb\u5316\u6210\u529f:', DB_PATH);
+
+// Prepared statements for performance
+const stmtInsertSession = db.prepare('INSERT INTO chat_sessions (id, user_code, user_name, agent_id, agent_name) VALUES (?, ?, ?, ?, ?)');
+const stmtInsertMessage = db.prepare('INSERT INTO chat_messages (session_id, role, content) VALUES (?, ?, ?)');
+const stmtUpdateSessionTime = db.prepare("UPDATE chat_sessions SET updated_at = datetime('now') WHERE id = ?");
+const stmtGetUserSessions = db.prepare('SELECT id, agent_id, agent_name, created_at, updated_at FROM chat_sessions WHERE user_code = ? ORDER BY updated_at DESC LIMIT 50');
+const stmtGetSessionMessages = db.prepare('SELECT role, content, created_at FROM chat_messages WHERE session_id = ? ORDER BY id ASC');
+const stmtGetSessionById = db.prepare('SELECT * FROM chat_sessions WHERE id = ?');
+const stmtGetSessionPreview = db.prepare('SELECT content FROM chat_messages WHERE session_id = ? AND role = ? ORDER BY id ASC LIMIT 1');
 const CODES_FILE = path.join(DATA_DIR, 'invite-codes.json');
 const USAGE_FILE = path.join(DATA_DIR, 'invite-usage.json');
 const USAGE_LIMITS_FILE = path.join(DATA_DIR, 'invite-usage-limits.json');
@@ -113,6 +154,11 @@ function getUserName(req) {
   const cookies = parseCookies(req);
   const codes = loadCodes();
   return codes[cookies[COOKIE_NAME]] || '未知用户';
+}
+
+function getUserCode(req) {
+  const cookies = parseCookies(req);
+  return cookies[COOKIE_NAME] || '';
 }
 
 function isAdmin(req) {
@@ -751,13 +797,23 @@ const server = http.createServer(async (req, res) => {
       }
 
       const sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+      const userCode = getUserCode(req);
+      const userName = getUserName(req);
       sessions.set(sessionId, {
         agentId,
         agentName: agentNames[agentId],
-        userName: getUserName(req),
+        userName,
+        userCode,
         systemPrompt,
         messages: []
       });
+
+      // Save session to SQLite
+      try {
+        stmtInsertSession.run(sessionId, userCode, userName, agentId, agentNames[agentId] || agentId);
+      } catch (dbErr) {
+        console.error('DB insert session error:', dbErr.message);
+      }
 
       console.log(`[USAGE] ${new Date().toISOString()} agent=${agentId}`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -825,6 +881,15 @@ const server = http.createServer(async (req, res) => {
       const logLine = logEntry + '\n';
       fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logLine, () => {});
 
+      // Save messages to SQLite
+      try {
+        stmtInsertMessage.run(sessionId, 'user', message);
+        stmtInsertMessage.run(sessionId, 'assistant', response.message);
+        stmtUpdateSessionTime.run(sessionId);
+      } catch (dbErr) {
+        console.error('DB insert message error:', dbErr.message);
+      }
+
       console.log(`🤖 [${session.agentName}] Response: ${response.message.substring(0, 50)}...`);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -870,7 +935,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Get conversation history
+  // Get conversation history (current session from memory)
   if (url.pathname === '/api/chat/history' && req.method === 'GET') {
     const sessionId = url.searchParams.get('sessionId');
 
@@ -886,6 +951,80 @@ const server = http.createServer(async (req, res) => {
       agentName: session.agentName,
       messages: session.messages
     }));
+    return;
+  }
+
+  // Get user's chat session list (from SQLite)
+  if (url.pathname === '/api/chat/sessions' && req.method === 'GET') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    const userCode = getUserCode(req);
+    const agentFilter = url.searchParams.get('agent') || null;
+    try {
+      let sessionList;
+      if (agentFilter) {
+        sessionList = db.prepare('SELECT id, agent_id, agent_name, created_at, updated_at FROM chat_sessions WHERE user_code = ? AND agent_id = ? ORDER BY updated_at DESC LIMIT 50').all(userCode, agentFilter);
+      } else {
+        sessionList = stmtGetUserSessions.all(userCode);
+      }
+      // Add first user message as preview
+      const result = sessionList.map(s => {
+        const preview = stmtGetSessionPreview.get(s.id, 'user');
+        return {
+          id: s.id,
+          agentId: s.agent_id,
+          agentName: s.agent_name,
+          preview: preview ? preview.content.substring(0, 60) : '',
+          createdAt: s.created_at,
+          updatedAt: s.updated_at
+        };
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ sessions: result }));
+    } catch (dbErr) {
+      console.error('DB get sessions error:', dbErr.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Database error' }));
+    }
+    return;
+  }
+
+  // Get messages of a specific session (from SQLite)
+  if (url.pathname === '/api/chat/session-messages' && req.method === 'GET') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    const targetSessionId = url.searchParams.get('sessionId');
+    if (!targetSessionId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing sessionId' }));
+      return;
+    }
+    const userCode = getUserCode(req);
+    try {
+      const sessionInfo = stmtGetSessionById.get(targetSessionId);
+      if (!sessionInfo || sessionInfo.user_code !== userCode) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Access denied' }));
+        return;
+      }
+      const messages = stmtGetSessionMessages.all(targetSessionId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        agentId: sessionInfo.agent_id,
+        agentName: sessionInfo.agent_name,
+        messages: messages.map(m => ({ role: m.role, content: m.content }))
+      }));
+    } catch (dbErr) {
+      console.error('DB get messages error:', dbErr.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Database error' }));
+    }
     return;
   }
 

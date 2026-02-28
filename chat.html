@@ -555,6 +555,58 @@
       color: var(--coral);
     }
 
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.12s;
+      border: 1px solid var(--border-light);
+      margin-bottom: 0.5rem;
+    }
+    .history-item:hover {
+      background: var(--bg-warm);
+      border-color: var(--border);
+    }
+    .history-item-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .history-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .history-item-title {
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .history-item-preview {
+      font-size: 0.75rem;
+      color: var(--text-3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 0.15rem;
+    }
+    .history-item-time {
+      font-size: 0.68rem;
+      color: var(--text-3);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .history-empty {
+      text-align: center;
+      color: var(--text-3);
+      padding: 3rem 1rem;
+      font-size: 0.85rem;
+    }
+
     /* ===== MOBILE ===== */
     @media (max-width: 640px) {
       .sidebar { display: none; }
@@ -685,6 +737,7 @@
       <div class="chat-status" id="chatStatus" style="display:none">
         <div class="chat-status-dot"></div>在线
       </div>
+      <button class="chat-topbar-btn" onclick="showHistory()">📜 历史</button>
       <button class="chat-topbar-btn" onclick="clearChat()">清空对话</button>
       <button class="chat-topbar-btn" onclick="openSettings('api')">⚙ 设置</button>
     </div>
@@ -708,6 +761,17 @@
   </div>
 
 </main>
+
+<!-- HISTORY PANEL -->
+<div class="modal-overlay" id="historyModal" style="display:none">
+  <div class="modal-card" style="position:relative;max-width:480px;max-height:80vh;display:flex;flex-direction:column">
+    <button class="modal-close" onclick="closeHistory()">✕</button>
+    <div style="font-weight:700;font-size:1rem;margin-bottom:0.75rem;padding-right:2rem">📜 历史对话记录</div>
+    <div id="historyList" style="flex:1;overflow-y:auto;min-height:200px">
+      <div style="text-align:center;color:var(--text-3);padding:2rem;font-size:0.85rem">加载中...</div>
+    </div>
+  </div>
+</div>
 
 <!-- SETTINGS MODAL -->
 <div class="modal-overlay" id="settingsModal">
@@ -1368,6 +1432,125 @@
     const m = document.getElementById('payModal');
     if (m) m.remove();
   }
+
+  // ===== HISTORY =====
+  async function showHistory() {
+    const modal = document.getElementById('historyModal');
+    modal.style.display = 'flex';
+    const list = document.getElementById('historyList');
+    list.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:2rem;font-size:0.85rem">加载中...</div>';
+
+    try {
+      const agentParam = currentAgentId ? `?agent=${currentAgentId}` : '';
+      const res = await fetch(`/api/chat/sessions${agentParam}`);
+      if (!res.ok) throw new Error('Failed to load history');
+      const data = await res.json();
+
+      if (!data.sessions || data.sessions.length === 0) {
+        list.innerHTML = '<div class="history-empty">还没有历史对话记录<br><span style="font-size:0.78rem;margin-top:0.5rem;display:inline-block">开始和 AI 助手对话后，记录会自动保存在这里</span></div>';
+        return;
+      }
+
+      // Find agent icon from AGENT_GROUPS
+      function getAgentIcon(agentId) {
+        for (const g of AGENT_GROUPS) {
+          const a = g.agents.find(x => x.id === agentId);
+          if (a) return a.icon;
+        }
+        return '🤖';
+      }
+
+      function formatTime(ts) {
+        if (!ts) return '';
+        const d = new Date(ts + 'Z');
+        const now = new Date();
+        const diff = now - d;
+        if (diff < 60000) return '刚刚';
+        if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+        if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+        return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+      }
+
+      list.innerHTML = '';
+      data.sessions.forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.onclick = () => loadHistorySession(s.id, s.agentId);
+        item.innerHTML = `
+          <div class="history-item-icon">${getAgentIcon(s.agentId)}</div>
+          <div class="history-item-info">
+            <div class="history-item-title">${s.agentName || s.agentId}</div>
+            <div class="history-item-preview">${s.preview || '无预览'}</div>
+          </div>
+          <div class="history-item-time">${formatTime(s.updatedAt)}</div>
+        `;
+        list.appendChild(item);
+      });
+    } catch (e) {
+      console.error('Load history error:', e);
+      list.innerHTML = '<div class="history-empty">加载失败，请稍后重试</div>';
+    }
+  }
+
+  function closeHistory() {
+    document.getElementById('historyModal').style.display = 'none';
+  }
+
+  async function loadHistorySession(historySessionId, agentId) {
+    closeHistory();
+    try {
+      const res = await fetch(`/api/chat/session-messages?sessionId=${historySessionId}`);
+      if (!res.ok) throw new Error('Failed to load session messages');
+      const data = await res.json();
+
+      // Find agent info
+      let agent = null;
+      AGENT_GROUPS.forEach(g => { const a = g.agents.find(x => x.id === (agentId || data.agentId)); if (a) agent = a; });
+      if (!agent) {
+        agent = { id: agentId || data.agentId, icon: '🤖', name: data.agentName || agentId, desc: '' };
+      }
+
+      // Switch to chat view
+      currentAgentId = agent.id;
+      switchView('chat');
+
+      // Update sidebar active state
+      document.querySelectorAll('.sidebar-agent').forEach(el => {
+        el.classList.toggle('active', el.dataset.agentId === agent.id);
+      });
+
+      // Update topbar
+      document.title = agent.name + ' - MedAgent Hub (历史记录)';
+      document.getElementById('topbarAvatar').textContent = agent.icon;
+      document.getElementById('topbarName').textContent = agent.name;
+      document.getElementById('topbarDesc').textContent = '📜 历史对话记录';
+
+      // Render messages
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+      messageIndex = 0;
+
+      data.messages.forEach(m => {
+        addMessage(m.role, m.content);
+      });
+
+      // Disable input for history view, prompt user to start new chat
+      document.getElementById('messageInput').disabled = true;
+      document.getElementById('sendBtn').disabled = true;
+      document.getElementById('chatInputHint').innerHTML = '这是历史记录，<a href="javascript:startChat(\'' + agent.id + '\')" style="color:var(--coral);text-decoration:underline">点击开始新对话</a>';
+      document.getElementById('chatStatus').style.display = 'none';
+      sessionId = null;
+    } catch (e) {
+      console.error('Load history session error:', e);
+      alert('加载历史记录失败，请稍后重试');
+    }
+  }
+
+  // Close history modal on overlay click
+  document.getElementById('historyModal').addEventListener('click', function(e) {
+    if (e.target === this) closeHistory();
+  });
 </script>
 </body>
 </html>
