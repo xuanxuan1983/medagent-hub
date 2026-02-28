@@ -987,11 +987,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <p>21 个专为医美行业打造的 AI 搭档，找到最适合你的那一个</p>
       <div class="store-filters">
         <button class="store-filter-btn active" onclick="filterStore(this,'all')">全部</button>
-        <button class="store-filter-btn" onclick="filterStore(this,'咨询转化')">咨询转化</button>
-        <button class="store-filter-btn" onclick="filterStore(this,'培训教学')">培训教学</button>
-        <button class="store-filter-btn" onclick="filterStore(this,'内容营销')">内容营销</button>
-        <button class="store-filter-btn" onclick="filterStore(this,'经营管理')">经营管理</button>
         <button class="store-filter-btn" onclick="filterStore(this,'上游厂商')">上游厂商</button>
+        <button class="store-filter-btn" onclick="filterStore(this,'下游机构')">下游机构</button>
       </div>
     </div>
     <div class="store-grid" id="storeGrid"></div>
@@ -1114,12 +1111,34 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       </div>
       <!-- Invite -->
       <div class="modal-pane" id="pane-invite">
-        <div class="modal-pane-title">邀请好友</div>
-        <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1rem;line-height:1.6">邀请医美同行加入 MedAgent Hub，共同探索 AI 赋能的新时代。</p>
-        <label class="modal-label">你的邀请码</label>
-        <div style="display:flex;gap:0.5rem">
-          <input class="modal-input" id="inviteCode" readonly style="margin-bottom:0;flex:1" value="加载中...">
-          <button class="btn-save" onclick="copyInvite()" style="white-space:nowrap">复制</button>
+        <div class="modal-pane-title">邀请好友·赚赠金</div>
+        <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1rem;line-height:1.6">每成功邀请 1 位好友注册，你获得 <b style="color:var(--text)">¥200 赠金</b>，好友也获得 <b style="color:var(--text)">¥50 赠金</b>。邀请 10 人，终身会员免费！</p>
+        <!-- 赠金统计卡片 -->
+        <div style="display:flex;gap:0.75rem;margin-bottom:1rem">
+          <div style="flex:1;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;padding:0.75rem;text-align:center">
+            <div style="font-size:0.7rem;color:#166534;margin-bottom:0.25rem">已邀请</div>
+            <div id="inviteCount" style="font-size:1.5rem;font-weight:700;color:#166534">0</div>
+            <div style="font-size:0.65rem;color:#166534;opacity:0.7">人</div>
+          </div>
+          <div style="flex:1;background:linear-gradient(135deg,#fffbeb,#fef3c7);border-radius:10px;padding:0.75rem;text-align:center">
+            <div style="font-size:0.7rem;color:#92400e;margin-bottom:0.25rem">累计赠金</div>
+            <div id="totalCredit" style="font-size:1.5rem;font-weight:700;color:#92400e">¥0</div>
+            <div id="creditMax" style="font-size:0.65rem;color:#92400e;opacity:0.7">上限 ¥2,000</div>
+          </div>
+        </div>
+        <label class="modal-label">你的专属推荐码</label>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+          <input class="modal-input" id="inviteCode" readonly style="margin-bottom:0;flex:1;font-family:monospace;letter-spacing:0.05em" value="加载中...">
+          <button class="btn-save" onclick="copyInviteCode()" style="white-space:nowrap">复制码</button>
+        </div>
+        <label class="modal-label">邀请链接（可直接分享）</label>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+          <input class="modal-input" id="inviteLink" readonly style="margin-bottom:0;flex:1;font-size:0.75rem" value="加载中...">
+          <button class="btn-save" onclick="copyInviteLink()" style="white-space:nowrap">复制链接</button>
+        </div>
+        <div style="background:var(--bg-2);border-radius:8px;padding:0.75rem;margin-top:0.25rem">
+          <div style="font-size:0.775rem;font-weight:600;margin-bottom:0.375rem">赠金如何使用？</div>
+          <p style="font-size:0.725rem;color:var(--text-3);line-height:1.6;margin:0">赠金可抵扣订阅费用。请添加管理员微信 <b id="adminWechatDisplay" style="color:var(--text)">xuanyi9747</b>，备注「赠金」即可兑现。</p>
         </div>
       </div>
       <!-- Pricing -->
@@ -1167,52 +1186,50 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   const AGENT_GROUPS = [
     {
-      label: '咨询转化',
-      agents: [
-        { id: 'senior-consultant',   icon: '🥇', name: '金牌医美咨询师',     desc: '10年一线经验的销冠级咨询师', category: '咨询转化' },
-        { id: 'post-op-guardian',    icon: '🛡️', name: '医美术后私域管家',   desc: '红绿灯风险分诊，术后焦虑转复购', category: '咨询转化' },
-        { id: 'aesthetic-design',    icon: '💎', name: '高定美学设计总监',   desc: '服务Top 1%高净值人群的面部美学设计', category: '咨询转化' },
-        { id: 'anatomy-architect',   icon: '🏗️', name: '医美解剖决策建筑师', desc: 'PACER模型，面部建筑结构分析，安全预警', category: '咨询转化' },
-      ]
-    },
-    {
-      label: '培训教学',
-      agents: [
-        { id: 'sparring-robot',      icon: '🥊', name: '医美实战陪练机器人', desc: 'HP动态情绪系统，高压仿真话术训练', category: '培训教学' },
-        { id: 'materials-mentor',    icon: '🧬', name: '医美材料学硬核导师', desc: '营销剥离，PACER深度拆解，灵魂拷问', category: '培训教学' },
-        { id: 'material-architect',  icon: '🏗️', name: '医美材料学架构师',   desc: '6维评估模型，场景判别，合规底线', category: '培训教学' },
-        { id: 'training-director',   icon: '📚', name: '培训赋能总监',       desc: 'ASK模型、反差教学、通关护照', category: '培训教学' },
-      ]
-    },
-    {
-      label: '内容营销',
-      agents: [
-        { id: 'trend-setter',        icon: '🔥', name: '医美爆款种草官',     desc: '三品一规合规专家，生成有传播力的内容', category: '内容营销' },
-        { id: 'visual-translator',   icon: '🎨', name: '医美视觉通译官',     desc: '机理转视觉画面，设计师Brief，3D渲染指导', category: '内容营销' },
-        { id: 'marketing-director',  icon: '✨', name: '市场创意总监',       desc: '整合新媒体、视觉创意、种草运营', category: '内容营销' },
-      ]
-    },
-    {
-      label: '经营管理',
-      agents: [
-        { id: 'area-manager',        icon: '🗺️', name: '大区经理',           desc: 'Forecast分级测谎、进销存逻辑闭环', category: '经营管理' },
-        { id: 'channel-manager',     icon: '🤝', name: '商务经理',           desc: 'ROI利润精算、反向背调、窜货雷霆管控', category: '经营管理' },
-        { id: 'finance-bp',          icon: '💰', name: '财务BP',             desc: '税务合规与交易结构优化', category: '经营管理' },
-        { id: 'hrbp',                icon: '🎯', name: '战略HRBP',           desc: '精准猎聘竞品人才，背调侦查与竞业攻防', category: '经营管理' },
-        { id: 'procurement-manager', icon: '📦', name: '采购经理',           desc: 'Kraljic矩阵与Should-Cost模型优化TCO', category: '经营管理' },
-        { id: 'operations-director', icon: '⚙️', name: '运营效能总监',       desc: '整合SFE、财务、采购的综合运营', category: '经营管理' },
-      ]
-    },
-    {
       label: '上游厂商',
       agents: [
-        { id: 'gtm-strategy',        icon: '🎯', name: 'GTM战略大师',       desc: '整合战略定位、循证背书、组品方案、价格控盘', category: '上游厂商' },
-        { id: 'product-expert',      icon: '🧪', name: '产品材料专家',       desc: '精通流变学、PACER模型、材料选择与机理拆解', category: '上游厂商' },
-        { id: 'academic-liaison',    icon: '🎓', name: '学术推广专家',       desc: '首席医学联络官，擅长KOL征服与学术叙事', category: '上游厂商' },
-        { id: 'sales-director',      icon: '⚔️', name: '销售作战总监',       desc: '整合销售总监、大区经理、商务经理', category: '上游厂商' },
+        { id: 'gtm-strategy',        icon: '🎯', name: 'GTM战略大师',         desc: '整合战略定位、循证背书、组品方案、价格控盘', category: '上游厂商' },
+        { id: 'product-expert',      icon: '🧪', name: '产品材料专家',         desc: '精通流变学、PACER模型、材料选择与机理拆解', category: '上游厂商' },
+        { id: 'academic-liaison',    icon: '🎓', name: '学术推广专家',         desc: '首席医学联络官，擅长KOL征服与学术叙事', category: '上游厂商' },
+        { id: 'marketing-director',  icon: '✨', name: '市场创意总监',         desc: '整合新媒体、视觉创意、种草运营、科学视觉', category: '上游厂商' },
+        { id: 'sales-director',      icon: '⚔️', name: '销售作战总监',         desc: '整合销售总监、大区经理、商务经理的超级销售Agent', category: '上游厂商' },
+        { id: 'operations-director', icon: '⚙️', name: '运营效能总监',         desc: '整合SFE、财务、采购的综合运营Agent', category: '上游厂商' },
+        { id: 'training-director',   icon: '📚', name: '培训赋能总监',         desc: 'ASK模型、反差教学、通关护照的培训专家', category: '上游厂商' },
+        { id: 'area-manager',        icon: '🗺️', name: '大区经理',             desc: 'Forecast分级测谎、进销存逻辑闭环、情境模拟辅导', category: '上游厂商' },
+        { id: 'channel-manager',     icon: '🤝', name: '商务经理',             desc: 'ROI利润精算、反向背调、窜货雷霆管控、库存博弈', category: '上游厂商' },
+        { id: 'finance-bp',          icon: '💰', name: '财务BP',               desc: '税务合规与交易结构优化，货折替代票折保护利润', category: '上游厂商' },
+        { id: 'hrbp',                icon: '🎯', name: '战略HRBP',             desc: '精准猎聘竞品人才，背调侦查与竞业攻防', category: '上游厂商' },
+        { id: 'procurement-manager', icon: '📦', name: '采购经理',             desc: 'Kraljic矩阵与Should-Cost模型优化TCO', category: '上游厂商' },
+      ]
+    },
+    {
+      label: '下游机构',
+      agents: [
+        { id: 'aesthetic-design',    icon: '💎', name: '高定美学设计总监',     desc: '服务于Top 1%高净值人群的面部美学设计专家', category: '下游机构' },
+        { id: 'senior-consultant',   icon: '🥇', name: '金牌医美咨询师',       desc: '10年一线经验的销冠级咨询师，精通SPIN与三明治报价', category: '下游机构' },
+        { id: 'sparring-robot',      icon: '🥊', name: '医美实战陪练机器人',   desc: 'HP动态情绪系统，高压仿真话术训练', category: '下游机构' },
+        { id: 'post-op-guardian',    icon: '🛡️', name: '医美术后私域管家',     desc: '红绿灯风险分诊，将术后焦虑转化为复购信任', category: '下游机构' },
+        { id: 'trend-setter',        icon: '🔥', name: '医美爆款种草官',       desc: '三品一规合规专家，生成有传播力又不踩红线的内容', category: '下游机构' },
+        { id: 'anatomy-architect',   icon: '🏗️', name: '医美解剖决策建筑师',   desc: 'PACER模型，面部建筑结构分析，安全预警', category: '下游机构' },
+        { id: 'materials-mentor',    icon: '🧬', name: '医美材料学硬核导师',   desc: '营销剥离，PACER深度拆解，灵魂拷问', category: '下游机构' },
+        { id: 'material-architect',  icon: '🏗️', name: '医美材料学架构师',     desc: '6维评估模型，场景判别，合规底线，专业决策', category: '下游机构' },
+        { id: 'visual-translator',   icon: '🎨', name: '医美视觉通译官',       desc: '机理转视觉画面，设计师Brief，3D渲染指导', category: '下游机构' },
       ]
     }
   ];
+
+  // 根据用户角色获取默认 Agent
+  // login.html 存储的角色值: downstream-aesthetic / downstream-consultant / upstream-marketing / all
+  function getDefaultAgentByRole() {
+    const role = localStorage.getItem('medagent_role') || '';
+    const roleMap = {
+      'downstream-aesthetic':  'aesthetic-design',   // 医生/技术总监 → 高定美学设计总监
+      'downstream-consultant': 'senior-consultant',  // 咨询师/销售 → 金牌医美咨询师
+      'upstream-marketing':    'marketing-director', // 市场/运营 → 市场创意总监
+      'all':                   'area-manager',        // 院长/培训师/大区经理 → 大区经理
+    };
+    return roleMap[role] || 'senior-consultant';
+  }
 
   const PROVIDERS_MODELS = {
     openai:      ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
@@ -1266,8 +1283,23 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       // Update greeting with user name
       setGreeting(name);
 
-      // Update invite code
-      if (data.code) document.getElementById('inviteCode').value = data.code;
+      // Update invite code and invite link (use referral code, not login code)
+      const refCode = data.referralCode || data.code;
+      if (refCode) {
+        document.getElementById('inviteCode').value = refCode;
+        const inviteUrl = window.location.origin + '/login.html?code=' + encodeURIComponent(refCode);
+        document.getElementById('inviteLink').value = inviteUrl;
+      }
+      // Update referral stats
+      if (data.referralStats) {
+        document.getElementById('inviteCount').textContent = data.referralStats.inviteCount || 0;
+        const credit = data.referralStats.totalCredit || 0;
+        document.getElementById('totalCredit').textContent = '\u00a5' + credit;
+        document.getElementById('creditMax').textContent = '\u4e0a\u9650 \u00a5' + (data.referralStats.maxCredit || 2000).toLocaleString();
+      }
+      if (data.adminWechat) {
+        document.getElementById('adminWechatDisplay').textContent = data.adminWechat;
+      }
     } catch(e) {
       setGreeting();
     }
@@ -1461,8 +1493,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   async function desktopSend() {
     const q = document.getElementById('desktopInput').value.trim();
     if (!q) return;
-    // Default to first agent (senior-consultant) for desktop send
-    await startChat('senior-consultant', q);
+    // Default agent based on user role
+    await startChat(getDefaultAgentByRole(), q);
   }
 
   function desktopKeydown(e) {
@@ -2044,9 +2076,45 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const label = m ? m.split('/').pop() : (p ? p : '默认模型');
     document.getElementById('modelLabel').textContent = label;
   }
-  function copyInvite() {
+  function copyInviteCode() {
     const val = document.getElementById('inviteCode').value;
-    navigator.clipboard.writeText(val).then(() => alert('已复制！'));
+    if (!val || val === '加载中...') return;
+    navigator.clipboard.writeText(val).then(() => {
+      showToast('邀请码已复制！');
+    }).catch(() => {
+      // Fallback for older browsers
+      const el = document.getElementById('inviteCode');
+      el.select();
+      document.execCommand('copy');
+      showToast('邀请码已复制！');
+    });
+  }
+
+  function copyInviteLink() {
+    const val = document.getElementById('inviteLink').value;
+    if (!val || val === '加载中...') return;
+    navigator.clipboard.writeText(val).then(() => {
+      showToast('邀请链接已复制！');
+    }).catch(() => {
+      const el = document.getElementById('inviteLink');
+      el.select();
+      document.execCommand('copy');
+      showToast('邀请链接已复制！');
+    });
+  }
+
+  function showToast(msg) {
+    let toast = document.getElementById('copyToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'copyToast';
+      toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:0.5rem 1.25rem;border-radius:2rem;font-size:0.875rem;z-index:9999;pointer-events:none;transition:opacity 0.3s';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2000);
   }
 
   // ===== USER MENU =====
