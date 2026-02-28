@@ -1205,6 +1205,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     {
       label: '下游机构',
       agents: [
+        { id: 'neuro-aesthetic-architect', icon: '🧠', name: '神经美学架构师',     desc: '融合神经科学、皮肤病学与身心健康，从“修复结构”到“修复情感”', category: '下游机构' },
         { id: 'aesthetic-design',    icon: '💎', name: '高定美学设计总监',     desc: '服务于Top 1%高净值人群的面部美学设计专家', category: '下游机构' },
         { id: 'senior-consultant',   icon: '🥇', name: '金牌医美咨询师',       desc: '10年一线经验的销冠级咨询师，精通SPIN与三明治报价', category: '下游机构' },
         { id: 'sparring-robot',      icon: '🥊', name: '医美实战陪练机器人',   desc: 'HP动态情绪系统，高压仿真话术训练', category: '下游机构' },
@@ -1219,14 +1220,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   ];
 
   // 根据用户角色获取默认 Agent
-  // login.html 存储的角色值: downstream-aesthetic / downstream-consultant / upstream-marketing / all
+  // login.html 存储的角色值: upstream / downstream / other
   function getDefaultAgentByRole() {
     const role = localStorage.getItem('medagent_role') || '';
     const roleMap = {
-      'downstream-aesthetic':  'aesthetic-design',   // 医生/技术总监 → 高定美学设计总监
-      'downstream-consultant': 'senior-consultant',  // 咨询师/销售 → 金牌医美咨询师
-      'upstream-marketing':    'marketing-director', // 市场/运营 → 市场创意总监
-      'all':                   'area-manager',        // 院长/培训师/大区经理 → 大区经理
+      'upstream':   'sales-director',   // 上游厂商 → 销售作战总监
+      'downstream': 'senior-consultant', // 下游机构 → 金牌医美咨询师
+      'other':      'senior-consultant', // 其他 → 金牌医美咨询师
     };
     return roleMap[role] || 'senior-consultant';
   }

@@ -189,7 +189,7 @@
     }
     .role-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 0.875rem;
       margin-bottom: 1.25rem;
     }
@@ -279,25 +279,20 @@
       <p>请告诉我你的职业身份，我为你定制专属工作台</p>
     </div>
     <div class="role-grid">
-      <div class="role-card" data-role="downstream-aesthetic" onclick="selectRole(this)">
-        <span class="role-card-icon">🧑‍⚕️</span>
-        <div class="role-card-title">美学设计 · 学术背书</div>
-        <div class="role-card-desc">医生 / 技术总监 / 学术专员</div>
+      <div class="role-card" data-role="upstream" onclick="selectRole(this)">
+        <span class="role-card-icon">🏭</span>
+        <div class="role-card-title">上游厂商</div>
+        <div class="role-card-desc">市场 / 运营 / 销售 / 管理</div>
       </div>
-      <div class="role-card" data-role="downstream-consultant" onclick="selectRole(this)">
-        <span class="role-card-icon">👩‍💼</span>
-        <div class="role-card-title">销冠话术 · 高清生图</div>
-        <div class="role-card-desc">咨询师 / 销售顾问 / 客服</div>
-      </div>
-      <div class="role-card" data-role="upstream-marketing" onclick="selectRole(this)">
-        <span class="role-card-icon">📈</span>
-        <div class="role-card-title">视觉营销 · 经营增效</div>
-        <div class="role-card-desc">市场 / 运营 / 品牌专员</div>
-      </div>
-      <div class="role-card" data-role="all" onclick="selectRole(this)">
+      <div class="role-card" data-role="downstream" onclick="selectRole(this)">
         <span class="role-card-icon">🏥</span>
-        <div class="role-card-title">培训 · 医学 · 管理</div>
-        <div class="role-card-desc">院长 / 培训师 / 大区经理</div>
+        <div class="role-card-title">下游机构</div>
+        <div class="role-card-desc">医生 / 咨询师 / 运营</div>
+      </div>
+      <div class="role-card" data-role="other" onclick="selectRole(this)">
+        <span class="role-card-icon">👤</span>
+        <div class="role-card-title">其他</div>
+        <div class="role-card-desc">其他职业 / 学员</div>
       </div>
     </div>
     <button class="btn-role-confirm" id="roleConfirmBtn" disabled onclick="confirmRole()">
@@ -308,6 +303,17 @@
   <script>
     var selectedRole = null;
     var loginCode = null;
+
+    // Auto-fill invite code from URL parameter
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var codeParam = params.get('code');
+      if (codeParam) {
+        document.getElementById('code').value = codeParam;
+        // Focus on phone field since code is already filled
+        setTimeout(function() { document.getElementById('phone').focus(); }, 100);
+      }
+    })();
 
     document.getElementById('code').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') document.getElementById('phone').focus();
@@ -339,6 +345,14 @@
             var redirect = params.get('redirect');
             window.location.href = redirect ? decodeURIComponent(redirect) : '/admin.html';
           } else {
+            // Show welcome message if referred
+            if (data.referrerName) {
+              var welcomeDiv = document.createElement('div');
+              welcomeDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#166534;padding:1rem;text-align:center;font-size:0.9rem;z-index:9999;animation:slideDown 0.3s ease';
+              welcomeDiv.innerHTML = '\ud83c\udf89 \u4f60\u7684\u597d\u53cb <b>' + data.referrerName + '</b> \u9080\u8bf7\u4f60\u52a0\u5165 MedAgent Hub\uff0c\u4f60\u5df2\u83b7\u5f97 <b>\u00a550 \u8d60\u91d1</b>\uff01';
+              document.body.appendChild(welcomeDiv);
+              setTimeout(function() { welcomeDiv.remove(); }, 5000);
+            }
             var params = new URLSearchParams(window.location.search);
             var redirect = params.get('redirect');
             if (redirect) {
