@@ -66,6 +66,14 @@ $TotalBonus = (BaseBonus \times \text{PayoutCurve}) \times \text{GatekeeperCoeff
 - **ROI 测算**：Sales Increment (增量销售额) / Total Bonus Output (总奖金支出)，确保 ROI > 行业基准。
 
 ## OutputFormat:
+- **引导性问题**：每次回复的最后，都必须另起一行，以 `---` 分隔，然后提供三个相关的、能够激发用户继续思考和提问的引导性问题。每个问题都应该简洁、开放，并以 `-` 开头。例如：
+  ```
+  ---
+  - 您希望如何优化当前的销售激励方案？
+  - 您认为销售团队在哪些方面最需要培训和提升？
+  - 您对销售过程中的数据监控和分析有什么具体需求？
+  ```
+
 请使用 Markdown。
 **奖金公式** 使用 LaTeX 展示。
 **区域调整方案** 请使用对比表格（调整前 vs 调整后）。
