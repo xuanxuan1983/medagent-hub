@@ -510,6 +510,50 @@
     .chat-send-btn:hover:not(:disabled) { opacity: 0.85; }
     .chat-send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
+    /* ===== FILE UPLOAD ===== */
+    .upload-btn {
+      display: flex; align-items: center; gap: 0.25rem;
+      padding: 0.3rem 0.6rem; border-radius: 6px;
+      background: none; border: 1px solid var(--border);
+      font-size: 0.75rem; color: var(--text-2); cursor: pointer;
+      font-family: inherit; transition: all 0.15s;
+    }
+    .upload-btn:hover { background: var(--bg-warm); border-color: #AEAAA5; color: var(--text); }
+    .upload-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .file-preview-card {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: var(--bg-warm); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.5rem 0.75rem;
+      margin-bottom: 0.5rem; font-size: 0.8rem;
+    }
+    .file-preview-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .file-preview-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+    .file-preview-size { color: var(--text-3); font-size: 0.72rem; flex-shrink: 0; }
+    .file-preview-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); font-size: 0.9rem; padding: 0 0.2rem;
+      flex-shrink: 0; line-height: 1;
+    }
+    .file-preview-remove:hover { color: var(--coral); }
+    .file-uploading { opacity: 0.6; }
+    .search-indicator {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.75rem; color: #5a7fa8; background: #EEF4FF;
+      border-radius: 20px; padding: 0.2rem 0.6rem;
+      margin-bottom: 0.4rem;
+    }
+    .search-indicator-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #5a7fa8; animation: bounce 0.8s infinite;
+    }
+    .search-source-list {
+      margin-top: 0.5rem; padding-top: 0.5rem;
+      border-top: 1px solid var(--border-light);
+      font-size: 0.75rem; color: var(--text-3);
+    }
+    .search-source-list a { color: #5a7fa8; text-decoration: none; }
+    .search-source-list a:hover { text-decoration: underline; }
+
     /* ===== SETTINGS MODAL ===== */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
@@ -828,10 +872,19 @@
     </div>
           <div class="guided-questions" id="guidedQuestions"></div>
       <div class="chat-input-area">
+        <!-- File preview card -->
+        <div id="filePreviewArea" style="display:none"></div>
+        <!-- Hidden file input -->
+        <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.md,.png,.jpg,.jpeg,.gif,.webp,.bmp" onchange="handleFileSelect(event)">
       <div class="chat-input-box">
         <textarea class="chat-textarea" id="messageInput" placeholder="输入您的问题... (Enter 发送，Shift+Enter 换行)" rows="1" disabled oninput="autoResize(this)" onkeydown="chatKeydown(event)"></textarea>
         <div class="chat-input-footer">
-          <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
+          <div class="chat-input-left">
+            <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
+              📎 上传文件
+            </button>
+            <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
+          </div>
           <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
         </div>
       </div>
@@ -1300,6 +1353,7 @@
       document.getElementById('chatStatus').style.display = 'flex';
       document.getElementById('messageInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
+      document.getElementById('uploadBtn').disabled = false;
       document.getElementById('chatInputHint').textContent = 'Enter 发送，Shift+Enter 换行';
       document.getElementById('messageInput').focus();
 
@@ -1312,27 +1366,112 @@
     }
   }
 
+  // ===== FILE UPLOAD =====
+  let pendingFile = null; // { name, size, content, type }
+
+  function getFileIcon(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    const icons = { pdf: '📕', doc: '📄', docx: '📄', xls: '📊', xlsx: '📊', txt: '📝', csv: '📊', md: '📝', png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️', webp: '🖼️', bmp: '🖼️' };
+    return icons[ext] || '📎';
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+    return (bytes / 1024 / 1024).toFixed(1) + 'MB';
+  }
+
+  async function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = ''; // reset so same file can be re-selected
+
+    const previewArea = document.getElementById('filePreviewArea');
+    previewArea.style.display = 'block';
+    previewArea.innerHTML = `
+      <div class="file-preview-card file-uploading">
+        <span class="file-preview-icon">${getFileIcon(file.name)}</span>
+        <span class="file-preview-name">${file.name}</span>
+        <span class="file-preview-size">上传中...</span>
+      </div>`;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (sessionId) formData.append('sessionId', sessionId);
+
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('上传失败');
+      const data = await res.json();
+
+      pendingFile = { name: file.name, size: file.size, content: data.extractedContent, type: data.contentType };
+
+      previewArea.innerHTML = `
+        <div class="file-preview-card">
+          <span class="file-preview-icon">${getFileIcon(file.name)}</span>
+          <span class="file-preview-name">${file.name}</span>
+          <span class="file-preview-size">${formatFileSize(file.size)}</span>
+          <button class="file-preview-remove" onclick="removePendingFile()" title="移除">✕</button>
+        </div>`;
+
+      document.getElementById('messageInput').placeholder = '对文件提问，或直接发送让 AI 分析...';
+      document.getElementById('messageInput').focus();
+    } catch (e) {
+      previewArea.style.display = 'none';
+      pendingFile = null;
+      alert('文件上传失败：' + e.message);
+    }
+  }
+
+  function removePendingFile() {
+    pendingFile = null;
+    const previewArea = document.getElementById('filePreviewArea');
+    previewArea.style.display = 'none';
+    previewArea.innerHTML = '';
+    document.getElementById('messageInput').placeholder = '输入您的问题... (Enter 发送，Shift+Enter 换行)';
+  }
+
+  // ===== SEARCH KEYWORDS (client-side detection for UI hint) =====
+  const SEARCH_KEYWORDS = ['最新', '最近', '现在', '目前', '今年', '今天', '近期', '查一下', '搜一下', '搜索', '查找', '查询', '最新研究', '文献', '研究', '论文', '2024', '2025', '2026'];
+  function willSearch(msg) { return SEARCH_KEYWORDS.some(k => msg.includes(k)); }
+
   async function sendMessage() {
     const input = document.getElementById('messageInput');
     const msg = input.value.trim();
-    if (!msg || !sessionId) return;
-    addMessage('user', msg);
+    if ((!msg && !pendingFile) || !sessionId) return;
+    const displayMsg = msg || ('分析文件《' + (pendingFile ? pendingFile.name : '') + '》');
+    addMessage('user', displayMsg);
     input.value = '';
     input.style.height = 'auto';
+
+    // Show search indicator if needed
+    const searching = willSearch(msg);
+    if (searching) showSearchIndicator();
     showTyping();
+
     input.disabled = true;
     document.getElementById('sendBtn').disabled = true;
+    document.getElementById('uploadBtn').disabled = true;
+
+    // Capture and clear pending file
+    const fileCtx = pendingFile ? { name: pendingFile.name, content: pendingFile.content } : null;
+    if (pendingFile) removePendingFile();
+
     try {
       const settings = loadSettings();
+      const body = { sessionId, message: msg || '请分析这个文件', ...settings };
+      if (fileCtx) body.fileContext = fileCtx;
+
       const res = await fetch('/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, message: msg, ...settings })
+        body: JSON.stringify(body)
       });
       if (!res.ok) throw new Error('send failed');
       const data = await res.json();
       hideTyping();
-      addMessage('assistant', data.message);
+      hideSearchIndicator();
+      addMessage('assistant', data.message, data.searchResults);
       // Refresh sidebar history after each exchange
       setTimeout(() => loadSidebarHistory(), 500);
     } catch(e) {
@@ -1341,6 +1480,8 @@
     } finally {
       input.disabled = false;
       document.getElementById('sendBtn').disabled = false;
+      document.getElementById('uploadBtn').disabled = false;
+      hideSearchIndicator();
       input.focus();
     }
   }
@@ -1353,7 +1494,26 @@
     if (currentAgentId) startChat(currentAgentId);
   }
 
-  function addMessage(role, content) {
+  // ===== SEARCH INDICATOR =====
+  function showSearchIndicator() {
+    let el = document.getElementById('searchIndicator');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'searchIndicator';
+      el.className = 'search-indicator';
+      el.innerHTML = '<div class="search-indicator-dot"></div> 正在搜索最新信息...';
+      const container = document.getElementById('chatMessages');
+      container.appendChild(el);
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  function hideSearchIndicator() {
+    const el = document.getElementById('searchIndicator');
+    if (el) el.remove();
+  }
+
+  function addMessage(role, content, searchResults) {
     const container = document.getElementById('chatMessages');
     const welcome = document.getElementById('welcomeWrap');
     if (welcome) welcome.remove();
@@ -1387,6 +1547,15 @@
       bubble.textContent = mainContent;
     }
     if (role === 'assistant') {
+      // Append search sources if available
+      if (searchResults && searchResults.length > 0) {
+        const srcDiv = document.createElement('div');
+        srcDiv.className = 'search-source-list';
+        srcDiv.innerHTML = '🔍 参考来源：' + searchResults.slice(0, 3).map((s, i) =>
+          `<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${s.title || s.url}</a>`
+        ).join(' &nbsp; ');
+        bubble.appendChild(srcDiv);
+      }
       const feedback = document.createElement('div');
       feedback.className = 'msg-feedback';
       const idx = messageIndex++;

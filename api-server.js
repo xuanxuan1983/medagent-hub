@@ -6,6 +6,10 @@ const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs');
 const Database = require('better-sqlite3');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+const XLSX = require('xlsx');
 
 const PORT = process.env.PORT || 3002;
 const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
@@ -13,6 +17,186 @@ const COOKIE_NAME = 'medagent_auth';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 const DATA_DIR = process.env.DATA_DIR || __dirname;
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// Bocha Search API
+const BOCHA_API_KEY = process.env.BOCHA_API_KEY || 'sk-51d7d709eb6d4150b76dc131663330d3';
+const BOCHA_API_URL = 'https://api.bochaai.com/v1/web-search';
+
+// ===== FILE UPLOAD SETUP =====
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+  filename: (req, file, cb) => {
+    const ts = Date.now();
+    const safe = file.originalname.replace(/[^a-zA-Z0-9._\u4e00-\u9fa5-]/g, '_');
+    cb(null, `${ts}_${safe}`);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'text/plain', 'text/csv', 'text/markdown',
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'
+    ];
+    if (allowed.includes(file.mimetype) || file.mimetype.startsWith('image/') || file.mimetype.startsWith('text/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('不支持的文件类型'), false);
+    }
+  }
+});
+
+// ===== FILE CONTENT EXTRACTION =====
+async function extractFileContent(filePath, mimeType, originalName, openaiApiKey) {
+  try {
+    // PDF
+    if (mimeType === 'application/pdf' || originalName.endsWith('.pdf')) {
+      const buffer = fs.readFileSync(filePath);
+      const data = await pdfParse(buffer);
+      return { type: 'text', content: data.text.trim(), pages: data.numpages };
+    }
+    // Word
+    if (mimeType.includes('wordprocessingml') || mimeType === 'application/msword' || originalName.match(/\.docx?$/i)) {
+      const buffer = fs.readFileSync(filePath);
+      const result = await mammoth.extractRawText({ buffer });
+      return { type: 'text', content: result.value.trim() };
+    }
+    // Excel
+    if (mimeType.includes('spreadsheetml') || mimeType.includes('ms-excel') || originalName.match(/\.xlsx?$/i)) {
+      const workbook = XLSX.readFile(filePath);
+      let content = '';
+      workbook.SheetNames.forEach(name => {
+        content += `[工作表: ${name}]\n`;
+        const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[name]);
+        content += csv + '\n\n';
+      });
+      return { type: 'text', content: content.trim() };
+    }
+    // Text / CSV / Markdown
+    if (mimeType.startsWith('text/') || originalName.match(/\.(txt|csv|md|markdown)$/i)) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      return { type: 'text', content: content.trim() };
+    }
+    // Image - use OpenAI Vision
+    if (mimeType.startsWith('image/')) {
+      const imageBuffer = fs.readFileSync(filePath);
+      const base64 = imageBuffer.toString('base64');
+      const imageUrl = `data:${mimeType};base64,${base64}`;
+      // Use OpenAI Vision API to describe the image
+      const apiKey = openaiApiKey || process.env.OPENAI_API_KEY;
+      const visionRes = await callOpenAIVision(imageUrl, apiKey);
+      return { type: 'image', content: visionRes };
+    }
+    return { type: 'unknown', content: '[无法解析此文件类型]' };
+  } catch (err) {
+    console.error('File extraction error:', err.message);
+    return { type: 'error', content: `[文件解析失败: ${err.message}]` };
+  }
+}
+
+async function callOpenAIVision(imageUrl, apiKey) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      model: 'gpt-4o',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: '请详细描述这张图片的内容，包括文字、数据、图表等所有信息。如果是医学图像，请提供专业分析。' },
+          { type: 'image_url', image_url: { url: imageUrl } }
+        ]
+      }],
+      max_tokens: 1000
+    });
+    const options = {
+      hostname: 'api.openai.com',
+      path: '/v1/chat/completions',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`, 'Content-Length': Buffer.byteLength(body) }
+    };
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          resolve(json.choices?.[0]?.message?.content || '[图片识别失败]');
+        } catch { resolve('[图片识别失败]'); }
+      });
+    });
+    req.on('error', () => resolve('[图片识别服务不可用]'));
+    req.write(body);
+    req.end();
+  });
+}
+
+// ===== BOCHA WEB SEARCH =====
+async function bochaSearch(query, count = 5) {
+  return new Promise((resolve) => {
+    const body = JSON.stringify({
+      query,
+      count,
+      freshness: 'noLimit',
+      summary: true,
+      answer: false
+    });
+    const options = {
+      hostname: 'api.bochaai.com',
+      path: '/v1/web-search',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${BOCHA_API_KEY}`,
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const results = json.data?.webPages?.value || [];
+          const formatted = results.slice(0, count).map((r, i) => ({
+            index: i + 1,
+            title: r.name || '',
+            url: r.url || '',
+            snippet: r.snippet || r.summary || ''
+          }));
+          resolve({ success: true, results: formatted, query });
+        } catch (e) {
+          console.error('Bocha parse error:', e.message, data.substring(0, 200));
+          resolve({ success: false, results: [], query });
+        }
+      });
+    });
+    req.on('error', (e) => {
+      console.error('Bocha request error:', e.message);
+      resolve({ success: false, results: [], query });
+    });
+    req.write(body);
+    req.end();
+  });
+}
+
+// Determine if a message needs web search
+function needsWebSearch(message) {
+  const searchKeywords = [
+    '最新', '最近', '现在', '目前', '今年', '今天', '近期',
+    '查一下', '搜一下', '搜索', '查找', '查询',
+    '有没有最新', '最新研究', '最新指南', '最新指南',
+    '文献', '研究', '论文', '临床试验', '将来趋势',
+    '2024', '2025', '2026'
+  ];
+  return searchKeywords.some(kw => message.includes(kw));
+}
 
 // ===== SQLite Database =====
 const DB_PATH = path.join(DATA_DIR, 'medagent.db');
@@ -645,6 +829,63 @@ function parseRequestBody(req) {
   });
 }
 
+// ===== FILE UPLOAD HTTP HANDLER (uses multer) =====
+const uploadMiddleware = upload.single('file');
+
+function handleFileUpload(req, res) {
+  uploadMiddleware(req, res, async (err) => {
+    if (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+      return;
+    }
+    if (!req.file) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '没有接收到文件' }));
+      return;
+    }
+    try {
+      const { originalname, mimetype, filename, path: filePath, size } = req.file;
+      const sessionId = req.body && req.body.sessionId;
+      // Extract content
+      const extracted = await extractFileContent(filePath, mimetype, originalname);
+      // Save file record to SQLite
+      try {
+        db.prepare(`CREATE TABLE IF NOT EXISTS uploaded_files (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT,
+          user_code TEXT,
+          original_name TEXT,
+          stored_name TEXT,
+          mime_type TEXT,
+          size INTEGER,
+          content_type TEXT,
+          extracted_content TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+        )`).run();
+        db.prepare('INSERT INTO uploaded_files (session_id, user_code, original_name, stored_name, mime_type, size, content_type, extracted_content) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+          .run(sessionId || null, getUserCode(req), originalname, filename, mimetype, size, extracted.type, extracted.content);
+      } catch (dbErr) { console.error('DB file record error:', dbErr.message); }
+
+      console.log(`📁 File uploaded: ${originalname} (${Math.round(size/1024)}KB, ${extracted.type})`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        fileId: filename,
+        originalName: originalname,
+        size,
+        contentType: extracted.type,
+        extractedContent: extracted.content,
+        pages: extracted.pages
+      }));
+    } catch (e) {
+      console.error('File upload handler error:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '文件处理失败' }));
+    }
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -654,6 +895,17 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
+    return;
+  }
+
+  // File upload route (must be before URL parsing to handle multipart)
+  if (req.url === '/api/upload' && req.method === 'POST') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    handleFileUpload(req, res);
     return;
   }
 
@@ -839,7 +1091,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const { sessionId, message, provider: userProvider, apiKey: userApiKey, model: userModel } = await parseRequestBody(req);
+      const { sessionId, message, fileContext, provider: userProvider, apiKey: userApiKey, model: userModel } = await parseRequestBody(req);
 
       if (!sessionId || !sessions.has(sessionId)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -848,20 +1100,56 @@ const server = http.createServer(async (req, res) => {
       }
 
       const session = sessions.get(sessionId);
+
+      // Build user message content (may include file context)
+      let userContent = message;
+      if (fileContext) {
+        userContent = `用户上传了文件《${fileContext.name}》，内容如下：
+
+---
+${fileContext.content.substring(0, 8000)}
+---
+
+用户问题：${message}`;
+      }
+
       session.messages.push({
         role: 'user',
-        content: message
+        content: userContent
       });
 
       console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
+
+      // ===== WEB SEARCH INJECTION =====
+      let searchResults = null;
+      let enrichedSystemPrompt = session.systemPrompt;
+      if (needsWebSearch(message)) {
+        console.log(`🔍 [联网搜索] 搜索: ${message.substring(0, 60)}`);
+        const searchData = await bochaSearch(message, 5);
+        if (searchData.success && searchData.results.length > 0) {
+          searchResults = searchData.results;
+          const searchContext = searchData.results.map(r =>
+            `[${r.index}] ${r.title}\n来源: ${r.url}\n摘要: ${r.snippet}`
+          ).join('\n\n');
+          enrichedSystemPrompt = session.systemPrompt + `
+
+===== 联网搜索结果 =====
+以下是对于“${message.substring(0, 50)}”的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：
+
+${searchContext}
+
+请在回答中适当引用来源，格式为《来源标题》，并在回答末尾添加参考链接列表。`;
+          console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
+        }
+      }
 
       // Use user-supplied provider if provided, otherwise fall back to server default
       const activeProvider = (userProvider && userApiKey)
         ? createProviderFromConfig(userProvider, userApiKey, userModel)
         : aiProvider;
 
-      // Call AI provider
-      const response = await activeProvider.chat(session.systemPrompt, session.messages);
+      // Call AI provider (with enriched system prompt if search was done)
+      const response = await activeProvider.chat(enrichedSystemPrompt, session.messages);
 
       session.messages.push({
         role: 'assistant',
