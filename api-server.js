@@ -241,8 +241,27 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON chat_sessions(user_code);
   CREATE INDEX IF NOT EXISTS idx_sessions_agent ON chat_sessions(agent_id);
   CREATE INDEX IF NOT EXISTS idx_messages_session ON chat_messages(session_id);
+  CREATE TABLE IF NOT EXISTS token_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_code TEXT NOT NULL,
+    user_name TEXT,
+    agent_id TEXT,
+    provider TEXT NOT NULL,
+    model TEXT,
+    api_type TEXT DEFAULT 'chat',
+    input_tokens INTEGER DEFAULT 0,
+    output_tokens INTEGER DEFAULT 0,
+    estimated_cost REAL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_token_user ON token_usage(user_code);
+  CREATE INDEX IF NOT EXISTS idx_token_date ON token_usage(created_at);
 `);
 console.log('\u2705 SQLite \u6570\u636e\u5e93\u521d\u59cb\u5316\u6210\u529f:', DB_PATH);
+
+// Schema migration: add api_type column if it doesn't exist (for existing databases)
+try { db.exec("ALTER TABLE token_usage ADD COLUMN api_type TEXT DEFAULT 'chat'"); } catch (e) { /* column already exists, ignore */ }
 
 // Prepared statements for performance
 const stmtInsertSession = db.prepare('INSERT INTO chat_sessions (id, user_code, user_name, agent_id, agent_name) VALUES (?, ?, ?, ?, ?)');
@@ -252,11 +271,119 @@ const stmtGetUserSessions = db.prepare('SELECT id, agent_id, agent_name, created
 const stmtGetSessionMessages = db.prepare('SELECT role, content, created_at FROM chat_messages WHERE session_id = ? ORDER BY id ASC');
 const stmtGetSessionById = db.prepare('SELECT * FROM chat_sessions WHERE id = ?');
 const stmtGetSessionPreview = db.prepare('SELECT content FROM chat_messages WHERE session_id = ? AND role = ? ORDER BY id ASC LIMIT 1');
+const stmtInsertTokenUsage = db.prepare('INSERT INTO token_usage (user_code, user_name, agent_id, provider, model, api_type, input_tokens, output_tokens, estimated_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+
+// Bocha search cost per call (CNY)
+const BOCHA_COST_PER_CALL = 0.008; // ¥0.008 per search call (approx)
+
+// Cost per 1M tokens (in CNY) for each provider
+const COST_PER_MILLION_TOKENS = {
+  gemini:      { input: 0.5,   output: 2.0,   model: 'gemini-2.0-flash' },
+  kimi:        { input: 12.0,  output: 12.0,  model: 'moonshot-v1-8k' },
+  deepseek:    { input: 1.0,   output: 2.0,   model: 'deepseek-chat' },
+  siliconflow: { input: 2.0,   output: 2.0,   model: 'DeepSeek-V3' },
+  anthropic:   { input: 21.0,  output: 105.0, model: 'claude-sonnet' }
+};
+
+function estimateCost(provider, inputTokens, outputTokens) {
+  const rates = COST_PER_MILLION_TOKENS[provider] || COST_PER_MILLION_TOKENS.gemini;
+  return (inputTokens * rates.input + outputTokens * rates.output) / 1000000;
+}
+
+function recordTokenUsage(userCode, userName, agentId, provider, model, inputTokens, outputTokens, apiType) {
+  try {
+    const cost = estimateCost(provider, inputTokens, outputTokens);
+    const type = apiType || 'chat';
+    stmtInsertTokenUsage.run(userCode, userName, agentId, provider, model || '', type, inputTokens || 0, outputTokens || 0, cost);
+  } catch (e) { console.error('Token usage record error:', e.message); }
+}
+
+function recordBochaUsage(userCode, userName) {
+  try {
+    stmtInsertTokenUsage.run(userCode, userName, null, 'bocha', 'web-search', 'web_search', 0, 0, BOCHA_COST_PER_CALL);
+  } catch (e) { console.error('Bocha usage record error:', e.message); }
+}
+
+function recordImageUsage(userCode, userName) {
+  try {
+    // SiliconFlow image gen: ~¥0.04 per image (FLUX model)
+    stmtInsertTokenUsage.run(userCode, userName, null, 'siliconflow', 'flux-schnell', 'image_gen', 0, 0, 0.04);
+  } catch (e) { console.error('Image usage record error:', e.message); }
+}
 const CODES_FILE = path.join(DATA_DIR, 'invite-codes.json');
 const USAGE_FILE = path.join(DATA_DIR, 'invite-usage.json');
 const USAGE_LIMITS_FILE = path.join(DATA_DIR, 'invite-usage-limits.json');
 const PROFILES_FILE = path.join(DATA_DIR, 'user-profiles.json');
+const REFERRAL_FILE = path.join(DATA_DIR, 'referral-codes.json');    // { userCode -> refCode }
+const REFERRAL_RECORDS_FILE = path.join(DATA_DIR, 'referral-records.json'); // [{ refCode, referrer, invitee, time, creditStatus }]
 const MAX_USES_PER_CODE = parseInt(process.env.MAX_USES_PER_CODE || '5');
+const REFERRAL_MAX_USES = 10;       // 推荐码最多邀请10人
+const REFERRAL_CREDIT_REFERRER = 200; // 推荐人每邀请一人获得¥200
+const REFERRAL_CREDIT_INVITEE = 50;   // 被邀请人获得¥50
+const REFERRAL_CREDIT_MAX = 2000;     // 赠金上限¥2000
+const ADMIN_WECHAT = 'xuanyi9747';   // 管理员微信号（赠金兑现联系）
+
+// ===== REFERRAL CODE FUNCTIONS =====
+function loadReferralCodes() {
+  try {
+    if (fs.existsSync(REFERRAL_FILE)) return JSON.parse(fs.readFileSync(REFERRAL_FILE, 'utf8'));
+  } catch {}
+  return {};
+}
+
+function saveReferralCodes(data) {
+  fs.writeFileSync(REFERRAL_FILE, JSON.stringify(data, null, 2));
+}
+
+function loadReferralRecords() {
+  try {
+    if (fs.existsSync(REFERRAL_RECORDS_FILE)) return JSON.parse(fs.readFileSync(REFERRAL_RECORDS_FILE, 'utf8'));
+  } catch {}
+  return [];
+}
+
+function saveReferralRecords(records) {
+  fs.writeFileSync(REFERRAL_RECORDS_FILE, JSON.stringify(records, null, 2));
+}
+
+function getOrCreateReferralCode(userCode) {
+  const refs = loadReferralCodes();
+  if (refs[userCode]) return refs[userCode];
+  // Generate a unique referral code: ref_ + 6 random chars
+  const refCode = 'ref_' + Math.random().toString(36).substr(2, 6);
+  refs[userCode] = refCode;
+  saveReferralCodes(refs);
+  // Also register this refCode as a valid invite code
+  const codes = loadCodes();
+  const userName = codes[userCode] || '推荐用户';
+  codes[refCode] = `${userName}的推荐`;
+  saveCodes(codes);
+  // Set high usage limit for referral codes
+  const limits = loadUsageLimits();
+  limits[refCode] = REFERRAL_MAX_USES;
+  saveUsageLimits(limits);
+  console.log(`🔗 为用户 ${userCode} 生成推荐码: ${refCode}`);
+  return refCode;
+}
+
+function findReferrerByRefCode(refCode) {
+  const refs = loadReferralCodes();
+  for (const [userCode, code] of Object.entries(refs)) {
+    if (code === refCode) return userCode;
+  }
+  return null;
+}
+
+function getReferralStats(userCode) {
+  const refs = loadReferralCodes();
+  const refCode = refs[userCode];
+  if (!refCode) return { refCode: null, inviteCount: 0, totalCredit: 0, records: [] };
+  const allRecords = loadReferralRecords();
+  const myRecords = allRecords.filter(r => r.referrer === userCode);
+  const inviteCount = myRecords.length;
+  const totalCredit = Math.min(inviteCount * REFERRAL_CREDIT_REFERRER, REFERRAL_CREDIT_MAX);
+  return { refCode, inviteCount, totalCredit, records: myRecords };
+}
 
 function loadProfiles() {
   try {
@@ -371,6 +498,74 @@ const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini'; // gemini, kimi, deepse
 // Load skill prompts
 const skillsDir = path.join(__dirname, 'skills');
 
+// ── Prompt 解密模块 ──────────────────────────────────────────────────────────
+const _SKILL_KEY_HEX = process.env.SKILL_KEY;
+const _SKILL_KEY = _SKILL_KEY_HEX ? Buffer.from(_SKILL_KEY_HEX, 'hex') : null;
+
+function _decryptSkill(b64) {
+  if (!_SKILL_KEY) return null;
+  try {
+    const buf = Buffer.from(b64, 'base64');
+    const iv = buf.slice(0, 12);
+    const tag = buf.slice(12, 28);
+    const ciphertext = buf.slice(28);
+    const decipher = require('crypto').createDecipheriv('aes-256-gcm', _SKILL_KEY, iv);
+    decipher.setAuthTag(tag);
+    return decipher.update(ciphertext) + decipher.final('utf8');
+  } catch (e) {
+    console.error('[decrypt] 解密失败:', e.message);
+    return null;
+  }
+}
+
+// ── 分层材料知识注入规则 ─────────────────────────────────────────────────────
+// 按 Agent 类型注入不同深度的材料知识，不修改原始 skill 文件
+const MATERIAL_RULES_FULL = `
+
+---
+## 医美材料精准分类（必须严格遵守）
+
+> 核心原则：医美材料分类必须基于成分来源和作用机制，严禁混淆不同类别。
+
+**填充类材料**
+
+| 材料 | 来源 | 代表产品 | 特点 |
+|------|------|---------|------|
+| 透明质酸（HA） | 生物发酵/动物提取 | 瑞蓝、乔雅登、润百颜 | 即时填充，可降解，可溶解 |
+| **重组胶原蛋白** | **基因重组技术合成蛋白质** | 锦波薇旖、巨子生物 | 生物相容性高，促胶原再生 |
+| PLLA（聚左旋乳酸） | **合成高分子** | 童颜针（Sculptra）、艾维岚 | 胶原刺激，延迟显效2-3月 |
+| PCL（聚己内酯） | 合成高分子 | 少女针（Ellansé） | 即时填充+长效胶原刺激 |
+| CaHA（羟基磷灰石钙） | 矿物质 | 微晶瓷（Radiesse） | 即时填充+胶原刺激 |
+
+**严禁混淆**：重组胶原蛋白属于**生物工程蛋白类**，与 PLLA、PCL 等合成高分子**完全不同类**，不可归为同一类别。
+
+**能量类**：超声炮（HIFU/SMAS层）、热玛吉（射频/真皮层）、皮秒激光（色素/表皮层）
+
+**神经毒素类**：肉毒素（保妥适/衡力/吉适）
+`;
+
+const MATERIAL_RULES_BRIEF = `
+
+---
+## 医美材料分类提示（必须遵守）
+
+重组胶原蛋白属于**生物工程蛋白类**（基因重组技术合成），与 PLLA（童颜针/聚左旋乳酸）、PCL（少女针/聚己内酯）等**合成高分子完全不同类**，严禁混淆。遇到深度材料问题，引导用户使用「医美材料学硬核导师」或「医美材料学架构师」获取专业解答。
+`;
+
+// 需要完整材料知识的 Agent（医生/学术/咨询/培训类）
+const AGENTS_NEED_FULL_MATERIAL = new Set([
+  'senior-consultant', 'sparring-partner', 'anatomy-architect',
+  'medical-liaison', 'neuro-aesthetic-architect', 'medaesthetic-hub',
+  'aesthetic-designer', 'postop-specialist'
+]);
+
+// 需要简要材料提示的 Agent（市场/销售/管理类）
+const AGENTS_NEED_BRIEF_MATERIAL = new Set([
+  'marketing-director', 'sales-director', 'area-manager', 'sfe-director',
+  'operations-director', 'gtm-strategist', 'product-strategist',
+  'new-media-director', 'creative-director', 'channel-manager'
+]);
+
 const FORMAT_RULES = `
 
 ---
@@ -408,17 +603,42 @@ const FORMAT_RULES = `
 `;
 
 function loadSkillPrompt(skillName) {
-  const skillPath = path.join(skillsDir, `${skillName}.md`);
-  try {
-    const content = fs.readFileSync(skillPath, 'utf8');
-    // Remove YAML frontmatter
-    const withoutFrontmatter = content.replace(/^---\n[\s\S]*?\n---\n/, '');
-    // Append global format rules
-    return withoutFrontmatter + FORMAT_RULES;
-  } catch (error) {
-    console.error(`Error loading skill ${skillName}:`, error.message);
-    return null;
+  let promptContent = null;
+
+  // ① 优先从加密环境变量读取（方案 D）
+  const envKey = `SKILL_${skillName.replace(/-/g, '_').toUpperCase()}`;
+  const encryptedValue = process.env[envKey];
+  if (encryptedValue && _SKILL_KEY) {
+    const decrypted = _decryptSkill(encryptedValue);
+    if (decrypted) {
+      promptContent = decrypted;
+      console.log(`[skill] 加密环境变量加载: ${skillName}`);
+    }
   }
+
+  // ② 回退：从文件读取（开发模式 / 未配置加密时）
+  if (!promptContent) {
+    const skillPath = path.join(skillsDir, `${skillName}.md`);
+    try {
+      const content = fs.readFileSync(skillPath, 'utf8');
+      // Remove YAML frontmatter
+      promptContent = content.replace(/^---\n[\s\S]*?\n---\n/, '');
+      console.log(`[skill] 文件加载（未加密）: ${skillName}`);
+    } catch (error) {
+      console.error(`Error loading skill ${skillName}:`, error.message);
+      return null;
+    }
+  }
+
+  // ③ 注入分层材料知识（不修改原始 skill 文件）
+  if (AGENTS_NEED_FULL_MATERIAL.has(skillName)) {
+    promptContent += MATERIAL_RULES_FULL;
+  } else if (AGENTS_NEED_BRIEF_MATERIAL.has(skillName)) {
+    promptContent += MATERIAL_RULES_BRIEF;
+  }
+
+  // ④ 附加全局格式规范
+  return promptContent + FORMAT_RULES;
 }
 
 // Agent ID to skill name mapping
@@ -1035,6 +1255,45 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Get current user info (used by chat.html loadUserInfo)
+  if (url.pathname === '/api/auth/me' && req.method === 'GET') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    const code = getUserCode(req);
+    const codes = loadCodes();
+    const profiles = loadProfiles();
+    const profile = profiles[code] || {};
+    const name = code === ADMIN_CODE ? '管理员' : (codes[code] || '用户');
+    const usage = getCodeUsage(code);
+    const maxUses = code === ADMIN_CODE ? 9999 : getCodeMaxUses(code);
+    // Generate or get referral code
+    const refCode = code === ADMIN_CODE ? null : getOrCreateReferralCode(code);
+    const referralStats = code === ADMIN_CODE ? { inviteCount: 0, totalCredit: 0 } : getReferralStats(code);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      code,
+      name,
+      phone: profile.phone || null,
+      plan: 'free',
+      usage,
+      maxUses,
+      isAdmin: code === ADMIN_CODE,
+      referralCode: refCode,
+      referralStats: {
+        inviteCount: referralStats.inviteCount,
+        totalCredit: referralStats.totalCredit,
+        maxCredit: REFERRAL_CREDIT_MAX,
+        creditPerInvite: REFERRAL_CREDIT_REFERRER,
+        inviteeCredit: REFERRAL_CREDIT_INVITEE
+      },
+      adminWechat: ADMIN_WECHAT
+    }));
+    return;
+  }
+
   // Login
   if (url.pathname === '/api/auth/login' && req.method === 'POST') {
     try {
@@ -1069,12 +1328,37 @@ const server = http.createServer(async (req, res) => {
         profiles[code].phone = phone;
         profiles[code].loginAt = new Date().toISOString();
         saveProfiles(profiles);
-        console.log(`📱 邀请码 ${code} 绑定手机号: ${phone}`);
+        console.log(`📱 邮请码 ${code} 绑定手机号: ${phone}`);
+      }
+
+      // Record referral relationship if this is a referral code (ref_xxx)
+      let referrerName = null;
+      if (code.startsWith('ref_') && code !== ADMIN_CODE) {
+        const referrerCode = findReferrerByRefCode(code);
+        if (referrerCode) {
+          const records = loadReferralRecords();
+          // Check if this phone already recorded (avoid duplicate)
+          const alreadyRecorded = records.some(r => r.inviteePhone === phone && r.refCode === code);
+          if (!alreadyRecorded && phone) {
+            records.push({
+              refCode: code,
+              referrer: referrerCode,
+              referrerName: codes[referrerCode] || '未知',
+              invitee: phone || '未知',
+              inviteePhone: phone || '',
+              time: new Date().toISOString(),
+              creditStatus: 'pending' // pending / paid
+            });
+            saveReferralRecords(records);
+            referrerName = codes[referrerCode] || null;
+            console.log(`🎁 推荐关系记录: ${referrerCode} 推荐了 ${phone}`);
+          }
+        }
       }
 
       res.setHeader('Set-Cookie', `${COOKIE_NAME}=${encodeURIComponent(code)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, isAdmin: code === ADMIN_CODE }));
+      res.end(JSON.stringify({ ok: true, isAdmin: code === ADMIN_CODE, referrerName }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
@@ -1114,6 +1398,10 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const result = await generateImage(promptKey, customPrompt);
+      // Record image generation cost
+      const imgUserCode = getUserCode(req);
+      const imgUserName = getUserName(req);
+      recordImageUsage(imgUserCode, imgUserName);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result));
     } catch (error) {
@@ -1299,6 +1587,17 @@ const server = http.createServer(async (req, res) => {
       fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logEntry + '\n', () => {});
       console.log(`\ud83e\udd16 [${session.agentName}] Stream complete: ${fullMessage.substring(0, 50)}...`);
 
+      // Record token usage (estimate for streaming: ~4 chars per token)
+      const estInputTokens = Math.ceil((message.length + (session.systemPrompt || '').length) / 4);
+      const estOutputTokens = Math.ceil(fullMessage.length / 4);
+      const providerName = userProvider || AI_PROVIDER;
+      const chatApiType = webSearch ? 'chat_with_search' : 'chat';
+      recordTokenUsage(session.userCode, session.userName, session.agentId, providerName, '', estInputTokens, estOutputTokens, chatApiType);
+      // Record Bocha search cost separately if web search was used
+      if (webSearch && searchResults) {
+        recordBochaUsage(session.userCode, session.userName);
+      }
+
       // Send done event
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       res.end();
@@ -1405,6 +1704,21 @@ ${searchContext}
       }
 
       console.log(`🤖 [${session.agentName}] Response: ${response.message.substring(0, 50)}...`);
+
+      // Record token usage
+      const provName = userProvider || AI_PROVIDER;
+      const msgApiType = webSearch ? 'chat_with_search' : 'chat';
+      if (response.usage) {
+        recordTokenUsage(session.userCode, session.userName, session.agentId, provName, userModel || '', response.usage.input_tokens || 0, response.usage.output_tokens || 0, msgApiType);
+      } else {
+        const estIn = Math.ceil((message.length + (session.systemPrompt || '').length) / 4);
+        const estOut = Math.ceil((response.message || '').length / 4);
+        recordTokenUsage(session.userCode, session.userName, session.agentId, provName, userModel || '', estIn, estOut, msgApiType);
+      }
+      // Record Bocha search cost separately if web search was used
+      if (webSearch && searchResults) {
+        recordBochaUsage(session.userCode, session.userName);
+      }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
@@ -1688,6 +2002,186 @@ ${searchContext}
       });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ agentCounts, userCounts, feedbackCounts, totalTurns: lines.length, recentConvs }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: token usage stats
+  if (url.pathname === '/api/admin/token-stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      // Total stats
+      const totalStats = db.prepare(`
+        SELECT 
+          COUNT(*) as totalRequests,
+          SUM(input_tokens) as totalInputTokens,
+          SUM(output_tokens) as totalOutputTokens,
+          SUM(estimated_cost) as totalCost
+        FROM token_usage
+      `).get();
+
+      // Today stats
+      const todayStats = db.prepare(`
+        SELECT 
+          COUNT(*) as totalRequests,
+          SUM(input_tokens) as totalInputTokens,
+          SUM(output_tokens) as totalOutputTokens,
+          SUM(estimated_cost) as totalCost
+        FROM token_usage WHERE created_at >= date('now')
+      `).get();
+
+      // Last 7 days stats
+      const weekStats = db.prepare(`
+        SELECT 
+          COUNT(*) as totalRequests,
+          SUM(input_tokens) as totalInputTokens,
+          SUM(output_tokens) as totalOutputTokens,
+          SUM(estimated_cost) as totalCost
+        FROM token_usage WHERE created_at >= date('now', '-7 days')
+      `).get();
+
+      // Per-user stats (top 20)
+      const userStats = db.prepare(`
+        SELECT 
+          user_code, user_name,
+          COUNT(*) as requests,
+          SUM(input_tokens) as inputTokens,
+          SUM(output_tokens) as outputTokens,
+          SUM(estimated_cost) as cost
+        FROM token_usage
+        GROUP BY user_code
+        ORDER BY cost DESC
+        LIMIT 20
+      `).all();
+
+      // Per-provider stats
+      const providerStats = db.prepare(`
+        SELECT 
+          provider,
+          COUNT(*) as requests,
+          SUM(input_tokens) as inputTokens,
+          SUM(output_tokens) as outputTokens,
+          SUM(estimated_cost) as cost
+        FROM token_usage
+        GROUP BY provider
+        ORDER BY cost DESC
+      `).all();
+
+      // Daily trend (last 14 days)
+      const dailyTrend = db.prepare(`
+        SELECT 
+          date(created_at) as day,
+          COUNT(*) as requests,
+          SUM(estimated_cost) as cost
+        FROM token_usage
+        WHERE created_at >= date('now', '-14 days')
+        GROUP BY date(created_at)
+        ORDER BY day ASC
+      `).all();
+
+      // Per api_type stats (breakdown by function type)
+      const apiTypeStats = db.prepare(`
+        SELECT 
+          COALESCE(api_type, 'chat') as api_type,
+          provider,
+          model,
+          COUNT(*) as requests,
+          SUM(input_tokens) as inputTokens,
+          SUM(output_tokens) as outputTokens,
+          SUM(estimated_cost) as cost
+        FROM token_usage
+        GROUP BY COALESCE(api_type, 'chat'), provider
+        ORDER BY cost DESC
+      `).all();
+
+      // Per api_type stats today
+      const apiTypeStatsToday = db.prepare(`
+        SELECT 
+          COALESCE(api_type, 'chat') as api_type,
+          COUNT(*) as requests,
+          SUM(estimated_cost) as cost
+        FROM token_usage
+        WHERE created_at >= date('now')
+        GROUP BY COALESCE(api_type, 'chat')
+        ORDER BY cost DESC
+      `).all();
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ totalStats, todayStats, weekStats, userStats, providerStats, dailyTrend, apiTypeStats, apiTypeStatsToday }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: referral stats
+  if (url.pathname === '/api/admin/referral-stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const records = loadReferralRecords();
+      const refs = loadReferralCodes();
+      const codes = loadCodes();
+      // Build per-referrer summary
+      const referrerMap = {};
+      records.forEach(r => {
+        if (!referrerMap[r.referrer]) {
+          referrerMap[r.referrer] = { name: codes[r.referrer] || r.referrer, inviteCount: 0, totalCredit: 0, pendingCredit: 0, paidCredit: 0, records: [] };
+        }
+        referrerMap[r.referrer].inviteCount++;
+        const credit = REFERRAL_CREDIT_REFERRER;
+        referrerMap[r.referrer].totalCredit += credit;
+        if (r.creditStatus === 'paid') referrerMap[r.referrer].paidCredit += credit;
+        else referrerMap[r.referrer].pendingCredit += credit;
+        referrerMap[r.referrer].records.push(r);
+      });
+      const summary = Object.entries(referrerMap).map(([code, data]) => ({ code, ...data }));
+      summary.sort((a, b) => b.inviteCount - a.inviteCount);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        totalReferrals: records.length,
+        totalPendingCredit: records.filter(r => r.creditStatus === 'pending').length * REFERRAL_CREDIT_REFERRER,
+        totalPaidCredit: records.filter(r => r.creditStatus === 'paid').length * REFERRAL_CREDIT_REFERRER,
+        referrers: summary,
+        records
+      }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: mark referral credit as paid
+  if (url.pathname === '/api/admin/referral-pay' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const { referrer, index } = await parseRequestBody(req);
+      const records = loadReferralRecords();
+      // Mark specific record or all records for a referrer
+      if (typeof index === 'number') {
+        if (records[index]) records[index].creditStatus = 'paid';
+      } else if (referrer) {
+        records.forEach(r => { if (r.referrer === referrer) r.creditStatus = 'paid'; });
+      }
+      saveReferralRecords(records);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));

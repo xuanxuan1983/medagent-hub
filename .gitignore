@@ -13,3 +13,4 @@ wechat_cert/
 *.db-wal
 *.db-shm
 user-profiles.json
+skills_encrypted.env
