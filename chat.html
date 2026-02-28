@@ -1735,14 +1735,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   // Finalize the streaming bubble with search sources and feedback
   function finalizeStreamBubble(bubble, row, container, fullText, searchResults) {
-    // Re-parse with suggested questions
+    // Re-parse with suggested questions (only from clearly marked final section)
     let mainContent = fullText;
     let suggestedQuestions = [];
-    const parts = fullText.split(/\n---+\n/);
-    if (parts.length >= 2) {
-      mainContent = parts[0].trim();
-      const qBlock = parts.slice(1).join('\n---\n');
-      suggestedQuestions = qBlock.split('\n').map(l => l.replace(/^[-*]\s*/, '').trim()).filter(l => l.length > 4);
+    const lastSepIdx = fullText.lastIndexOf('\n---\n');
+    if (lastSepIdx > 0) {
+      const afterSep = fullText.substring(lastSepIdx + 5).trim();
+      const lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const allQuestionLike = lines.length > 0 && lines.length <= 5 && lines.every(l => /^[-*\d]/.test(l) && l.length < 80 && !l.includes('|'));
+      if (allQuestionLike) {
+        mainContent = fullText.substring(0, lastSepIdx).trim();
+        suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4);
+      }
     }
     if (typeof marked !== 'undefined') {
       bubble.innerHTML = marked.parse(mainContent);
@@ -1829,17 +1833,22 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
 
-    // Parse suggested questions from assistant replies (separated by ---)
+    // Parse suggested questions: only extract from a clearly marked section at the very end
+    // Pattern: last block after a line that contains only "---" AND is followed by question-like lines (starting with - or number)
     let mainContent = content;
     let suggestedQuestions = [];
     if (role === 'assistant') {
-      const parts = content.split(/\n---+\n/);
-      if (parts.length >= 2) {
-        mainContent = parts[0].trim();
-        const qBlock = parts.slice(1).join('\n---\n');
-        suggestedQuestions = qBlock.split('\n')
-          .map(l => l.replace(/^[-*]\s*/, '').trim())
-          .filter(l => l.length > 4);
+      // Only match if the LAST section after --- contains short question-like items
+      const lastSepIdx = content.lastIndexOf('\n---\n');
+      if (lastSepIdx > 0) {
+        const afterSep = content.substring(lastSepIdx + 5).trim();
+        const lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        // Only treat as suggested questions if ALL lines look like questions (start with - or number, and are short)
+        const allQuestionLike = lines.length > 0 && lines.length <= 5 && lines.every(l => /^[-*\d]/.test(l) && l.length < 80 && !l.includes('|'));
+        if (allQuestionLike) {
+          mainContent = content.substring(0, lastSepIdx).trim();
+          suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4);
+        }
       }
     }
 
