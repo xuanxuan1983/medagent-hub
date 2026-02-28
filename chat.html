@@ -1611,13 +1611,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const msg = input.value.trim();
     if ((!msg && !pendingFile) || !sessionId) return;
     const displayMsg = msg || ('分析文件《' + (pendingFile ? pendingFile.name : '') + '》');
-    // Pass image URL for preview in chat bubble
     const filePreviewUrl = (pendingFile && pendingFile.isImage) ? pendingFile.objectUrl : null;
     addMessage('user', displayMsg, null, { isImage: filePreviewUrl, fileName: pendingFile ? pendingFile.name : null });
     input.value = '';
     input.style.height = 'auto';
 
-    // Show search indicator if needed
     const searching = willSearch(msg);
     if (searching) showSearchIndicator();
     showTyping();
@@ -1626,7 +1624,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.getElementById('sendBtn').disabled = true;
     document.getElementById('uploadBtn').disabled = true;
 
-    // Capture and clear pending file
     const fileCtx = pendingFile ? { name: pendingFile.name, content: pendingFile.content } : null;
     if (pendingFile) removePendingFile();
 
@@ -1635,28 +1632,160 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const body = { sessionId, message: msg || '请分析这个文件', ...settings };
       if (fileCtx) body.fileContext = fileCtx;
 
-      const res = await fetch('/api/chat/message', {
+      // Try streaming endpoint first
+      const res = await fetch('/api/chat/message-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+
       if (!res.ok) throw new Error('send failed');
-      const data = await res.json();
-      hideTyping();
-      hideSearchIndicator();
-      addMessage('assistant', data.message, data.searchResults);
-      // Refresh sidebar history after each exchange
-      setTimeout(() => loadSidebarHistory(), 500);
+
+      const contentType = res.headers.get('content-type') || '';
+
+      if (contentType.includes('text/event-stream')) {
+        // === STREAMING MODE ===
+        hideTyping();
+        hideSearchIndicator();
+
+        // Create empty assistant bubble for streaming
+        const { bubble, row, container } = createStreamBubble();
+        let fullText = '';
+        let searchResults = null;
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let sseBuffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          sseBuffer += decoder.decode(value, { stream: true });
+          const sseLines = sseBuffer.split('\n');
+          sseBuffer = sseLines.pop() || '';
+
+          for (const line of sseLines) {
+            if (!line.startsWith('data: ')) continue;
+            const dataStr = line.slice(6).trim();
+            if (!dataStr) continue;
+            try {
+              const evt = JSON.parse(dataStr);
+              if (evt.type === 'search') {
+                searchResults = evt.results;
+              } else if (evt.type === 'delta') {
+                fullText += evt.content;
+                // Re-render markdown on each delta
+                if (typeof marked !== 'undefined') {
+                  bubble.innerHTML = marked.parse(fullText);
+                } else {
+                  bubble.textContent = fullText;
+                }
+                container.scrollTop = container.scrollHeight;
+              } else if (evt.type === 'done') {
+                // Finalize: add search sources + feedback buttons
+                finalizeStreamBubble(bubble, row, container, fullText, searchResults);
+              } else if (evt.type === 'error') {
+                bubble.textContent = '抱歉，遇到了问题：' + (evt.message || '请稍后再试');
+              }
+            } catch (e) { /* skip */ }
+          }
+        }
+        setTimeout(() => loadSidebarHistory(), 500);
+      } else {
+        // === NON-STREAMING FALLBACK ===
+        const data = await res.json();
+        hideTyping();
+        hideSearchIndicator();
+        addMessage('assistant', data.message, data.searchResults);
+        setTimeout(() => loadSidebarHistory(), 500);
+      }
     } catch(e) {
       hideTyping();
+      hideSearchIndicator();
       addMessage('assistant', '抱歉，遇到了问题，请稍后再试。');
     } finally {
       input.disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('uploadBtn').disabled = false;
-      hideSearchIndicator();
       input.focus();
     }
+  }
+
+  // Create an empty assistant bubble for streaming content into
+  function createStreamBubble() {
+    const container = document.getElementById('chatMessages');
+    const welcome = document.getElementById('welcomeWrap');
+    if (welcome) welcome.remove();
+    let agent = null;
+    AGENT_GROUPS.forEach(g => { const a = g.agents.find(x => x.id === currentAgentId); if (a) agent = a; });
+    const row = document.createElement('div');
+    row.className = 'msg-row assistant';
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = agent ? agent.icon : '🤖';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = '<span style="opacity:0.5">█</span>'; // blinking cursor
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
+    return { bubble, row, container };
+  }
+
+  // Finalize the streaming bubble with search sources and feedback
+  function finalizeStreamBubble(bubble, row, container, fullText, searchResults) {
+    // Re-parse with suggested questions
+    let mainContent = fullText;
+    let suggestedQuestions = [];
+    const parts = fullText.split(/\n---+\n/);
+    if (parts.length >= 2) {
+      mainContent = parts[0].trim();
+      const qBlock = parts.slice(1).join('\n---\n');
+      suggestedQuestions = qBlock.split('\n').map(l => l.replace(/^[-*]\s*/, '').trim()).filter(l => l.length > 4);
+    }
+    if (typeof marked !== 'undefined') {
+      bubble.innerHTML = marked.parse(mainContent);
+    } else {
+      bubble.textContent = mainContent;
+    }
+
+    // Search sources
+    if (searchResults && searchResults.length > 0) {
+      const srcDiv = document.createElement('div');
+      srcDiv.className = 'search-source-list';
+      const links = searchResults.slice(0, 5).map((s, i) =>
+        '<a href="' + s.url + '" target="_blank" rel="noopener" title="' + (s.title || s.url) + '">[' + (i+1) + '] ' + (s.title || s.url) + '</a>'
+      ).join('');
+      srcDiv.innerHTML = '<span class="src-label">🔍 联网参考：</span>' + links;
+      bubble.appendChild(srcDiv);
+    }
+
+    // Feedback buttons
+    const feedback = document.createElement('div');
+    feedback.className = 'msg-feedback';
+    const idx = messageIndex++;
+    feedback.innerHTML = '<button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">\ud83d\udc4d</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">\ud83d\udc4e</button>';
+    bubble.appendChild(feedback);
+
+    // Suggested questions
+    if (suggestedQuestions.length > 0) {
+      const chips = document.createElement('div');
+      chips.className = 'suggested-chips';
+      suggestedQuestions.slice(0, 3).forEach(q => {
+        const btn = document.createElement('button');
+        btn.className = 'suggested-chip';
+        btn.textContent = q;
+        btn.onclick = () => {
+          document.getElementById('messageInput').value = q;
+          chips.remove();
+          sendMessage();
+        };
+        chips.appendChild(btn);
+      });
+      container.appendChild(chips);
+    }
+    container.scrollTop = container.scrollHeight;
   }
 
   function chatKeydown(e) {

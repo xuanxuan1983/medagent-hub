@@ -659,7 +659,7 @@ class SiliconFlowProvider {
         model: this.model,
         messages: formattedMessages,
         temperature: 0.7,
-        max_tokens: 800
+        max_tokens: 2048
       })
     });
 
@@ -676,6 +676,36 @@ class SiliconFlowProvider {
         output_tokens: data.usage.completion_tokens
       }
     };
+  }
+
+  // Streaming version: returns a readable stream from the API
+  async chatStream(systemPrompt, messages) {
+    const formattedMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages
+    ];
+
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: formattedMessages,
+        temperature: 0.7,
+        max_tokens: 2048,
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.text();
+      throw new Error(`SiliconFlow stream error: ${errData}`);
+    }
+
+    return response.body;
   }
 }
 
@@ -799,7 +829,7 @@ class OpenAICompatibleProvider {
         model: this.model,
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
         temperature: 0.7,
-        max_tokens: 800
+        max_tokens: 2048
       })
     });
     const data = await response.json();
@@ -808,6 +838,25 @@ class OpenAICompatibleProvider {
       message: data.choices[0].message.content,
       usage: { input_tokens: data.usage.prompt_tokens, output_tokens: data.usage.completion_tokens }
     };
+  }
+
+  async chatStream(systemPrompt, messages) {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.apiKey}` },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        temperature: 0.7,
+        max_tokens: 2048,
+        stream: true
+      })
+    });
+    if (!response.ok) {
+      const errData = await response.text();
+      throw new Error(`Stream error: ${errData}`);
+    }
+    return response.body;
   }
 }
 
@@ -1134,7 +1183,141 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Send message
+  // Send message (streaming SSE)
+  if (url.pathname === '/api/chat/message-stream' && req.method === 'POST') {
+    try {
+      if (!isAuthenticated(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+
+      const { sessionId, message, fileContext, provider: userProvider, apiKey: userApiKey, model: userModel } = await parseRequestBody(req);
+
+      if (!sessionId || !sessions.has(sessionId)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid session ID' }));
+        return;
+      }
+
+      const session = sessions.get(sessionId);
+
+      // Build user message content
+      let userContent = message;
+      if (fileContext) {
+        userContent = `\u7528\u6237\u4e0a\u4f20\u4e86\u6587\u4ef6\u300a${fileContext.name}\u300b\uff0c\u5185\u5bb9\u5982\u4e0b\uff1a\n\n---\n${fileContext.content.substring(0, 8000)}\n---\n\n\u7528\u6237\u95ee\u9898\uff1a${message}`;
+      }
+
+      session.messages.push({ role: 'user', content: userContent });
+      console.log(`\ud83d\udcac [${session.agentName}] User: ${message.substring(0, 50)}...`);
+
+      // Web search injection
+      let searchResults = null;
+      let enrichedSystemPrompt = session.systemPrompt;
+      if (needsWebSearch(message)) {
+        const searchQuery = extractSearchQuery(message);
+        console.log(`\ud83d\udd0d [\u8054\u7f51\u641c\u7d22] \u641c\u7d22: ${searchQuery.substring(0, 60)}`);
+        const searchData = await bochaSearch(searchQuery, 5);
+        if (searchData.success && searchData.results.length > 0) {
+          searchResults = searchData.results;
+          const searchContext = searchData.results.map(r =>
+            `[${r.index}] ${r.title}\n\u6765\u6e90: ${r.url}\n\u6458\u8981: ${r.snippet}`
+          ).join('\n\n');
+          enrichedSystemPrompt = session.systemPrompt + `\n\n===== \u8054\u7f51\u641c\u7d22\u7ed3\u679c =====\n\u4ee5\u4e0b\u662f\u5bf9\u4e8e\u201c${message.substring(0, 50)}\u201d\u7684\u6700\u65b0\u641c\u7d22\u7ed3\u679c\uff0c\u8bf7\u5c06\u8fd9\u4e9b\u4fe1\u606f\u7ed3\u5408\u4f60\u7684\u4e13\u4e1a\u77e5\u8bc6\u8fdb\u884c\u56de\u7b54\uff0c\u5e76\u5728\u56de\u7b54\u672b\u5c3e\u6807\u6ce8\u4fe1\u606f\u6765\u6e90\uff1a\n\n${searchContext}\n\n\u8bf7\u5728\u56de\u7b54\u4e2d\u9002\u5f53\u5f15\u7528\u6765\u6e90\uff0c\u5e76\u5728\u56de\u7b54\u672b\u5c3e\u6dfb\u52a0\u53c2\u8003\u94fe\u63a5\u5217\u8868\u3002`;
+          console.log(`\u2705 \u641c\u7d22\u5b8c\u6210\uff0c\u83b7\u5f97 ${searchData.results.length} \u6761\u7ed3\u679c`);
+        }
+      }
+
+      // Determine provider
+      const activeProvider = (userProvider && userApiKey)
+        ? createProviderFromConfig(userProvider, userApiKey, userModel)
+        : aiProvider;
+
+      // Check if provider supports streaming
+      if (typeof activeProvider.chatStream !== 'function') {
+        // Fallback to non-streaming
+        const response = await activeProvider.chat(enrichedSystemPrompt, session.messages);
+        session.messages.push({ role: 'assistant', content: response.message });
+        try {
+          stmtInsertMessage.run(sessionId, 'user', message);
+          stmtInsertMessage.run(sessionId, 'assistant', response.message);
+          stmtUpdateSessionTime.run(sessionId);
+        } catch (dbErr) { console.error('DB error:', dbErr.message); }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: response.message, usage: response.usage, searchResults }));
+        return;
+      }
+
+      // SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+      });
+
+      // Send search results first if available
+      if (searchResults) {
+        res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
+      }
+
+      // Stream from AI provider
+      const stream = await activeProvider.chatStream(enrichedSystemPrompt, session.messages);
+      let fullMessage = '';
+      let buffer = '';
+
+      for await (const chunk of stream) {
+        buffer += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const dataStr = line.slice(6).trim();
+          if (dataStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(dataStr);
+            const delta = parsed.choices?.[0]?.delta?.content || '';
+            if (delta) {
+              fullMessage += delta;
+              res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+            }
+          } catch (e) { /* skip parse errors */ }
+        }
+      }
+
+      // Save to session and DB
+      session.messages.push({ role: 'assistant', content: fullMessage });
+      try {
+        stmtInsertMessage.run(sessionId, 'user', message);
+        stmtInsertMessage.run(sessionId, 'assistant', fullMessage);
+        stmtUpdateSessionTime.run(sessionId);
+      } catch (dbErr) { console.error('DB error:', dbErr.message); }
+
+      // Log
+      const logEntry = JSON.stringify({ ts: new Date().toISOString(), agent: session.agentId, agent_name: session.agentName, user_name: session.userName, user: message, assistant: fullMessage, feedback: null });
+      fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logEntry + '\n', () => {});
+      console.log(`\ud83e\udd16 [${session.agentName}] Stream complete: ${fullMessage.substring(0, 50)}...`);
+
+      // Send done event
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error('Stream error:', error);
+      try {
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Stream failed', details: error.message }));
+        } else {
+          res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+          res.end();
+        }
+      } catch (e) { /* connection may be closed */ }
+    }
+    return;
+  }
+
+  // Send message (non-streaming fallback)
   if (url.pathname === '/api/chat/message' && req.method === 'POST') {
     try {
       if (!isAuthenticated(req)) {
