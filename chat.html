@@ -547,12 +547,20 @@
       background: #5a7fa8; animation: bounce 0.8s infinite;
     }
     .search-source-list {
-      margin-top: 0.5rem; padding-top: 0.5rem;
+      margin-top: 0.6rem; padding: 0.5rem 0.6rem;
       border-top: 1px solid var(--border-light);
-      font-size: 0.75rem; color: var(--text-3);
+      background: rgba(90,127,168,0.06); border-radius: 6px;
+      font-size: 0.73rem; color: var(--text-3);
+      display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center;
     }
-    .search-source-list a { color: #5a7fa8; text-decoration: none; }
-    .search-source-list a:hover { text-decoration: underline; }
+    .search-source-list .src-label { color: var(--text-3); white-space: nowrap; }
+    .search-source-list a {
+      color: #5a7fa8; text-decoration: none;
+      background: rgba(90,127,168,0.1); border-radius: 4px;
+      padding: 0.1rem 0.4rem; white-space: nowrap;
+      max-width: 200px; overflow: hidden; text-overflow: ellipsis; display: inline-block;
+    }
+    .search-source-list a:hover { text-decoration: underline; background: rgba(90,127,168,0.2); }
 
     /* ===== SETTINGS MODAL ===== */
     .modal-overlay {
@@ -1450,8 +1458,16 @@
   }
 
   // ===== SEARCH KEYWORDS (client-side detection for UI hint) =====
-  const SEARCH_KEYWORDS = ['最新', '最近', '现在', '目前', '今年', '今天', '近期', '查一下', '搜一下', '搜索', '查找', '查询', '最新研究', '文献', '研究', '论文', '2024', '2025', '2026'];
-  function willSearch(msg) { return SEARCH_KEYWORDS.some(k => msg.includes(k)); }
+  // 与后端 needsWebSearch 保持一致
+  const SEARCH_INTENT_KW = ['查一下', '搜一下', '搜索', '查找', '查询', '帮我查', '帮我搜',
+    '有没有最新', '最新进展', '最新研究', '最新指南', '最新数据', '最新消息',
+    '最新动态', '最新报告', '最新文献', '最新临床',
+    '文献综述', '临床试验', '循证', 'RCT', 'meta分析',
+    '2025年', '2026年', '今年最新'];
+  const SEARCH_TIME_KW = ['今天', '今日', '昨天', '本周', '本月', '近期新闻'];
+  function willSearch(msg) {
+    return SEARCH_INTENT_KW.some(k => msg.includes(k)) || SEARCH_TIME_KW.some(k => msg.includes(k));
+  }
 
   async function sendMessage() {
     const input = document.getElementById('messageInput');
@@ -1586,9 +1602,10 @@
       if (searchResults && searchResults.length > 0) {
         const srcDiv = document.createElement('div');
         srcDiv.className = 'search-source-list';
-        srcDiv.innerHTML = '🔍 参考来源：' + searchResults.slice(0, 3).map((s, i) =>
-          `<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${s.title || s.url}</a>`
-        ).join(' &nbsp; ');
+        const links = searchResults.slice(0, 5).map((s, i) =>
+          `<a href="${s.url}" target="_blank" rel="noopener" title="${s.title || s.url}">[${i+1}] ${s.title || s.url}</a>`
+        ).join('');
+        srcDiv.innerHTML = `<span class="src-label">🔍 联网参考：</span>${links}`;
         bubble.appendChild(srcDiv);
       }
       const feedback = document.createElement('div');

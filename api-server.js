@@ -186,14 +186,31 @@ async function bochaSearch(query, count = 5) {
 
 // Determine if a message needs web search
 function needsWebSearch(message) {
-  const searchKeywords = [
-    '最新', '最近', '现在', '目前', '今年', '今天', '近期',
-    '查一下', '搜一下', '搜索', '查找', '查询',
-    '有没有最新', '最新研究', '最新指南', '最新指南',
-    '文献', '研究', '论文', '临床试验', '将来趋势',
-    '2024', '2025', '2026'
+  // 明确搜索意图关键词（用户主动要求查询）
+  const intentKeywords = [
+    '查一下', '搜一下', '搜索', '查找', '查询', '帮我查', '帮我搜',
+    '有没有最新', '最新进展', '最新研究', '最新指南', '最新数据', '最新消息',
+    '最新动态', '最新报告', '最新文献', '最新临床',
+    '文献综述', '临床试验', '循证', 'RCT', 'meta分析',
+    '2025年', '2026年', '今年最新'
   ];
-  return searchKeywords.some(kw => message.includes(kw));
+  // 时效性关键词（需要实时信息）
+  const timeKeywords = ['今天', '今日', '昨天', '本周', '本月', '近期新闻'];
+  return intentKeywords.some(kw => message.includes(kw)) ||
+         timeKeywords.some(kw => message.includes(kw));
+}
+
+// Extract a clean search query from user message
+function extractSearchQuery(message) {
+  // Remove common filler phrases to get cleaner search terms
+  let query = message
+    .replace(/帮我(查一下|搜一下|搜索|查找|查询)?/g, '')
+    .replace(/查一下|搜一下|帮忙查|帮忙搜/g, '')
+    .replace(/有没有|有什么|是什么|怎么样/g, '')
+    .replace(/[？?！!。，,]/g, ' ')
+    .trim();
+  // Limit to 80 chars for search API
+  return query.length > 80 ? query.substring(0, 80) : query;
 }
 
 // ===== SQLite Database =====
@@ -1122,8 +1139,9 @@ ${fileContext.content.substring(0, 8000)}
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
       if (needsWebSearch(message)) {
-        console.log(`🔍 [联网搜索] 搜索: ${message.substring(0, 60)}`);
-        const searchData = await bochaSearch(message, 5);
+        const searchQuery = extractSearchQuery(message);
+        console.log(`🔍 [联网搜索] 搜索: ${searchQuery.substring(0, 60)}`);
+        const searchData = await bochaSearch(searchQuery, 5);
         if (searchData.success && searchData.results.length > 0) {
           searchResults = searchData.results;
           const searchContext = searchData.results.map(r =>
@@ -1181,7 +1199,8 @@ ${searchContext}
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         message: response.message,
-        usage: response.usage
+        usage: response.usage,
+        searchResults: searchResults || null
       }));
     } catch (error) {
       console.error('Error sending message:', error);
