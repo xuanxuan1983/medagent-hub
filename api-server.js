@@ -1536,8 +1536,8 @@ const server = http.createServer(async (req, res) => {
   const staticDir = path.join(__dirname);
   let filePath = path.join(staticDir, url.pathname === '/' ? 'index.html' : url.pathname);
   const ext = path.extname(filePath);
-  const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
-  const contentType = mimeTypes[ext] || 'text/plain';
+  const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.mp4': 'video/mp4', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
+  const contentType = mimeTypes[ext] || 'application/octet-stream';
   const protectedPages = ['chat.html'];
   const adminPages = ['admin.html', 'corpus.html'];
   const requestedFile = path.basename(filePath);
@@ -1553,9 +1553,27 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   try {
-    const content = fs.readFileSync(filePath);
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content);
+    const stat = fs.statSync(filePath);
+    // Support Range requests for video streaming
+    if (ext === '.mp4' && req.headers.range) {
+      const range = req.headers.range;
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
+      const chunkSize = end - start + 1;
+      const fileStream = fs.createReadStream(filePath, { start, end });
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': 'video/mp4'
+      });
+      fileStream.pipe(res);
+    } else {
+      const content = fs.readFileSync(filePath);
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content);
+    }
   } catch {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
