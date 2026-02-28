@@ -14,7 +14,19 @@ const DATA_DIR = process.env.DATA_DIR || __dirname;
 const CODES_FILE = path.join(DATA_DIR, 'invite-codes.json');
 const USAGE_FILE = path.join(DATA_DIR, 'invite-usage.json');
 const USAGE_LIMITS_FILE = path.join(DATA_DIR, 'invite-usage-limits.json');
+const PROFILES_FILE = path.join(DATA_DIR, 'user-profiles.json');
 const MAX_USES_PER_CODE = parseInt(process.env.MAX_USES_PER_CODE || '5');
+
+function loadProfiles() {
+  try {
+    if (fs.existsSync(PROFILES_FILE)) return JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
+  } catch {}
+  return {};
+}
+
+function saveProfiles(profiles) {
+  fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2));
+}
 
 function loadCodes() {
   try {
@@ -626,7 +638,7 @@ const server = http.createServer(async (req, res) => {
   // Login
   if (url.pathname === '/api/auth/login' && req.method === 'POST') {
     try {
-      const { code } = await parseRequestBody(req);
+      const { code, phone } = await parseRequestBody(req);
       const codes = loadCodes();
       
       // Check if code exists
@@ -650,6 +662,16 @@ const server = http.createServer(async (req, res) => {
         console.log(`📝 邀请码 ${code} 使用次数: ${currentUsage}/${maxUses}`);
       }
       
+      // Save phone number if provided
+      if (phone && code !== ADMIN_CODE) {
+        const profiles = loadProfiles();
+        if (!profiles[code]) profiles[code] = {};
+        profiles[code].phone = phone;
+        profiles[code].loginAt = new Date().toISOString();
+        saveProfiles(profiles);
+        console.log(`📱 邀请码 ${code} 绑定手机号: ${phone}`);
+      }
+
       res.setHeader('Set-Cookie', `${COOKIE_NAME}=${encodeURIComponent(code)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true, isAdmin: code === ADMIN_CODE }));
