@@ -530,6 +530,31 @@
     .info-row-label { color: var(--text-3); }
     .info-row-val { font-weight: 600; color: var(--text); }
 
+        .guided-questions {
+      padding: 0 1.75rem 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.625rem;
+      justify-content: flex-start;
+      flex-shrink: 0;
+    }
+    .guided-question-btn {
+      padding: 0.5rem 0.875rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.6);
+      font-size: 0.8rem;
+      color: var(--text-2);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.12s;
+    }
+    .guided-question-btn:hover {
+      background: white;
+      border-color: var(--coral);
+      color: var(--coral);
+    }
+
     /* ===== MOBILE ===== */
     @media (max-width: 640px) {
       .sidebar { display: none; }
@@ -670,7 +695,8 @@
         <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
       </div>
     </div>
-    <div class="chat-input-area">
+          <div class="guided-questions" id="guidedQuestions"></div>
+      <div class="chat-input-area">
       <div class="chat-input-box">
         <textarea class="chat-textarea" id="messageInput" placeholder="输入您的问题... (Enter 发送，Shift+Enter 换行)" rows="1" disabled oninput="autoResize(this)" onkeydown="chatKeydown(event)"></textarea>
         <div class="chat-input-footer">
@@ -870,6 +896,37 @@
     document.getElementById('desktopGreeting').textContent = g + '！';
   }
 
+    async function loadGuidedQuestions(agentId) {
+    const container = document.getElementById('guidedQuestions');
+    container.innerHTML = ''; // Clear previous questions
+    if (!agentId || agentId === 'meiling') return;
+
+    try {
+      const response = await fetch(`/skills/${agentId}.md`);
+      if (!response.ok) return;
+      const mdContent = await response.text();
+      
+      const questionsMatch = mdContent.match(/\*\*引导性问题示例\*\*\s*\n((?:- .*\n?)+)/);
+      if (questionsMatch && questionsMatch[1]) {
+        const questions = questionsMatch[1].trim().split('\n').map(q => q.substring(2).trim());
+        questions.forEach(q => {
+          const btn = document.createElement('button');
+          btn.className = 'guided-question-btn';
+          btn.textContent = q;
+          btn.onclick = () => {
+            const chatInput = document.getElementById('messageInput');
+            chatInput.value = q;
+            chatInput.focus();
+            sendMessage();
+          };
+          container.appendChild(btn);
+        });
+      }
+    } catch (e) {
+      console.error('Error loading guided questions:', e);
+    }
+  }
+
   function buildSidebar() {
     const container = document.getElementById('sidebarScroll');
     container.innerHTML = '';
@@ -942,7 +999,8 @@
   }
 
   // ===== CHAT =====
-  async function startChat(agentId, initialMsg) {
+    async function startChat(agentId, initialMsg) {
+    loadGuidedQuestions(agentId);
     currentAgentId = agentId;
     switchView('chat');
 
