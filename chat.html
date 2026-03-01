@@ -1632,8 +1632,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   async function desktopSend() {
     const q = document.getElementById('desktopInput').value.trim();
     if (!q) return;
-    // Default agent based on user role
-    await startChat(getDefaultAgentByRole(), q);
+    // Desktop home always uses doudou as the entry agent
+    await startChat('doudou', q);
   }
 
   function desktopKeydown(e) {
