@@ -35,6 +35,7 @@ const TRIAL_DAYS = 7;                  // 免费试用天数
 const FREE_DAILY_MSG_LIMIT = 9999;     // 试用期每日消息上限（不限）
 const PRO_DAILY_MSG_LIMIT = 1000;      // Pro 版每日消息上限
 const PRO_MONTHLY_IMG_LIMIT = 50;      // Pro 版每月图片生成上限
+const FREE_DAILY_IMG_LIMIT = 10;       // 免费用户每日图片生成上限
 const PRO_MONTHLY_SEARCH_LIMIT = 300;  // Pro 版每月联网搜索上限
 
 // 试用期开放的 Agent 白名单（仅这3个可用）
@@ -525,14 +526,21 @@ function getUserPlanStatus(code) {
   const dailyLimit = isPro ? PRO_DAILY_MSG_LIMIT : FREE_DAILY_MSG_LIMIT;
   const dailyRemaining = Math.max(0, dailyLimit - dailyCount);
 
-  // 每月图片计数
+  // 每月图片计数（Pro）
   const thisMonth = now.toISOString().slice(0, 7);
   const imgCount = (p.img_month === thisMonth) ? (p.img_month_count || 0) : 0;
   const imgRemaining = isPro ? Math.max(0, PRO_MONTHLY_IMG_LIMIT - imgCount) : 0;
 
+  // 每日图片计数（免费用户）
+  const imgDailyCount = (p.img_daily_date === today) ? (p.img_daily_count || 0) : 0;
+  const freeImgRemaining = Math.max(0, FREE_DAILY_IMG_LIMIT - imgDailyCount);
+
   // 每月搜索计数
   const searchCount = (p.search_month === thisMonth) ? (p.search_month_count || 0) : 0;
   const searchRemaining = isPro ? Math.max(0, PRO_MONTHLY_SEARCH_LIMIT - searchCount) : 0;
+
+  // 生图权限：Pro 用每月限额；免费用每日 10 张
+  const canImage = isPro ? imgRemaining > 0 : (!isTrialExpired && freeImgRemaining > 0);
 
   return {
     plan: isPro ? 'pro' : (isTrialExpired ? 'expired' : 'free'),
@@ -543,12 +551,14 @@ function getUserPlanStatus(code) {
     planExpires: p.plan_expires || null,
     canChat: !isTrialExpired && dailyRemaining > 0,
     canSearch: isPro && searchRemaining > 0,
-    canImage: isPro && imgRemaining > 0,
+    canImage,
     dailyCount,
     dailyLimit,
     dailyRemaining,
     imgCount,
     imgRemaining,
+    imgDailyCount,
+    freeImgRemaining,
     searchCount,
     searchRemaining
   };
@@ -582,6 +592,21 @@ function incrementMonthlyImg(code) {
   p.img_month_count = (p.img_month_count || 0) + 1;
   saveProfiles(profiles);
   return p.img_month_count;
+}
+
+// 记录当日图片生成数（免费用户）
+function incrementDailyImg(code) {
+  const profiles = loadProfiles();
+  if (!profiles[code]) profiles[code] = {};
+  const p = profiles[code];
+  const today = new Date().toISOString().slice(0, 10);
+  if (p.img_daily_date !== today) {
+    p.img_daily_date = today;
+    p.img_daily_count = 0;
+  }
+  p.img_daily_count = (p.img_daily_count || 0) + 1;
+  saveProfiles(profiles);
+  return p.img_daily_count;
 }
 
 // 记录当月搜索数
@@ -1676,12 +1701,18 @@ const server = http.createServer(async (req, res) => {
       const imgUserCode = getUserCode(req);
       const imgPlanStatus = getUserPlanStatus(imgUserCode);
       if (!imgPlanStatus.canImage) {
+        let imgErrMsg;
+        if (imgPlanStatus.isPro) {
+          imgErrMsg = `本月图片生成配额已用尽（${PRO_MONTHLY_IMG_LIMIT}张/月）`;
+        } else if (imgPlanStatus.isTrialExpired) {
+          imgErrMsg = '试用期已到期，请订阅以继续使用';
+        } else {
+          imgErrMsg = `今日图片生成次数已达上限（${FREE_DAILY_IMG_LIMIT}张/天），明天再来！`;
+        }
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           error: 'image_not_allowed',
-          message: imgPlanStatus.isPro
-            ? `本月图片生成配额已用尽（${PRO_MONTHLY_IMG_LIMIT}张/月）`
-            : '图片生成为 Pro 会员专属功能，请升级以使用',
+          message: imgErrMsg,
           planStatus: imgPlanStatus
         }));
         return;
@@ -1693,6 +1724,8 @@ const server = http.createServer(async (req, res) => {
       const imgUserName = getUserName(req);
       recordImageUsage(imgUserCode, imgUserName);
       incrementMonthlyImg(imgUserCode);
+      // 免费用户同时记录每日计数
+      if (!imgPlanStatus.isPro) incrementDailyImg(imgUserCode);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result));
     } catch (error) {
