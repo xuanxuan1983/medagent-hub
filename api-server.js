@@ -2842,7 +2842,7 @@ const server = http.createServer(async (req, res) => {
       const agentCounts = {};
       const userCounts = {};
       const feedbackCounts = { up: 0, down: 0 };
-      const recentConvs = [];
+      const allConvs = [];
       lines.forEach(line => {
         try {
           const entry = JSON.parse(line);
@@ -2851,10 +2851,12 @@ const server = http.createServer(async (req, res) => {
           } else {
             agentCounts[entry.agent] = (agentCounts[entry.agent] || 0) + 1;
             userCounts[entry.user_name || '未知'] = (userCounts[entry.user_name || '未知'] || 0) + 1;
-            if (recentConvs.length < 50) recentConvs.push(entry);
+            allConvs.push(entry);
           }
         } catch {}
       });
+      // 取最后50条，倒序排列（最新的在最前）
+      const recentConvs = allConvs.slice(-50).reverse();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ agentCounts, userCounts, feedbackCounts, totalTurns: lines.length, recentConvs }));
     } catch (error) {
