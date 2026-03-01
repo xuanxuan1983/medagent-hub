@@ -1233,6 +1233,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         套餐
       </div>
+      <div class="modal-tab" id="tab-feedback" onclick="switchTab('feedback')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        反馈有礼
+      </div>
     </div>
     <div class="modal-content">
       <!-- Account -->
@@ -1321,9 +1325,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <!-- Pricing -->
       <div class="modal-pane" id="pane-pricing">
         <!-- Notion 风格套餐升级 -->
-        <div style="margin-bottom:1.5rem">
+        <!-- 内测期间提示条 -->
+        <div style="background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem">
+          <div style="font-size:0.825rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">🎉 内测期间权益</div>
+          <div style="font-size:0.775rem;color:var(--text-3);line-height:1.6">内测期间所有用户默认开放全部 21 个医美专属 Agent。提交反馈可额外解锁内容创作全套工具。</div>
+        </div>
+
+        <div style="margin-bottom:1.25rem">
           <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:0.375rem">升级套餐</div>
-          <div style="font-size:0.825rem;color:var(--text-3);line-height:1.6">解锁全部 21 个医美专属 Agent，无限对话。</div>
+          <div style="font-size:0.825rem;color:var(--text-3);line-height:1.6">内测期后正式上线，升级可解锁全部 Agent + 内容创作工具。</div>
         </div>
 
         <!-- 免费版 -->
@@ -1331,9 +1341,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           <div style="display:flex;align-items:center;justify-content:space-between">
             <div>
               <div style="font-size:0.875rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">免费版</div>
-              <div style="font-size:0.775rem;color:var(--text-3)">每日有限次数 · 3 个核心 Agent</div>
+              <div style="font-size:0.775rem;color:var(--text-3)">内测期间：21 个医美Agent 全部开放 · 反馈可解锁内容创作</div>
             </div>
-            <div style="font-size:1rem;font-weight:700;color:var(--text)">￥0</div>
+            <div style="font-size:1rem;font-weight:700;color:var(--text)">¥0</div>
           </div>
         </div>
 
@@ -1345,7 +1355,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 <span style="font-size:0.875rem;font-weight:600;color:var(--text)">专业版 Pro</span>
                 <span style="font-size:0.65rem;background:var(--text);color:white;padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">厂商首选</span>
               </div>
-              <div style="font-size:0.775rem;color:var(--text-3)">12 个上游 Agent · 无限对话 · 50 张图/月</div>
+              <div style="font-size:0.775rem;color:var(--text-3)">全部 21 个医美Agent + 内容创作工具 · 50 张图/月</div>
             </div>
           </div>
           <div style="display:flex;gap:0.5rem">
@@ -1362,7 +1372,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 <span style="font-size:0.875rem;font-weight:600;color:var(--text)">全能版 Pro+</span>
                 <span style="font-size:0.65rem;background:var(--text);color:white;padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">推荐</span>
               </div>
-              <div style="font-size:0.775rem;color:var(--text-3)">全部 21 个 Agent · 100 张图/月 · 联网搜索</div>
+              <div style="font-size:0.775rem;color:var(--text-3)">全部 Agent + 内容创作工具 · 100 张图/月 · 联网搜索</div>
             </div>
           </div>
           <div style="display:flex;gap:0.5rem">
@@ -1386,6 +1396,47 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             <img src="/dmy-qrcode.jpg" alt="DMY小程序码" style="width:72px;height:72px;border-radius:6px;object-fit:cover;flex-shrink:0">
             <div style="font-size:0.775rem;color:var(--text-3);line-height:1.6">扫码进入 DMY 小程序，了解全案服务详情</div>
           </div>
+        </div>
+      </div>
+
+      <!-- 内测反馈有礼 -->
+      <div class="modal-pane" id="pane-feedback">
+        <!-- 已解锁状态提示 -->
+        <div id="feedbackUnlockedBanner" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem">
+          <div style="font-size:0.875rem;font-weight:600;color:#15803d;margin-bottom:0.2rem">✅ 内容创作类 Agent 已解锁</div>
+          <div style="font-size:0.775rem;color:#166534">感谢你的宝贵反馈！你已获得内容创作全套工具的使用权限。</div>
+        </div>
+
+        <div id="feedbackFormArea">
+          <div style="margin-bottom:1.25rem">
+            <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.375rem">内测反馈有礼</div>
+            <div style="font-size:0.8rem;color:var(--text-3);line-height:1.6">内测期间，提交一条有价值的建议即可解锁全部内容创作类 Agent，包括小红书、PPT、公众号、漫画、社交媒体等 7 个内容工具。</div>
+          </div>
+
+          <div style="margin-bottom:0.875rem">
+            <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">反馈类型</label>
+            <select id="feedbackCategory" style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none">
+              <option value="体验建议">体验建议（界面、交互、功能）</option>
+              <option value="Agent内容">Agent 内容建议（回答质量、专业度）</option>
+              <option value="新功能">新功能需求（希望增加的功能）</option>
+              <option value="bug反馈">Bug 反馈（遇到的问题）</option>
+              <option value="行业洞察">行业洞察（医美行业观察）</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:0.875rem">
+            <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">建议内容 <span style="color:var(--text-3);font-weight:400">(至少 20 字)</span></label>
+            <textarea id="feedbackContent" rows="5" placeholder="例如：建议在销售作战总监中增加客户异议处理模块，并支持根据客户类型自动切换话术风格…" style="width:100%;padding:0.625rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none;resize:vertical;font-family:inherit;line-height:1.5;box-sizing:border-box"></textarea>
+          </div>
+
+          <div style="margin-bottom:1.25rem">
+            <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">联系方式 <span style="color:var(--text-3);font-weight:400">(可选，微信/手机)</span></label>
+            <input id="feedbackContact" type="text" placeholder="方便我们进一步沟通——可不填" style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none;box-sizing:border-box">
+          </div>
+
+          <button id="btnSubmitFeedback" onclick="submitBetaFeedback()" style="width:100%;padding:0.625rem;background:var(--text);color:white;border:none;border-radius:6px;font-size:0.875rem;font-weight:600;cursor:pointer">提交反馈，解锁内容创作工具 🎁</button>
+          <div id="feedbackSubmitMsg" style="display:none;margin-top:0.75rem;font-size:0.8rem;text-align:center"></div>
         </div>
       </div>
     </div>
@@ -1528,18 +1579,27 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   let currentUserPlan = '免费版';
   let currentIsPro = false;
   let currentIsProPlus = false;
-  // 试用期开放的 Agent 白名单
-  const TRIAL_AGENTS = ['senior-consultant', 'sparring-robot', 'materials-mentor'];
-  // 专业版 Pro 可用的 Agent（12个上游 + 试用期3个）
-  const PRO_AGENTS = new Set([
+  // 内测期间免费开放的21个医美专属Agent
+  const TRIAL_AGENTS = new Set([
     'gtm-strategy','product-expert','academic-liaison','marketing-director',
     'sales-director','operations-director','training-director','area-manager',
-    'channel-manager','finance-bp','hrbp','procurement-manager',
-    'senior-consultant','sparring-robot','materials-mentor'
+    'channel-manager',
+    'aesthetic-design','senior-consultant','sparring-robot','post-op-guardian',
+    'trend-setter','anatomy-architect','materials-mentor','material-architect','visual-translator',
+    'new-media-director','kv-design-director','finance-bp'
   ]);
+  // 内容创作类Agent（需要Pro或反馈解锁）
+  const CONTENT_AGENTS = new Set([
+    'xhs-content-creator','ppt-creator','wechat-content-creator',
+    'comic-creator','article-illustrator','cover-image-creator','social-media-creator',
+    'hrbp','procurement-manager'
+  ]);
+  // 全部可用Agent（Pro+）
+  const PRO_AGENTS = new Set([...TRIAL_AGENTS, ...CONTENT_AGENTS]);
   // 仅管理员可见的 Agent（非管理员完全不显示）
   const ADMIN_ONLY_AGENTS = new Set(['meta-prompt-architect', 'prompt-engineer-pro', 'first-principles-analyst']);
   let currentIsAdmin = false;
+  let currentBetaUnlock = false; // 内测反馈解锁状态
 
   function init() {
     buildStore();
@@ -1572,12 +1632,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       else if (data.plan === 'pro') currentUserPlan = '专业版 Pro';
       else if (data.plan === 'admin') currentUserPlan = '管理员';
       else currentUserPlan = '免费版';
-      currentIsPro = data.isPro || data.plan === 'admin';
-      currentIsProPlus = data.isProPlus || data.plan === 'admin';
+      currentIsPro = data.isPro || data.planStatus?.isPro || data.plan === 'admin';
+      currentIsProPlus = data.isProPlus || data.planStatus?.isProPlus || data.plan === 'admin';
       currentIsAdmin = data.plan === 'admin';
+      currentBetaUnlock = data.betaUnlock === true;
       // 管理员显示隐藏 Agent 标签
       const btnHidden = document.getElementById('btnFilterHidden');
       if (btnHidden) btnHidden.style.display = currentIsAdmin ? '' : 'none';
+      // 更新反馈标签状态
+      updateFeedbackTabState();
       buildStore(); // 重新渲染 Agent 列表，使锁定状态生效
 
       // Update sidebar user info
@@ -1792,22 +1855,31 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         } else {
           if (agent.hidden) return; // 全部分类不显示隐藏的
         }
-        // 判断锁定状态
-        const isLockedPro = !currentIsPro && !TRIAL_AGENTS.includes(agent.id);
-        const isLockedProPlus = currentIsPro && !currentIsProPlus && !PRO_AGENTS.has(agent.id);
-        const isLocked = isLockedPro || isLockedProPlus;
-        const lockLabel = isLockedProPlus ? 'Pro+' : 'Pro';
-        const lockHint = isLockedProPlus ? 'showUpgradeProPlusHint' : 'showUpgradeHint';
+        // 判断锁定状态（内测期间权益体系）
+        const isMedAgent = TRIAL_AGENTS.has(agent.id);
+        const isContentAgent = CONTENT_AGENTS.has(agent.id);
+        let isLocked = false;
+        let lockLabel = '';
+        let lockHint = '';
+        if (isMedAgent) {
+          // 21个医美Agent：内测期间免费开放
+          isLocked = false;
+        } else if (isContentAgent) {
+          // 内容创作类Agent：需要Pro或反馈解锁
+          isLocked = !currentIsPro && !currentBetaUnlock;
+          lockLabel = '反馈解锁';
+          lockHint = 'showFeedbackHint';
+        }
         const card = document.createElement('div');
         card.className = 'store-card' + (isLocked ? ' store-card-locked' : '');
         card.innerHTML = `
           <span class="store-card-icon">${agent.icon}</span>
-          <div class="store-card-name">${agent.name}${isLocked ? ` <span class="pro-badge">${lockLabel}</span>` : ''}</div>
+          <div class="store-card-name">${agent.name}${isLocked ? ` <span class="pro-badge" style="background:#f59e0b;color:white">🎁 反馈解锁</span>` : ''}</div>
           <div class="store-card-desc">${agent.desc}</div>
           <span class="store-card-tag">${agent.category}</span>
           ${isLocked
-            ? `<button class="store-card-use store-card-locked-btn" onclick="${lockHint}()">🔒 ${lockLabel} 专属</button>`
-            : `<button class="store-card-use" onclick="startChat('${agent.id}')">使用</button>`
+            ? `<button class="store-card-use store-card-locked-btn" onclick="showFeedbackHint()">🎁 反馈解锁</button>`
+            : `<button class="store-card-use" onclick="startChat('${agent.id}')">\u4f7f\u7528</button>`
           }`;
         grid.appendChild(card);
       });
@@ -1819,6 +1891,70 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
   function showUpgradeProPlusHint() {
     openSettings('pricing');
+  }
+  function showFeedbackHint() {
+    openSettings('feedback');
+  }
+
+  // 更新反馈标签状态
+  function updateFeedbackTabState() {
+    const banner = document.getElementById('feedbackUnlockedBanner');
+    const formArea = document.getElementById('feedbackFormArea');
+    const tab = document.getElementById('tab-feedback');
+    if (currentBetaUnlock || currentIsPro) {
+      if (banner) banner.style.display = 'block';
+      if (formArea) formArea.style.display = 'none';
+      if (tab) tab.style.color = '#15803d';
+    } else {
+      if (banner) banner.style.display = 'none';
+      if (formArea) formArea.style.display = 'block';
+    }
+  }
+
+  // 提交内测反馈
+  async function submitBetaFeedback() {
+    const content = document.getElementById('feedbackContent').value.trim();
+    const contact = document.getElementById('feedbackContact').value.trim();
+    const category = document.getElementById('feedbackCategory').value;
+    const btn = document.getElementById('btnSubmitFeedback');
+    const msgEl = document.getElementById('feedbackSubmitMsg');
+
+    if (!content || content.length < 20) {
+      msgEl.style.display = 'block';
+      msgEl.style.color = '#dc2626';
+      msgEl.textContent = '请至少输入 20 个字的建议内容';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '提交中...';
+    msgEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/beta-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, contact, category })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        currentBetaUnlock = true;
+        updateFeedbackTabState();
+        buildStore(); // 重新渲染，解锁内容创作类 Agent
+        msgEl.style.display = 'block';
+        msgEl.style.color = '#15803d';
+        msgEl.textContent = data.message || '解锁成功！';
+        btn.textContent = '已提交 ✓';
+      } else {
+        throw new Error(data.error || '提交失败');
+      }
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = '提交反馈，解锁内容创作工具 🎁';
+      msgEl.style.display = 'block';
+      msgEl.style.color = '#dc2626';
+      msgEl.textContent = e.message;
+    }
   }
 
   function filterStore(btn, cat) {

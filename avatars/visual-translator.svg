@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 背景：黑色圆角矩形 -->
+  <rect width="48" height="48" rx="12" fill="#0f0f0f"/>
+  <!-- 图标：白色极简图形 -->
+  
+            <circle cx="24" cy="24" r="14" fill="none" stroke="white" stroke-width="2.5"/>
+            <circle cx="18" cy="18" r="2.5" fill="white"/>
+            <circle cx="30" cy="18" r="2.5" fill="white"/>
+            <circle cx="18" cy="30" r="2.5" fill="white"/>
+            <circle cx="30" cy="30" r="2.5" fill="white"/>
+            <circle cx="24" cy="16" r="2.5" fill="white"/>
+            <circle cx="32" cy="24" r="2.5" fill="white"/>
+            <path d="M28 32 Q32 36 36 32 Q38 28 34 26" fill="white"/>
+        
+</svg>

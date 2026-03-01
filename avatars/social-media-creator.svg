@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 背景：黑色圆角矩形 -->
+  <rect width="48" height="48" rx="12" fill="#0f0f0f"/>
+  <!-- 图标：白色极简图形 -->
+  
+            <circle cx="24" cy="24" r="16" fill="none" stroke="white" stroke-width="2.5"/>
+            <ellipse cx="24" cy="24" rx="8" ry="16" fill="none" stroke="white" stroke-width="2"/>
+            <line x1="8" y1="24" x2="40" y2="24" stroke="white" stroke-width="2"/>
+            <path d="M10 16 Q24 20 38 16" fill="none" stroke="white" stroke-width="1.5"/>
+            <path d="M10 32 Q24 28 38 32" fill="none" stroke="white" stroke-width="1.5"/>
+        
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 背景：黑色圆角矩形 -->
+  <rect width="48" height="48" rx="12" fill="#0f0f0f"/>
+  <!-- 图标：白色极简图形 -->
+  
+            <path d="M8 12 Q8 8 12 8 L36 8 Q40 8 40 12 L40 28 Q40 32 36 32 L28 32 L24 38 L20 32 L12 32 Q8 32 8 28 Z" fill="none" stroke="white" stroke-width="2.5" stroke-linejoin="round"/>
+            <line x1="15" y1="18" x2="33" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="15" y1="24" x2="27" y2="24" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        
+</svg>

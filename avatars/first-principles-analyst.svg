@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 背景：黑色圆角矩形 -->
+  <rect width="48" height="48" rx="12" fill="#0f0f0f"/>
+  <!-- 图标：白色极简图形 -->
+  
+            <circle cx="24" cy="24" r="4" fill="white"/>
+            <ellipse cx="24" cy="24" rx="16" ry="6" fill="none" stroke="white" stroke-width="2"/>
+            <ellipse cx="24" cy="24" rx="16" ry="6" fill="none" stroke="white" stroke-width="2" transform="rotate(60 24 24)"/>
+            <ellipse cx="24" cy="24" rx="16" ry="6" fill="none" stroke="white" stroke-width="2" transform="rotate(120 24 24)"/>
+        
+</svg>

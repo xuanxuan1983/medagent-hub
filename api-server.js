@@ -129,15 +129,14 @@ const FREE_DAILY_IMG_LIMIT = 10;       // 免费用户每日图片生成上限
 const PRO_MONTHLY_SEARCH_LIMIT = 300;  // 专业版 Pro 每月联网搜索上限
 const PRO_PLUS_MONTHLY_SEARCH_LIMIT = 600; // 全能版 Pro+ 每月联网搜索上限
 
-// 试用期开放的 Agent 白名单（仅这3个可用）
-const TRIAL_AGENTS = [
-  'senior-consultant',   // 金牌医美咨询师
-  'sparring-robot',      // 医美实战陪练机器人
-  'materials-mentor',    // 医美材料学硬核导师
-];
+// ===== 内测期间权益配置 =====
+// 内测期间：免费用户可使用全部21个医美专属Agent（上游厂商 + 下游机构 + 其他医美类）
+// 内容创作类Agent（7个）需要 Pro+ 才能解锁
+// 提交有价值反馈后，可额外解锁内容创作类Agent（beta_unlock 字段）
 
-// 专业版 Pro 可用的 Agent（12个上游 Agent + 试用期3个）
-const PRO_AGENTS = new Set([
+// 内测期间免费开放的21个医美专属Agent白名单
+const TRIAL_AGENTS = [
+  // 上游厂商（9个）
   'gtm-strategy',        // GTM战略大师
   'product-expert',      // 产品材料专家
   'academic-liaison',    // 学术推广专家
@@ -147,13 +146,48 @@ const PRO_AGENTS = new Set([
   'training-director',   // 培训赋能总监
   'area-manager',        // 大区经理
   'channel-manager',     // 商务经理
+  // 下游机构（9个）
+  'aesthetic-design',    // 高定美学设计总监
+  'senior-consultant',   // 金牌医美咨询师
+  'sparring-robot',      // 医美实战陪练机器人
+  'post-op-guardian',    // 医美术后私域管家
+  'trend-setter',        // 医美爆款种草官
+  'anatomy-architect',   // 医美解剖决策建筑师
+  'materials-mentor',    // 医美材料学硬核导师
+  'material-architect',  // 医美材料学架构师
+  'visual-translator',   // 医美视觉通译官
+  // 其他医美类（3个）
+  'new-media-director',  // 医美合规内容专家
+  'kv-design-director',  // 视觉KV设计总监
   'finance-bp',          // 财务BP
-  'hrbp',                // 战略HRBP
-  'procurement-manager', // 采购经理
-  // 试用期 Agent 同样包含
-  'senior-consultant',
-  'sparring-robot',
-  'materials-mentor',
+];
+
+// 内容创作类Agent（需要Pro+或反馈激励解锁）
+const CONTENT_AGENTS = new Set([
+  'xhs-content-creator',    // 小红书图文创作顾问
+  'ppt-creator',            // PPT创作顾问
+  'wechat-content-creator', // 微信公众号运营顾问
+  'comic-creator',          // 知识漫画创作顾问
+  'article-illustrator',    // 文章配图顾问
+  'cover-image-creator',    // 封面图创作顾问
+  'social-media-creator',   // 社交媒体运营顾问
+  'hrbp',                   // 战略HRBP
+  'procurement-manager',    // 采购经理
+]);
+
+// 专业版 Pro 可用的 Agent（全部21个医美Agent + 内容创作）
+const PRO_AGENTS = new Set([
+  ...TRIAL_AGENTS,
+  // 内容创作类（Pro 也可用）
+  'xhs-content-creator',
+  'ppt-creator',
+  'wechat-content-creator',
+  'comic-creator',
+  'article-illustrator',
+  'cover-image-creator',
+  'social-media-creator',
+  'hrbp',
+  'procurement-manager',
 ]);
 
 // 仅管理员可用的 Agent（任何非管理员访问均返回403，且不在前端列表中显示）
@@ -1817,6 +1851,9 @@ const server = http.createServer(async (req, res) => {
       phone: profile.phone || null,
       plan: planStatus.plan,
       planStatus,
+      isPro: planStatus.isPro,
+      isProPlus: planStatus.isProPlus,
+      betaUnlock: profile.beta_unlock === true, // 反馈激励解锁内容创作类Agent
       usage,
       maxUses,
       isAdmin: code === ADMIN_CODE,
@@ -2086,27 +2123,21 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      // 检查 Agent 访问权限（分级控制）
+      // 检查 Agent 访问权限（内测期间分级控制）
       if (session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
-        if (!planStatus.isPro) {
-          // 免费用户：只能用 TRIAL_AGENTS
-          res.writeHead(403, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            error: 'agent_locked',
-            message: '该 Agent 为 Pro 会员专属，升级专业版或全能版后可解锁',
-            planStatus
-          }));
-          return;
-        }
-        if (!planStatus.isProPlus && !PRO_AGENTS.has(session.agentId)) {
-          // 专业版用户：只能用 PRO_AGENTS，不能用 Pro+ 专属 Agent
-          res.writeHead(403, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            error: 'agent_locked_pro_plus',
-            message: '该 Agent 为全能版 Pro+ 专属，升级全能版后可解锁全部 21 个 Agent',
-            planStatus
-          }));
-          return;
+        // 内容创作类Agent：需要Pro+或已解锁beta权益
+        if (CONTENT_AGENTS.has(session.agentId)) {
+          const userProfile = loadProfiles()[userCode] || {};
+          const hasBetaUnlock = userProfile.beta_unlock === true;
+          if (!planStatus.isPro && !hasBetaUnlock) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: 'agent_locked_content',
+              message: '该 Agent 为内容创作类专属，升级 Pro 或提交有价值反馈后可解锁',
+              planStatus
+            }));
+            return;
+          }
         }
       }
 
@@ -2352,17 +2383,16 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'trial_expired', message: '免费试用期已结束，请升级为 Pro 会员继续使用', planStatus: planStatus2 }));
         return;
       }
-      // 检查 Agent 访问权限（分级控制）
+      // 检查 Agent 访问权限（内测期间分级控制）
       if (session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
-        if (!planStatus2.isPro) {
-          res.writeHead(403, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'agent_locked', message: '该 Agent 为 Pro 会员专属，升级专业版或全能版后可解锁', planStatus: planStatus2 }));
-          return;
-        }
-        if (!planStatus2.isProPlus && !PRO_AGENTS.has(session.agentId)) {
-          res.writeHead(403, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'agent_locked_pro_plus', message: '该 Agent 为全能版 Pro+ 专属，升级全能版后可解锁全部 21 个 Agent', planStatus: planStatus2 }));
-          return;
+        if (CONTENT_AGENTS.has(session.agentId)) {
+          const userProfile2 = loadProfiles()[userCode2] || {};
+          const hasBetaUnlock2 = userProfile2.beta_unlock === true;
+          if (!planStatus2.isPro && !hasBetaUnlock2) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'agent_locked_content', message: '该 Agent 为内容创作类专属，升级 Pro 或提交有价值反馈后可解锁', planStatus: planStatus2 }));
+            return;
+          }
         }
       }
       if (planStatus2.dailyRemaining <= 0) {
@@ -2745,6 +2775,81 @@ const server = http.createServer(async (req, res) => {
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
+  }
+
+  // ===== 内测反馈表单提交（提交有价值建议自动解锁内容创作类Agent）=====
+  if (url.pathname === '/api/beta-feedback' && req.method === 'POST') {
+    try {
+      if (!isAuthenticated(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+      const userCode = getUserCode(req);
+      const { content, contact, category } = await parseRequestBody(req);
+      if (!content || content.trim().length < 20) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '反馈内容太短，请至少填写 20 个字' }));
+        return;
+      }
+      // 保存反馈记录
+      const feedbackRecord = JSON.stringify({
+        ts: new Date().toISOString(),
+        type: 'beta_feedback',
+        user_code: userCode,
+        user_name: getUserName(req),
+        category: category || '通用',
+        content: content.trim(),
+        contact: contact || '',
+        status: 'pending' // pending | approved | rejected
+      });
+      fs.appendFileSync(path.join(DATA_DIR, 'beta-feedback.jsonl'), feedbackRecord + '\n');
+      // 自动解锁内容创作类Agent（提交即解锁，管理员后续可审核撤销）
+      const profiles = loadProfiles();
+      if (!profiles[userCode]) profiles[userCode] = {};
+      if (!profiles[userCode].beta_unlock) {
+        profiles[userCode].beta_unlock = true;
+        profiles[userCode].beta_unlock_at = new Date().toISOString();
+        saveProfiles(profiles);
+        console.log(`🎁 [内测反馈] ${userCode} 提交反馈，已解锁内容创作类Agent`);
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        unlocked: true,
+        message: '感谢你的反馈！内容创作类 Agent 已为你解锁，尽情探索吧 🎉'
+      }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: 查看内测反馈列表
+  if (url.pathname === '/api/admin/beta-feedback' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const feedbackFile = path.join(DATA_DIR, 'beta-feedback.jsonl');
+      if (!fs.existsSync(feedbackFile)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ feedbacks: [], total: 0 }));
+        return;
+      }
+      const lines = fs.readFileSync(feedbackFile, 'utf8').split('\n').filter(Boolean);
+      const feedbacks = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      feedbacks.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ feedbacks, total: feedbacks.length }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
     }
     return;
   }

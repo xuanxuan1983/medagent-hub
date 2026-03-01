@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 背景：黑色圆角矩形 -->
+  <rect width="48" height="48" rx="12" fill="#0f0f0f"/>
+  <!-- 图标：白色极简图形 -->
+  
+            <rect x="8" y="8" width="18" height="14" rx="3" fill="none" stroke="white" stroke-width="2.5"/>
+            <rect x="22" y="8" width="18" height="14" rx="3" fill="none" stroke="white" stroke-width="2.5"/>
+            <rect x="8" y="26" width="18" height="14" rx="3" fill="none" stroke="white" stroke-width="2.5"/>
+            <rect x="22" y="26" width="18" height="14" rx="3" fill="none" stroke="white" stroke-width="2.5"/>
+        
+</svg>

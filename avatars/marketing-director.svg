@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 背景：黑色圆角矩形 -->
+  <rect width="48" height="48" rx="12" fill="#0f0f0f"/>
+  <!-- 图标：白色极简图形 -->
+  
+            <path d="M24 8 L26 20 L38 18 L28 24 L38 30 L26 28 L24 40 L22 28 L10 30 L20 24 L10 18 L22 20 Z" fill="white"/>
+        
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 背景：黑色圆角矩形 -->
+  <rect width="48" height="48" rx="12" fill="#0f0f0f"/>
+  <!-- 图标：白色极简图形 -->
+  
+            <circle cx="24" cy="28" r="12" fill="none" stroke="white" stroke-width="2.5"/>
+            <path d="M18 16 L14 8 L24 12 L34 8 L30 16" fill="none" stroke="white" stroke-width="2.5" stroke-linejoin="round"/>
+            <text x="24" y="33" text-anchor="middle" font-size="11" font-weight="bold" fill="white" font-family="sans-serif">1</text>
+        
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 背景：黑色圆角矩形 -->
+  <rect width="48" height="48" rx="12" fill="#0f0f0f"/>
+  <!-- 图标：白色极简图形 -->
+  
+            <rect x="8" y="32" width="32" height="6" rx="1" fill="white"/>
+            <path d="M12 32 L12 22 Q12 12 24 12 Q36 12 36 22 L36 32" fill="none" stroke="white" stroke-width="2.5"/>
+            <line x1="18" y1="32" x2="18" y2="22" stroke="white" stroke-width="2"/>
+            <line x1="30" y1="32" x2="30" y2="22" stroke="white" stroke-width="2"/>
+        
+</svg>
