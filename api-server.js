@@ -15,6 +15,7 @@ const { Client: NotionClient } = require('@notionhq/client');
 
 const PORT = process.env.PORT || 3002;
 const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
+const BRIEF_PUSH_KEY = process.env.BRIEF_PUSH_KEY || '1b93765196bf145c607244194f424197c224eff79fb1a493';
 const COOKIE_NAME = 'medagent_auth';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
@@ -2476,6 +2477,44 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to load brief' }));
+    }
+    return;
+  }
+
+  // Daily brief PUSH API - Manus 定时任务推送日报数据
+  if (url.pathname === '/api/daily-brief' && req.method === 'POST') {
+    const authHeader = req.headers['x-brief-key'] || '';
+    if (authHeader !== BRIEF_PUSH_KEY) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid push key' }));
+      return;
+    }
+    try {
+      const body = await parseRequestBody(req);
+      if (!body || !body.date || !body.sections) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid brief format: missing date or sections' }));
+        return;
+      }
+      const dataDir = path.join(DATA_DIR, 'data');
+      if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+      const briefPath = path.join(dataDir, 'daily-brief.json');
+      // 备份前一天的日报
+      if (fs.existsSync(briefPath)) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const backupName = `daily-brief-${yesterday.toISOString().slice(0, 10)}.json`;
+        fs.copyFileSync(briefPath, path.join(dataDir, backupName));
+      }
+      body.updatedAt = new Date().toISOString();
+      fs.writeFileSync(briefPath, JSON.stringify(body, null, 2), 'utf8');
+      console.log(`[DailyBrief] 日报已更新: ${body.date}, 条数: ${body.sections?.reduce((a, s) => a + (s.news?.length || 0), 0)}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, date: body.date, message: '日报已成功更新' }));
+    } catch (e) {
+      console.error('[DailyBrief] 推送失败:', e.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to save brief: ' + e.message }));
     }
     return;
   }
