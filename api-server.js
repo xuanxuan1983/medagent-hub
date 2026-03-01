@@ -71,64 +71,31 @@ async function searchNotion(query, maxResults = 5) {
   if (!notionClient) return { success: false, results: [], reason: 'Notion未配置' };
   try {
     const results = [];
-    // 在所有配置的数据库中搜索
-    for (const dbId of NOTION_DATABASE_IDS) {
-      const resp = await notionClient.databases.query({
-        database_id: dbId,
-        filter: {
-          or: [
-            { property: 'Name', title: { contains: query } },
-            { property: '名称', title: { contains: query } },
-            { property: 'Title', title: { contains: query } },
-          ]
-        },
-        page_size: maxResults
-      });
-      for (const page of resp.results) {
-        const title = extractNotionTitle(page);
-        // 获取页面内容块
-        let content = '';
-        try {
-          const blocksResp = await notionClient.blocks.children.list({
-            block_id: page.id,
-            page_size: 50
-          });
-          content = extractNotionText(blocksResp.results);
-        } catch (e) { content = ''; }
-        results.push({
-          title,
-          url: page.url || `https://notion.so/${page.id.replace(/-/g, '')}`,
-          content: content.substring(0, 1500),
-          lastEdited: page.last_edited_time
+    // 使用全局搜索（兼容所有数据库结构）
+    const searchResp = await notionClient.search({
+      query,
+      filter: { value: 'page', property: 'object' },
+      page_size: maxResults * 2
+    });
+    for (const page of searchResp.results) {
+      const title = extractNotionTitle(page);
+      if (!title) continue;
+      // 获取页面内容块
+      let content = '';
+      try {
+        const blocksResp = await notionClient.blocks.children.list({
+          block_id: page.id,
+          page_size: 50
         });
-        if (results.length >= maxResults) break;
-      }
+        content = extractNotionText(blocksResp.results);
+      } catch (e) { content = ''; }
+      results.push({
+        title,
+        url: page.url || `https://notion.so/${page.id.replace(/-/g, '')}`,
+        content: content.substring(0, 1500),
+        lastEdited: page.last_edited_time
+      });
       if (results.length >= maxResults) break;
-    }
-    // 如果数据库过滤没结果，用全局搜索兜底
-    if (results.length === 0) {
-      const searchResp = await notionClient.search({
-        query,
-        filter: { value: 'page', property: 'object' },
-        page_size: maxResults
-      });
-      for (const page of searchResp.results) {
-        const title = extractNotionTitle(page);
-        let content = '';
-        try {
-          const blocksResp = await notionClient.blocks.children.list({
-            block_id: page.id,
-            page_size: 50
-          });
-          content = extractNotionText(blocksResp.results);
-        } catch (e) { content = ''; }
-        results.push({
-          title,
-          url: page.url || `https://notion.so/${page.id.replace(/-/g, '')}`,
-          content: content.substring(0, 1500),
-          lastEdited: page.last_edited_time
-        });
-      }
     }
     return { success: true, results, query };
   } catch (e) {
