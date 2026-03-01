@@ -2456,6 +2456,30 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Daily brief API - 每日行业摘要
+  if (url.pathname === '/api/daily-brief' && req.method === 'GET') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    try {
+      const briefPath = path.join(DATA_DIR, 'data', 'daily-brief.json');
+      if (fs.existsSync(briefPath)) {
+        const briefData = JSON.parse(fs.readFileSync(briefPath, 'utf8'));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(briefData));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No brief available' }));
+      }
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to load brief' }));
+    }
+    return;
+  }
+
   // Submit feedback (thumbs up/down)
   if (url.pathname === '/api/feedback' && req.method === 'POST') {
     try {

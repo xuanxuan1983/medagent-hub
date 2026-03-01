@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>医美行业日报 — MedAgent Hub</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --text: #191919;
+      --text-2: #5a5a5a;
+      --text-3: #767676;
+      --bg: #FFFFFF;
+      --bg-warm: #FAF8F5;
+      --bg-sidebar: #F5F3EF;
+      --border: #E8E5E0;
+      --border-light: #F0EDEA;
+      --coral: #E8715A;
+      --coral-light: #FFF0EC;
+      --green: #22C55E;
+      --green-light: #F0FDF4;
+      --amber: #F59E0B;
+      --amber-light: #FFFBEB;
+      --blue: #3B82F6;
+      --blue-light: #EFF6FF;
+      --purple: #8B5CF6;
+      --purple-light: #F5F3FF;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+      background: var(--bg-warm);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── 顶部导航 ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(250, 248, 245, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .topbar-back {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      color: var(--text-3);
+      text-decoration: none;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .topbar-back:hover { background: var(--border-light); color: var(--text-2); }
+
+    .topbar-divider { width: 1px; height: 18px; background: var(--border); }
+
+    .topbar-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .topbar-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: var(--coral);
+      color: white;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+      letter-spacing: 0.02em;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .topbar-date {
+      font-size: 0.78rem;
+      color: var(--text-3);
+    }
+
+    /* ── 主内容区 ── */
+    .main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── 头部 Hero ── */
+    .hero {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+    }
+
+    .hero-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #E8715A 0%, #F59E0B 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .hero-content { flex: 1; }
+
+    .hero-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+
+    .hero-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-3);
+      margin-bottom: 0.75rem;
+    }
+
+    .hero-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .source-tag {
+      font-size: 0.68rem;
+      color: var(--text-3);
+      background: var(--bg-warm);
+      border: 1px solid var(--border);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    /* ── 摘要统计 ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .stat-card:hover { border-color: var(--coral); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .stat-card.active { border-color: var(--coral); background: var(--coral-light); }
+
+    .stat-icon { font-size: 1.25rem; margin-bottom: 0.35rem; }
+    .stat-label { font-size: 0.65rem; color: var(--text-3); font-weight: 500; }
+    .stat-count { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+
+    /* ── 今日重点 ── */
+    .priority-section {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .section-count {
+      margin-left: auto;
+      font-size: 0.68rem;
+      color: var(--text-3);
+      background: var(--bg-warm);
+      border: 1px solid var(--border);
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+    }
+
+    .priority-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .priority-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 10px;
+      background: var(--bg-warm);
+      border: 1px solid var(--border-light);
+    }
+
+    .priority-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+    .priority-dot.high { background: var(--coral); }
+    .priority-dot.medium { background: var(--amber); }
+    .priority-dot.low { background: var(--text-3); }
+
+    .priority-content { flex: 1; }
+    .priority-event { font-size: 0.82rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem; }
+    .priority-action { font-size: 0.75rem; color: var(--text-3); }
+
+    .priority-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .priority-badge.high { background: var(--coral-light); color: var(--coral); }
+    .priority-badge.medium { background: var(--amber-light); color: var(--amber); }
+    .priority-badge.low { background: var(--bg-sidebar); color: var(--text-3); }
+
+    /* ── 新闻章节 ── */
+    .news-section {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .news-list { display: flex; flex-direction: column; gap: 0; }
+
+    .news-item {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .news-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .news-item:first-child { padding-top: 0; }
+
+    .news-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: var(--bg-warm);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-3);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .news-body { flex: 1; }
+
+    .news-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+      line-height: 1.4;
+    }
+
+    .news-summary {
+      font-size: 0.78rem;
+      color: var(--text-2);
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+    }
+
+    .news-insight {
+      font-size: 0.75rem;
+      color: var(--coral);
+      background: var(--coral-light);
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+      line-height: 1.5;
+      border-left: 2px solid var(--coral);
+    }
+
+    .news-insight-label {
+      font-weight: 700;
+      margin-right: 0.3rem;
+    }
+
+    /* ── 数据表格 ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      margin: 0.75rem 0;
+    }
+
+    .data-table th {
+      background: var(--bg-warm);
+      color: var(--text-3);
+      font-weight: 600;
+      font-size: 0.7rem;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-2);
+      line-height: 1.4;
+    }
+
+    .data-table tr:last-child td { border-bottom: none; }
+
+    .trend-up { color: var(--coral); font-weight: 600; }
+    .trend-down { color: var(--text-3); }
+    .trend-new { color: var(--green); font-weight: 600; }
+
+    /* ── 底部 ── */
+    .footer {
+      text-align: center;
+      padding: 2rem 0 1rem;
+      font-size: 0.72rem;
+      color: var(--text-3);
+    }
+
+    /* ── 加载状态 ── */
+    .loading-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-3);
+    }
+
+    .loading-spinner {
+      width: 28px;
+      height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--coral);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 0.75rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── 响应式 ── */
+    @media (max-width: 640px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+      .hero { flex-direction: column; gap: 0.75rem; }
+      .main { padding: 1rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<nav class="topbar">
+  <a href="/chat.html" class="topbar-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    返回工作台
+  </a>
+  <div class="topbar-divider"></div>
+  <div class="topbar-title">
+    📰 医美行业日报
+    <span class="topbar-badge">每日更新</span>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-date" id="topbarDate">—</span>
+  </div>
+</nav>
+
+<!-- 主内容 -->
+<main class="main" id="mainContent">
+  <div class="loading-state">
+    <div class="loading-spinner"></div>
+    <div>正在加载今日行业动态...</div>
+  </div>
+</main>
+
+<script>
+// ── 摘要数据（由 Manus 定时任务写入 /api/daily-brief 接口） ──
+const BRIEF_DATA = {
+  date: "2026年3月1日",
+  sources: ["21世纪经济报道", "医美部落", "每日经济新闻", "东方财富", "万联证券", "微信春节数据报告"],
+  priorities: [
+    { level: "high", event: "干细胞监管新规（5月1日实施）", action: "更新平台合规知识库，提醒机构客户及时下架违规项目" },
+    { level: "high", event: "医美服务纳入CPI，市场主流化加速", action: "强化平台"大众医美"场景的Agent服务能力" },
+    { level: "medium", event: "再生填充材料赛道持续高增长", action: "上游厂商客户可重点关注合规产品的推广策略" },
+    { level: "medium", event: "AI智能体在医美私域运营中的渗透加速", action: "可作为向潜在客户介绍MedAgent Hub价值的核心论据" },
+    { level: "low", event: "超声炮市场萎缩，美拉美超声刀崛起", action: "关注能量类设备赛道的技术迭代，更新相关Agent知识库" }
+  ],
+  sections: [
+    {
+      id: "policy",
+      icon: "⚖️",
+      iconBg: "#FFF0EC",
+      title: "政策监管动态",
+      color: "#E8715A",
+      news: [
+        {
+          title: "干细胞监管新规正式落地，医美"伪抗衰"时代终结",
+          summary: "2026年5月1日起，干细胞与生物医学新技术进入国家级强监管阶段。机构门槛：干细胞治疗必须在三甲医院内开展；审批门槛：所有项目须通过国家层面审批；数据门槛：研究数据留存30年。据行业测算，仅约5%企业具备全链条合规能力，80%以上企业将面临停业、转型或退出。",
+          insight: "MedAgent 关注：此政策直接影响上游厂商产品合规宣传策略，"医美材料学硬核导师"Agent 可重点更新干细胞相关合规知识库。",
+          table: {
+            headers: ["监管维度", "具体要求"],
+            rows: [
+              ["机构门槛", "干细胞治疗必须在三甲医院内开展，非医疗机构一律不得开展"],
+              ["审批门槛", "所有干细胞项目须通过国家层面审批，严禁未经审批开展临床应用"],
+              ["组织门槛", "必须设立伦理委员会与学术委员会，对项目进行独立审查"],
+              ["数据门槛", "研究数据留存30年，遗传相关数据永久保存，可追溯、可倒查"],
+              ["宣传门槛", "严禁将干细胞用于美容、抗衰等违规宣传，严禁夸大疗效"]
+            ]
+          }
+        },
+        {
+          title: "医美服务纳入增值税与CPI统计体系，合规化信号明确",
+          summary: "《增值税法》明确"营利性美容医疗机构"不享受医疗服务免税优惠；2026年2月11日，医疗美容服务首次被纳入CPI统计范畴，标志着医美服务正从"小众奢侈消费"转变为大众日常消费。去年超1.8万家黑机构被关停，超320名违规医师被吊销执照，监管已从"运动式整治"转向"常态化净化"。",
+          insight: null
+        }
+      ]
+    },
+    {
+      id: "market",
+      icon: "📈",
+      iconBg: "#F0FDF4",
+      title: "市场规模与消费趋势",
+      color: "#22C55E",
+      news: [
+        {
+          title: "千亿市场高速扩张，入境医美迎"高光时刻"",
+          summary: "中国医美市场以22.6%的复合年增长率高速扩张，预计2030年前将突破万亿级规模。微信2026年春节数据显示，医疗美容相关消费交易金额同比增长翻倍，成为外卡游客消费增速最快的行业之一。2025年全国共有203家公立医院开设医美相关科室，较上年同比激增229%。",
+          insight: null
+        },
+        {
+          title: "2025年医美消费榜单解码：品类分化加剧",
+          summary: "美呗平台"2025年医美平台消费榜单"揭示行业内部结构性分化，再生填充材料整体销售额同比增长93.40%，连续3年狂飙；超声炮销售额同比下降55.2%，技术红利期消退。",
+          insight: "行业洞察：合规壁垒趋严与技术迭代提速背景下，"马太效应"加速上演，头部品牌凭借三类医疗器械注册证构建强大技术壁垒。",
+          table: {
+            headers: ["品类/项目", "2025年表现", "趋势"],
+            rows: [
+              ["再生填充材料", "整体销售额同比增长 93.40%，连续3年狂飙", "↑ 高增长"],
+              ["玻尿酸填充", "销售额同比增长 19.70%，乔雅登以54%复合增长率领跑", "↑ 稳增长"],
+              ["超声炮", "销售额同比下降 55.2%", "↓ 萎缩"],
+              ["美拉美超声刀", "销售额同比增长 147.22%，首获NMPA认证国产超声刀", "↑ 新星"]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: "product",
+      icon: "💊",
+      iconBg: "#EFF6FF",
+      title: "上游产品与企业动态",
+      color: "#3B82F6",
+      news: [
+        {
+          title: "和妍医疗斩获国内首款预灌封"PLLA+CMC"童颜针注册证",
+          summary: "2026年2月24日，和妍（上海）医疗器械有限公司成功获得NMPA颁发的"注射用聚左旋乳酸微球填充剂"三类医疗器械注册证，为国内首款预灌封"PLLA+CMC"童颜针，标志着童颜针赛道的剂型创新取得重要突破。",
+          insight: null
+        },
+        {
+          title: "四环医药2025年医美营收预计超14亿，同比增长超90%",
+          summary: "四环医药旗下医美业务2025年营收预计超过14亿元，同比增长超过90%，展现出强劲的业绩增长势头，成为行业上游厂商中的亮眼表现。",
+          insight: null
+        },
+        {
+          title: "万联证券：美护行业预盈率69%，建议关注医美板块",
+          summary: "截至2026年2月13日，美容护理行业共计31家A股公司，已有13家发布业绩预告，行业预盈率为69%。万联证券建议关注医美相关标的，认为在AI应用与消费升级双重驱动下，医美板块具备较好的投资价值。",
+          insight: null
+        }
+      ]
+    },
+    {
+      id: "ai",
+      icon: "🤖",
+      iconBg: "#F5F3FF",
+      title: "AI与数字化赋能趋势",
+      color: "#8B5CF6",
+      news: [
+        {
+          title: "AI智能体加速渗透医美运营场景",
+          summary: "美洽等私信聚合工具实测显示，AI赋能下医美机构获客率提升约40%；百度与万东医疗合作升级影像AI系统，病灶识别准确率达98.7%；全球能量类医美设备市场正进入AI主导的增长阶段，市场规模预计2031年达1180亿美元。",
+          insight: "MedAgent 关注：AI智能体在医美运营中的渗透速度加快，平台核心价值主张与市场趋势高度契合。建议重点向下游机构客户强调"金牌医美咨询师"、"医美实战陪练机器人"等Agent在私域获客和客户服务中的实际ROI。"
+        }
+      ]
+    },
+    {
+      id: "global",
+      icon: "🌏",
+      iconBg: "#FFFBEB",
+      title: "国际市场动态",
+      color: "#F59E0B",
+      news: [
+        {
+          title: "Cynosure Lutronic旗下Clarity II获中日双重监管批准",
+          summary: "Cynosure Lutronic宣布，其双波长长脉冲激光平台Clarity II已于2026年1月9日获得日本监管许可，并同步强化在亚太地区（包括中国）的市场布局，进一步加强其在亚太医美设备市场的竞争力。",
+          insight: null
+        },
+        {
+          title: "全球医美注射剂市场规模预计2032年达290亿美元",
+          summary: "最新行业报告显示，全球医美注射剂市场（2026-2032年）规模预计达到290亿美元，受抗衰老需求增长、微创治疗偏好提升及新兴市场渗透率提高等因素驱动，市场前景广阔。",
+          insight: null
+        }
+      ]
+    }
+  ]
+};
+
+// ── 渲染函数 ──
+function renderBrief(data) {
+  const main = document.getElementById('mainContent');
+  document.getElementById('topbarDate').textContent = data.date;
+
+  const sectionCounts = data.sections.map(s => s.news.length);
+  const totalNews = sectionCounts.reduce((a, b) => a + b, 0);
+
+  const sectionIcons = ['⚖️', '📈', '💊', '🤖', '🌏'];
+  const sectionLabels = ['政策监管', '市场趋势', '产品动态', 'AI赋能', '国际市场'];
+
+  main.innerHTML = `
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-icon">📰</div>
+      <div class="hero-content">
+        <div class="hero-title">医美行业日报</div>
+        <div class="hero-subtitle">${data.date} · 共 ${totalNews} 条动态 · 每日 08:00 自动更新</div>
+        <div class="hero-sources">
+          ${data.sources.map(s => `<span class="source-tag">${s}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- 分类统计 -->
+    <div class="stats-row">
+      ${data.sections.map((s, i) => `
+        <div class="stat-card" onclick="scrollToSection('${s.id}')">
+          <div class="stat-icon">${sectionIcons[i]}</div>
+          <div class="stat-count">${s.news.length}</div>
+          <div class="stat-label">${sectionLabels[i]}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- 今日重点 -->
+    <div class="priority-section">
+      <div class="section-header">
+        <div class="section-icon" style="background:#FFF0EC">🎯</div>
+        <div class="section-title">今日重点关注</div>
+        <div class="section-count">${data.priorities.length} 项</div>
+      </div>
+      <div class="priority-list">
+        ${data.priorities.map(p => `
+          <div class="priority-item">
+            <div class="priority-dot ${p.level}"></div>
+            <div class="priority-content">
+              <div class="priority-event">${p.event}</div>
+              <div class="priority-action">${p.action}</div>
+            </div>
+            <div class="priority-badge ${p.level}">${p.level === 'high' ? '高' : p.level === 'medium' ? '中' : '低'}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- 各章节新闻 -->
+    ${data.sections.map(section => `
+      <div class="news-section" id="section-${section.id}">
+        <div class="section-header">
+          <div class="section-icon" style="background:${section.iconBg}">${section.icon}</div>
+          <div class="section-title" style="color:${section.color}">${section.title}</div>
+          <div class="section-count">${section.news.length} 条</div>
+        </div>
+        <div class="news-list">
+          ${section.news.map((item, idx) => `
+            <div class="news-item">
+              <div class="news-num">${idx + 1}</div>
+              <div class="news-body">
+                <div class="news-title">${item.title}</div>
+                <div class="news-summary">${item.summary}</div>
+                ${item.table ? renderTable(item.table) : ''}
+                ${item.insight ? `<div class="news-insight"><span class="news-insight-label">MedAgent 关注：</span>${item.insight.replace('MedAgent 关注：', '').replace('行业洞察：', '')}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}
+
+    <div class="footer">
+      本摘要由 MedAgent Hub 智能信息系统自动生成 · 数据截至 ${data.date}
+    </div>
+  `;
+}
+
+function renderTable(table) {
+  return `
+    <table class="data-table">
+      <thead>
+        <tr>${table.headers.map(h => `<th>${h}</th>`).join('')}</tr>
+      </thead>
+      <tbody>
+        ${table.rows.map(row => `
+          <tr>${row.map((cell, i) => {
+            let cls = '';
+            if (i === row.length - 1) {
+              if (cell.includes('↑')) cls = 'trend-up';
+              else if (cell.includes('↓')) cls = 'trend-down';
+              else if (cell.includes('新星')) cls = 'trend-new';
+            }
+            return `<td class="${cls}">${cell}</td>`;
+          }).join('')}</tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById('section-' + id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 初始化：先尝试从API获取，失败则用内置数据 ──
+async function init() {
+  try {
+    const res = await fetch('/api/daily-brief', { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const data = await res.json();
+      renderBrief(data);
+      return;
+    }
+  } catch (e) { /* 回退到内置数据 */ }
+  renderBrief(BRIEF_DATA);
+}
+
+init();
+</script>
+</body>
+</html>
