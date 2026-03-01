@@ -4,6 +4,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
+    "@notionhq/client": "^5.11.0",
     "better-sqlite3": "^12.6.2",
     "exceljs": "^4.4.0",
     "mammoth": "^1.11.0",

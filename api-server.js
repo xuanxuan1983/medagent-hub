@@ -11,6 +11,7 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const XLSX = require('xlsx');
+const { Client: NotionClient } = require('@notionhq/client');
 
 const PORT = process.env.PORT || 3002;
 const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
@@ -23,6 +24,118 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // Bocha Search API
 const BOCHA_API_KEY = process.env.BOCHA_API_KEY || 'sk-51d7d709eb6d4150b76dc131663330d3';
+
+// ===== Notion 知识库配置 =====
+const NOTION_API_KEY = process.env.NOTION_API_KEY || '';
+const NOTION_DATABASE_IDS = (process.env.NOTION_DATABASE_IDS || '').split(',').filter(Boolean);
+let notionClient = null;
+if (NOTION_API_KEY) {
+  notionClient = new NotionClient({ auth: NOTION_API_KEY });
+  console.log(`[Notion] 已初始化，数据库数量: ${NOTION_DATABASE_IDS.length}`);
+}
+
+// 从 Notion Block 提取纯文本
+function extractNotionText(blocks) {
+  const lines = [];
+  for (const block of blocks) {
+    const type = block.type;
+    const content = block[type];
+    if (!content) continue;
+    const richText = content.rich_text || [];
+    const text = richText.map(t => t.plain_text || '').join('');
+    if (text.trim()) lines.push(text.trim());
+    // 子块（列表项等）
+    if (block.has_children) lines.push('[子内容省略]');
+  }
+  return lines.join('\n');
+}
+
+// 从 Notion Page 提取标题
+function extractNotionTitle(page) {
+  const props = page.properties || {};
+  for (const key of ['Name', '名称', 'Title', '标题', 'title', 'name']) {
+    const prop = props[key];
+    if (prop?.title) return prop.title.map(t => t.plain_text).join('');
+  }
+  // 找第一个 title 类型属性
+  for (const prop of Object.values(props)) {
+    if (prop.type === 'title' && prop.title?.length > 0) {
+      return prop.title.map(t => t.plain_text).join('');
+    }
+  }
+  return '（无标题）';
+}
+
+// 搜索 Notion 知识库（关键词匹配）
+async function searchNotion(query, maxResults = 5) {
+  if (!notionClient) return { success: false, results: [], reason: 'Notion未配置' };
+  try {
+    const results = [];
+    // 在所有配置的数据库中搜索
+    for (const dbId of NOTION_DATABASE_IDS) {
+      const resp = await notionClient.databases.query({
+        database_id: dbId,
+        filter: {
+          or: [
+            { property: 'Name', title: { contains: query } },
+            { property: '名称', title: { contains: query } },
+            { property: 'Title', title: { contains: query } },
+          ]
+        },
+        page_size: maxResults
+      });
+      for (const page of resp.results) {
+        const title = extractNotionTitle(page);
+        // 获取页面内容块
+        let content = '';
+        try {
+          const blocksResp = await notionClient.blocks.children.list({
+            block_id: page.id,
+            page_size: 50
+          });
+          content = extractNotionText(blocksResp.results);
+        } catch (e) { content = ''; }
+        results.push({
+          title,
+          url: page.url || `https://notion.so/${page.id.replace(/-/g, '')}`,
+          content: content.substring(0, 1500),
+          lastEdited: page.last_edited_time
+        });
+        if (results.length >= maxResults) break;
+      }
+      if (results.length >= maxResults) break;
+    }
+    // 如果数据库过滤没结果，用全局搜索兜底
+    if (results.length === 0) {
+      const searchResp = await notionClient.search({
+        query,
+        filter: { value: 'page', property: 'object' },
+        page_size: maxResults
+      });
+      for (const page of searchResp.results) {
+        const title = extractNotionTitle(page);
+        let content = '';
+        try {
+          const blocksResp = await notionClient.blocks.children.list({
+            block_id: page.id,
+            page_size: 50
+          });
+          content = extractNotionText(blocksResp.results);
+        } catch (e) { content = ''; }
+        results.push({
+          title,
+          url: page.url || `https://notion.so/${page.id.replace(/-/g, '')}`,
+          content: content.substring(0, 1500),
+          lastEdited: page.last_edited_time
+        });
+      }
+    }
+    return { success: true, results, query };
+  } catch (e) {
+    console.error('[Notion搜索失败]', e.message);
+    return { success: false, results: [], reason: e.message };
+  }
+}
 const BOCHA_API_URL = 'https://api.bochaai.com/v1/web-search';
 
 // LibLib AI 图片生成
@@ -1925,6 +2038,18 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // 3️⃣ Notion 知识库查询（自动触发）
+      if (notionClient) {
+        const notionData = await searchNotion(message.substring(0, 100), 3);
+        if (notionData.success && notionData.results.length > 0) {
+          const notionContext = notionData.results.map((r, i) =>
+            `[${i+1}] ${r.title}\n链接: ${r.url}\n内容: ${r.content || '（无正文）'}`
+          ).join('\n\n');
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== Notion 知识库参考资料 =====\n以下是来自内部知识库的相关内容，请优先参考这些内部资料回答问题：\n\n${notionContext}\n\n如果知识库内容与问题高度相关，请明确引用。`;
+          console.log(`✅ [Notion] 找到 ${notionData.results.length} 条相关内容`);
+        }
+      }
+
       // Determine provider
       const activeProvider = (userProvider && userApiKey)
         ? createProviderFromConfig(userProvider, userApiKey, userModel)
@@ -2116,6 +2241,18 @@ const server = http.createServer(async (req, res) => {
           ).join('\n\n');
           enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果 =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
           console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
+        }
+      }
+
+      // 3️⃣ Notion 知识库查询（自动触发）
+      if (notionClient) {
+        const notionData2 = await searchNotion(message.substring(0, 100), 3);
+        if (notionData2.success && notionData2.results.length > 0) {
+          const notionContext2 = notionData2.results.map((r, i) =>
+            `[${i+1}] ${r.title}\n链接: ${r.url}\n内容: ${r.content || '（无正文）'}`
+          ).join('\n\n');
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== Notion 知识库参考资料 =====\n以下是来自内部知识库的相关内容，请优先参考这些内部资料回答问题：\n\n${notionContext2}\n\n如果知识库内容与问题高度相关，请明确引用。`;
+          console.log(`✅ [Notion] 找到 ${notionData2.results.length} 条相关内容`);
         }
       }
 
@@ -3157,6 +3294,55 @@ const server = http.createServer(async (req, res) => {
       'Content-Disposition': `attachment; filename="corpus-${new Date().toISOString().slice(0,10)}.jsonl"`
     });
     fs.createReadStream(logPath).pipe(res);
+    return;
+  }
+
+  // ===== Notion 知识库配置接口 =====
+  // 获取 Notion 配置状态
+  if (url.pathname === '/api/admin/notion/status' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      configured: !!notionClient,
+      databaseCount: NOTION_DATABASE_IDS.length,
+      databaseIds: NOTION_DATABASE_IDS
+    }));
+    return;
+  }
+
+  // 测试 Notion 连接
+  if (url.pathname === '/api/admin/notion/test' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    const { apiKey, databaseId } = await parseRequestBody(req);
+    try {
+      const testClient = new NotionClient({ auth: apiKey });
+      const testResult = await testClient.users.me();
+      let dbInfo = null;
+      if (databaseId) {
+        const db = await testClient.databases.retrieve({ database_id: databaseId });
+        const titleProp = Object.values(db.properties || {}).find(p => p.type === 'title');
+        dbInfo = {
+          id: db.id,
+          title: db.title?.[0]?.plain_text || '（无标题）',
+          properties: Object.keys(db.properties || {})
+        };
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, user: testResult.name || testResult.id, database: dbInfo }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+    return;
+  }
+
+  // 搜索 Notion 知识库（测试用）
+  if (url.pathname === '/api/admin/notion/search' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    const { query } = await parseRequestBody(req);
+    const result = await searchNotion(query || '医美', 5);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(result));
     return;
   }
 
