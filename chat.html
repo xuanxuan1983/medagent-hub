@@ -1358,8 +1358,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const data = await res.json();
       const name = data.name || data.phone || data.code || '用户';
       currentUserName = name;
-      currentUserPlan = data.plan === 'pro' ? '专业版 Pro' : '免费版';
-      currentIsPro = data.plan === 'pro';
+      currentUserPlan = data.plan === 'pro' ? '专业版 Pro' : (data.plan === 'admin' ? '管理员' : '免费版');
+      currentIsPro = data.plan === 'pro' || data.plan === 'admin';
       buildStore(); // 重新渲染 Agent 列表，使锁定状态生效
 
       // Update sidebar user info
@@ -1802,7 +1802,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const res = await fetch('/api/image/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ prompt, sessionId })
+        body: JSON.stringify({ customPrompt: prompt })
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -1816,14 +1816,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         submitBtn.textContent = '重新生成';
         return;
       }
-      if (data.imageUrl) {
-        resultImg.src = data.imageUrl;
+      const finalImgUrl = data.imageUrl || data.url;
+      if (finalImgUrl) {
+        resultImg.src = finalImgUrl;
         resultImg.style.display = 'block';
         statusEl.textContent = '生成成功！点击图片可保存';
-        resultImg.onclick = () => { const a = document.createElement('a'); a.href = data.imageUrl; a.download = 'medagent-draw.png'; a.target='_blank'; a.click(); };
+        resultImg.onclick = () => { const a = document.createElement('a'); a.href = finalImgUrl; a.download = 'medagent-draw.png'; a.target='_blank'; a.click(); };
         resultImg.style.cursor = 'pointer';
         // 将图片插入聊天记录
-        addMessage('assistant', `🎨 已根据描述「${prompt}」生成图片\n\n![AI绘图](${data.imageUrl})`);
+        addMessage('assistant', `🎨 已根据描述「${prompt}」生成图片\n\n![AI绘图](${finalImgUrl})`);
         setTimeout(() => closeDrawModal(), 1500);
       } else {
         statusEl.textContent = '生成失败，请稍后重试';

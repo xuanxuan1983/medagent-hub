@@ -502,8 +502,9 @@ function getOrInitProfile(code) {
 // 检查用户权限状态
 function getUserPlanStatus(code) {
   if (code === ADMIN_CODE) {
-    return { plan: 'admin', canChat: true, canSearch: true, canImage: true,
-             dailyRemaining: 9999, trialDaysLeft: 999, isExpired: false };
+    return { plan: 'admin', isPro: true, canChat: true, canSearch: true, canImage: true,
+             dailyRemaining: 9999, imgRemaining: 9999, searchRemaining: 9999,
+             trialDaysLeft: 999, isExpired: false, isTrialExpired: false };
   }
   const profiles = loadProfiles();
   const p = profiles[code] || {};
@@ -1728,9 +1729,12 @@ const server = http.createServer(async (req, res) => {
       // Record image generation cost and quota
       const imgUserName = getUserName(req);
       recordImageUsage(imgUserCode, imgUserName);
-      incrementMonthlyImg(imgUserCode);
-      // 免费用户同时记录每日计数
-      if (!imgPlanStatus.isPro) incrementDailyImg(imgUserCode);
+      const isAdminOrPro = imgPlanStatus.isPro || imgPlanStatus.plan === 'admin';
+      if (!isAdminOrPro) {
+        // 免费用户记录每日和每月计数
+        incrementDailyImg(imgUserCode);
+        incrementMonthlyImg(imgUserCode);
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result));
     } catch (error) {
