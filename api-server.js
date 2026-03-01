@@ -130,6 +130,12 @@ const TRIAL_AGENTS = [
   'materials-mentor',    // 医美材料学硬核导师
 ];
 
+// 仅管理员可用的 Agent（任何非管理员访问均返回403，且不在前端列表中显示）
+const ADMIN_ONLY_AGENTS = new Set([
+  'meta-prompt-architect',  // 元提示词架构师
+  'prompt-engineer-pro',    // 高级Prompt工程师
+]);
+
 // ===== FILE UPLOAD SETUP =====
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
@@ -1857,6 +1863,13 @@ const server = http.createServer(async (req, res) => {
       if (!agentId || !agentSkillMap[agentId]) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid agent ID' }));
+        return;
+      }
+
+      // 管理员专属Agent权限检查：非管理员访问直接拒绝
+      if (ADMIN_ONLY_AGENTS.has(agentId) && !isAdmin(req)) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Access denied' }));
         return;
       }
 

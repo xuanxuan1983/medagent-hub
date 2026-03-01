@@ -1334,6 +1334,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   let currentIsPro = false;
   // 试用期开放的 Agent 白名单
   const TRIAL_AGENTS = ['senior-consultant', 'sparring-robot', 'materials-mentor'];
+  // 仅管理员可见的 Agent（非管理员完全不显示）
+  const ADMIN_ONLY_AGENTS = new Set(['meta-prompt-architect', 'prompt-engineer-pro']);
+  let currentIsAdmin = false;
 
   function init() {
     buildStore();
@@ -1363,6 +1366,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       currentUserName = name;
       currentUserPlan = data.plan === 'pro' ? '专业版 Pro' : (data.plan === 'admin' ? '管理员' : '免费版');
       currentIsPro = data.plan === 'pro' || data.plan === 'admin';
+      currentIsAdmin = data.plan === 'admin';
       buildStore(); // 重新渲染 Agent 列表，使锁定状态生效
 
       // Update sidebar user info
@@ -1453,6 +1457,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       label.textContent = group.label;
       container.appendChild(label);
       group.agents.forEach(agent => {
+        // 管理员专属Agent：非管理员完全不显示
+        if (ADMIN_ONLY_AGENTS.has(agent.id) && !currentIsAdmin) return;
         const a = document.createElement('a');
         a.className = 'sidebar-agent' + (agent.id === currentAgentId ? ' active' : '');
         a.href = 'javascript:void(0)';
@@ -1551,6 +1557,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     grid.innerHTML = '';
     AGENT_GROUPS.forEach(group => {
       group.agents.forEach(agent => {
+        // 管理员专属Agent：非管理员完全不显示
+        if (ADMIN_ONLY_AGENTS.has(agent.id) && !currentIsAdmin) return;
         if (filter && filter !== 'all' && agent.category !== filter) return;
         const isLocked = !currentIsPro && !TRIAL_AGENTS.includes(agent.id);
         const card = document.createElement('div');
