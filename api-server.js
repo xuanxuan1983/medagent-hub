@@ -136,6 +136,7 @@ const TRIAL_AGENTS = [
 const ADMIN_ONLY_AGENTS = new Set([
   'meta-prompt-architect',  // 元提示词架构师
   'prompt-engineer-pro',    // 高级Prompt工程师
+  'first-principles-analyst', // 第一性原理深度剖析专家
 ]);
 
 // ===== FILE UPLOAD SETUP =====
@@ -1026,6 +1027,7 @@ const agentSkillMap = {
   'kv-design-director': 'kv-design-director',
   'meta-prompt-architect': 'meta-prompt-architect',
   'prompt-engineer-pro': 'prompt-engineer-pro',
+  'first-principles-analyst': 'first-principles-analyst',
   'doudou': 'doudou',
   'xhs-content-creator': 'xhs-content-creator',
   'ppt-creator': 'ppt-creator',
@@ -1062,6 +1064,7 @@ const agentNames = {
   'kv-design-director': '视觉KV设计总监',
   'meta-prompt-architect': '元提示词架构师',
   'prompt-engineer-pro': '高级Prompt工程师',
+  'first-principles-analyst': '第一性原理深度剖析专家',
   'doudou': '豆豆',
   'xhs-content-creator': '小红书图文创作顾问',
   'ppt-creator': 'PPT创作顾问',
