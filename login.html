@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - MedAgent Hub</title>
+  <meta name="description" content="登录 MedAgent Hub，使用邀请码开始体验医美行业 AI 助手。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --text: #191919;
+      --text-2: #5a5a5a;
+      --text-3: #767676;
+      --bg: #FFFFFF;
+      --bg-warm: #FAF8F5;
+      --border: #E8E5E0;
+      --border-light: #F0EDEA;
+      --coral: #E8715A;
+      --coral-light: #FFF0EC;
+      --font-serif: 'Noto Serif SC', 'Georgia', serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    html, body {
+      height: 100%;
+      font-family: var(--font-sans);
+      background: var(--bg-warm);
+      color: var(--text);
+    }
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.25rem;
+    }
+    .logo-link {
+      display: flex; align-items: center; gap: 0.6rem;
+      text-decoration: none; color: var(--text);
+      font-weight: 700; font-size: 1.05rem;
+      margin-bottom: 2.5rem;
+    }
+    .logo-badge {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 900; font-size: 1rem;
+    }
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    .card-title {
+      font-family: var(--font-serif);
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .card-sub {
+      font-size: 0.875rem;
+      color: var(--text-3);
+      text-align: center;
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-2);
+      margin-bottom: 0.4rem;
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: var(--font-sans);
+      color: var(--text);
+      background: white;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    .form-input:focus {
+      border-color: var(--text);
+    }
+    .form-input::placeholder {
+      color: #bbb;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 0.875rem;
+      background: var(--text);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 0.5rem;
+    }
+    .btn-submit:hover { opacity: 0.85; }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg {
+      display: none;
+      background: #FFF0EC;
+      border: 1px solid #FDDDD6;
+      color: var(--coral);
+      border-radius: 8px;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .error-msg.show { display: block; }
+    .divider {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin: 1.5rem 0;
+      color: var(--text-3); font-size: 0.8rem;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--border);
+    }
+    .hint-text {
+      font-size: 0.8rem;
+      color: var(--text-3);
+      text-align: center;
+      line-height: 1.6;
+    }
+    .hint-text a {
+      color: var(--text-2);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .back-link {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--text-3);
+      text-align: center;
+    }
+    .back-link a {
+      color: var(--text-2);
+      text-decoration: none;
+    }
+    .back-link a:hover { text-decoration: underline; }
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .success-msg.show { display: block; }
+    .success-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .success-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 0.375rem;
+    }
+    .success-sub {
+      font-size: 0.85rem;
+      color: var(--text-3);
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/" class="logo-link">
+    <div class="logo-badge">M</div>
+    MedAgent Hub
+  </a>
+
+  <div class="card">
+    <div class="card-title">欢迎使用</div>
+    <div class="card-sub">输入邀请码，立即开始体验<br>21 个医美行业专属 AI 助手</div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div id="loginForm">
+      <div class="form-group">
+        <label class="form-label" for="codeInput">邀请码</label>
+        <input
+          class="form-input"
+          type="text"
+          id="codeInput"
+          placeholder="请输入邀请码"
+          autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
+        >
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="phoneInput">手机号 <span style="color:#bbb;font-weight:400">（选填，用于找回账号）</span></label>
+        <input
+          class="form-input"
+          type="tel"
+          id="phoneInput"
+          placeholder="请输入手机号"
+          autocomplete="tel"
+        >
+      </div>
+      <button class="btn-submit" id="submitBtn" onclick="doLogin()">开始使用 →</button>
+
+      <div class="divider">或</div>
+      <div class="hint-text">
+        还没有邀请码？<br>
+        <a href="/">返回首页了解详情</a>，或扫码联系我们获取
+      </div>
+    </div>
+
+    <div class="success-msg" id="successMsg">
+      <div class="success-icon">✅</div>
+      <div class="success-title">登录成功</div>
+      <div class="success-sub">正在跳转...</div>
+    </div>
+  </div>
+
+  <div class="back-link">
+    <a href="/">← 返回首页</a>
+  </div>
+</div>
+
+<script>
+  // 读取 URL 参数
+  const params = new URLSearchParams(window.location.search);
+  const redirectUrl = params.get('redirect') || '/chat.html';
+  const prefillCode = params.get('code') || '';
+
+  // 预填邀请码（来自推荐链接）
+  if (prefillCode) {
+    document.getElementById('codeInput').value = prefillCode;
+  }
+
+  // 如果已登录，直接跳转
+  (async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        window.location.replace(redirectUrl);
+      }
+    } catch(e) {}
+  })();
+
+  // Enter 键提交
+  document.getElementById('codeInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.getElementById('phoneInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const code = document.getElementById('codeInput').value.trim();
+    const phone = document.getElementById('phoneInput').value.trim();
+    const errorEl = document.getElementById('errorMsg');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (!code) {
+      showError('请输入邀请码');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '登录中...';
+    errorEl.classList.remove('show');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, phone })
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        showError(data.error || '登录失败，请重试');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '开始使用 →';
+        return;
+      }
+
+      // 登录成功
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('successMsg').classList.add('show');
+
+      // 如果是推荐人邀请，显示欢迎语
+      if (data.referrerName) {
+        document.querySelector('.success-sub').textContent = `由 ${data.referrerName} 邀请，正在跳转...`;
+      }
+
+      // 跳转
+      setTimeout(() => {
+        window.location.replace(redirectUrl);
+      }, 800);
+
+    } catch(e) {
+      showError('网络错误，请检查网络后重试');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '开始使用 →';
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+</script>
+</body>
+</html>
