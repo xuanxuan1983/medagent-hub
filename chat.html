@@ -1320,53 +1320,71 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       </div>
       <!-- Pricing -->
       <div class="modal-pane" id="pane-pricing">
-        <div class="modal-pane-title">升级套餐</div>
-        <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1.25rem;line-height:1.6">解锁全部 21 个医美专属 Agent，无限对话，优先响应。</p>
+        <!-- Notion 风格套餐升级 -->
+        <div style="margin-bottom:1.5rem">
+          <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:0.375rem">升级套餐</div>
+          <div style="font-size:0.825rem;color:var(--text-3);line-height:1.6">解锁全部 21 个医美专属 Agent，无限对话。</div>
+        </div>
 
         <!-- 免费版 -->
-        <div style="border:1.5px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:0.75rem">
-          <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">免费版</div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">每日有限次数，体验3个核心 Agent</div>
-          <div style="font-size:1.25rem;font-weight:700">¥0 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">/ 月</span></div>
+        <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:0.875rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">免费版</div>
+              <div style="font-size:0.775rem;color:var(--text-3)">每日有限次数 · 3 个核心 Agent</div>
+            </div>
+            <div style="font-size:1rem;font-weight:700;color:var(--text)">￥0</div>
+          </div>
         </div>
 
         <!-- 专业版 Pro -->
-        <div style="border:2px solid var(--text);border-radius:12px;padding:1rem;margin-bottom:0.75rem">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem">
-            <div style="font-weight:700;font-size:0.875rem">专业版 Pro</div>
-            <div style="font-size:0.7rem;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:20px">上游厂商首选</div>
+        <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
+            <div>
+              <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
+                <span style="font-size:0.875rem;font-weight:600;color:var(--text)">专业版 Pro</span>
+                <span style="font-size:0.65rem;background:var(--text);color:white;padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">厂商首选</span>
+              </div>
+              <div style="font-size:0.775rem;color:var(--text-3)">12 个上游 Agent · 无限对话 · 50 张图/月</div>
+            </div>
           </div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">12 个上游 Agent，无限对话，50张图/月</div>
-          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
-            <button class="btn-save" id="btnBuyPro" style="flex:1" onclick="startPayment({name:'专业版Pro',price:29900})">¥299/月</button>
-            <button class="btn-save" id="btnBuyProYear" style="flex:1;background:var(--text)" onclick="startPayment({name:'专业版Pro年付',price:238000})">¥2,380/年 <span style="font-size:0.65rem;opacity:0.8">省¥200</span></button>
+          <div style="display:flex;gap:0.5rem">
+            <button class="btn-save" id="btnBuyPro" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem" onclick="startPayment({name:'专业版Pro',price:29900})">¥299 / 月</button>
+            <button class="btn-save" id="btnBuyProYear" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem;background:var(--text)" onclick="startPayment({name:'专业版Pro年付',price:238000})">¥2,380 / 年 &nbsp;<span style="font-size:0.7rem;opacity:0.65">省 ¥200</span></button>
           </div>
         </div>
 
         <!-- 全能版 Pro+ -->
-        <div style="border:2px solid #7c3aed;border-radius:12px;padding:1rem;margin-bottom:0.75rem;background:linear-gradient(135deg,rgba(124,58,237,0.04),rgba(79,70,229,0.04))">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem">
-            <div style="font-weight:700;font-size:0.875rem">全能版 Pro+</div>
-            <div style="font-size:0.7rem;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:2px 8px;border-radius:20px">推荐</div>
+        <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
+            <div>
+              <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
+                <span style="font-size:0.875rem;font-weight:600;color:var(--text)">全能版 Pro+</span>
+                <span style="font-size:0.65rem;background:var(--text);color:white;padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">推荐</span>
+              </div>
+              <div style="font-size:0.775rem;color:var(--text-3)">全部 21 个 Agent · 100 张图/月 · 联网搜索</div>
+            </div>
           </div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">全部 21 个 Agent + 内容创作，100张图/月，联网搜索</div>
-          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
-            <button class="btn-save" id="btnBuyProPlus" style="flex:1;background:linear-gradient(135deg,#7c3aed,#4f46e5)" onclick="startPayment({name:'全能版Pro+',price:49900})">¥499/月</button>
-            <button class="btn-save" id="btnBuyProPlusYear" style="flex:1;background:linear-gradient(135deg,#5b21b6,#3730a3)" onclick="startPayment({name:'全能版Pro+年付',price:398000})">¥3,980/年 <span style="font-size:0.65rem;opacity:0.8">省¥608</span></button>
+          <div style="display:flex;gap:0.5rem">
+            <button class="btn-save" id="btnBuyProPlus" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem" onclick="startPayment({name:'全能版Pro+',price:49900})">¥499 / 月</button>
+            <button class="btn-save" id="btnBuyProPlusYear" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem;background:var(--text)" onclick="startPayment({name:'全能版Pro+年付',price:398000})">¥3,980 / 年 &nbsp;<span style="font-size:0.7rem;opacity:0.65">省 ¥608</span></button>
           </div>
         </div>
 
-        <!-- Level 2 全案服务入口 -->
-        <div style="border:1.5px solid #f59e0b;border-radius:12px;padding:1rem;background:linear-gradient(135deg,rgba(245,158,11,0.05),rgba(217,119,6,0.05))">
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
-            <span style="font-size:1rem">🌟</span>
-            <div style="font-weight:700;font-size:0.875rem">数字孪生全案服务 Level 2</div>
+        <!-- Level 2 全案服务 -->
+        <div style="padding:1rem 0">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
+            <span style="font-size:0.875rem;font-weight:600;color:var(--text)">数字孪生全案服务</span>
+            <span style="font-size:0.65rem;border:1px solid var(--text);color:var(--text);padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">Level 2</span>
           </div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem;line-height:1.5">不只是工具，而是一套完整的 AI 数字分身系统。专属顾问 1-on-1 深度诊断 + 21 天陪跑，赠全能版终身码。</div>
-          <div style="font-size:0.825rem;font-weight:700;color:#92400e;margin-bottom:0.75rem">¥29,800 · 前 5 名限额</div>
-          <div style="text-align:center">
-            <img src="/dmy-qrcode.jpg" alt="DMY小程序码" style="width:140px;height:140px;border-radius:8px;object-fit:cover">
-            <div style="font-size:0.7rem;color:#92400e;margin-top:0.4rem">扫码进入 DMY 了解全案服务</div>
+          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem;line-height:1.6">专属顾问 1-on-1 深度诊断 + 21 天陪跑，赠全能版终身码。</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem">
+            <span style="font-size:0.875rem;font-weight:700;color:var(--text)">¥29,800</span>
+            <span style="font-size:0.75rem;color:var(--text-3)">前 5 名限额</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem">
+            <img src="/dmy-qrcode.jpg" alt="DMY小程序码" style="width:72px;height:72px;border-radius:6px;object-fit:cover;flex-shrink:0">
+            <div style="font-size:0.775rem;color:var(--text-3);line-height:1.6">扫码进入 DMY 小程序，了解全案服务详情</div>
           </div>
         </div>
       </div>
