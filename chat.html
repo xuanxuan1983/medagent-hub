@@ -409,7 +409,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       cursor: pointer; transition: all 0.15s;
     }
     .store-card:hover { border-color: #AEAAA5; box-shadow: 0 2px 12px rgba(0,0,0,0.07); transform: translateY(-2px); }
-    .store-card-icon { font-size: 1.75rem; margin-bottom: 0.625rem; display: block; }
+    .store-card-icon { width: 48px; height: 48px; margin-bottom: 0.625rem; display: block; border-radius: 10px; overflow: hidden; background: var(--bg-warm); }
+    .store-card-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .store-card-name { font-size: 0.875rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem; }
     .store-card-desc { font-size: 0.775rem; color: var(--text-3); line-height: 1.5; margin-bottom: 0.75rem; }
     .store-card-tag {
@@ -451,8 +452,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       width: 36px; height: 36px; border-radius: 10px;
       background: var(--bg-warm); border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem; flex-shrink: 0;
+      font-size: 1.1rem; flex-shrink: 0; overflow: hidden;
     }
+    .chat-agent-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .chat-agent-name { font-size: 0.9rem; font-weight: 700; color: var(--text); }
     .chat-agent-desc { font-size: 0.775rem; color: var(--text-3); margin-top: 0.1rem; }
     .chat-status {
@@ -498,8 +500,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       width: 30px; height: 30px; border-radius: 8px;
       background: var(--bg-warm); border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.9rem; flex-shrink: 0;
+      font-size: 0.9rem; flex-shrink: 0; overflow: hidden;
     }
+    .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .msg-row.user .msg-avatar { background: var(--text); color: white; font-size: 0.7rem; font-weight: 700; }
     .msg-bubble {
       max-width: 72%; padding: 0.875rem 1.1rem;
@@ -1873,7 +1876,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const card = document.createElement('div');
         card.className = 'store-card' + (isLocked ? ' store-card-locked' : '');
         card.innerHTML = `
-          <span class="store-card-icon">${agent.icon}</span>
+          <span class="store-card-icon"><img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'"></span>
           <div class="store-card-name">${agent.name}${isLocked ? ` <span class="pro-badge" style="background:#f59e0b;color:white">🎁 反馈解锁</span>` : ''}</div>
           <div class="store-card-desc">${agent.desc}</div>
           <span class="store-card-tag">${agent.category}</span>
@@ -2016,7 +2019,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     messageIndex = 0;
 
     document.title = agent.name + ' - MedAgent Hub';
-    document.getElementById('topbarAvatar').textContent = agent.icon;
+    const topbarAvatarEl = document.getElementById('topbarAvatar');
+    topbarAvatarEl.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     document.getElementById('topbarName').textContent = agent.name;
     document.getElementById('topbarDesc').textContent = agent.desc;
     document.getElementById('chatStatus').style.display = 'none';
@@ -2439,7 +2443,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     row.className = 'msg-row assistant';
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
-    avatar.textContent = agent ? agent.icon : '🤖';
+    if (agent) {
+      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+    } else { avatar.textContent = '🤖'; }
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
     bubble.innerHTML = '<span style="opacity:0.5">█</span>'; // blinking cursor
@@ -2547,7 +2553,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     row.className = 'msg-row ' + role;
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
-    avatar.textContent = role === 'user' ? (currentUserName ? currentUserName.charAt(0).toUpperCase() : '我') : (agent ? agent.icon : '🤖');
+    if (role === 'user') {
+      avatar.textContent = currentUserName ? currentUserName.charAt(0).toUpperCase() : '我';
+    } else if (agent) {
+      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+    } else {
+      avatar.textContent = '🤖';
+    }
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
 
@@ -2645,7 +2657,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     row.id = 'typingRow';
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
-    avatar.textContent = agent ? agent.icon : '🤖';
+    if (agent) {
+      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+    } else { avatar.textContent = '🤖'; }
     const dots = document.createElement('div');
     dots.className = 'typing-dots';
     dots.innerHTML = '<span></span><span></span><span></span>';
@@ -3013,7 +3027,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
       // Update topbar
       document.title = agent.name + ' - MedAgent Hub (历史记录)';
-      document.getElementById('topbarAvatar').textContent = agent.icon;
+      const histTopbarAvatar = document.getElementById('topbarAvatar');
+      histTopbarAvatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
       document.getElementById('topbarName').textContent = agent.name;
       document.getElementById('topbarDesc').textContent = '📜 历史对话记录';
 
