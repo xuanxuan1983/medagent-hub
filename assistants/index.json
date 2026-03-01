@@ -1,19 +1,21 @@
 {
   "name": "MedAgent Hub",
-  "version": "1.0.0",
-  "description": "医美行业智能Agent平台 - 22个精品Agent覆盖上下游全链路",
-  "totalAgents": 22,
+  "version": "2.0.0",
+  "description": "医美行业智能Agent平台 - 覆盖上下游全链路的精品Agent集合",
   "categories": {
     "upstream": {
       "name": "上游厂商",
-      "count": 12,
       "agents": [
         "gtm-strategy-master",
         "product-material-expert",
+        "product-strategist",
         "academic-liaison",
+        "medical-liaison",
         "marketing-creative-director",
+        "marketing-director",
         "sales-director",
         "operations-director",
+        "sfe-director",
         "training-director",
         "area-manager",
         "channel-manager",
@@ -24,12 +26,13 @@
     },
     "downstream": {
       "name": "下游机构",
-      "count": 9,
       "agents": [
         "aesthetic-design-director",
+        "aesthetic-designer",
         "senior-consultant",
         "sparring-robot",
         "post-op-guardian",
+        "postop-specialist",
         "trend-setter",
         "anatomy-architect",
         "materials-mentor",
@@ -39,15 +42,14 @@
     },
     "other": {
       "name": "其他",
-      "count": 1,
       "agents": [
         "new-media-director"
       ]
     }
   },
   "departments": {
-    "upstream": ["战略部", "产品部", "医学部", "市场部", "销售部", "运营部", "培训部", "财务部", "人力资源部", "采购部"],
-    "downstream": ["咨询部", "培训部", "客服部", "运营部", "医疗部"],
+    "upstream": ["战略部", "产品部", "医学部", "市场部", "销售部", "销售效能部", "运营部", "培训部", "财务部", "人力资源部", "采购部", "大区销售部", "商务部", "医学事务部"],
+    "downstream": ["咨询部", "培训部", "客服部", "运营部", "医疗部", "美学设计部"],
     "other": ["合规部"]
   }
 }
