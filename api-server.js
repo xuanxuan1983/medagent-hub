@@ -238,23 +238,38 @@ async function extractFileContent(filePath, mimeType, originalName, openaiApiKey
 }
 
 async function callGeminiVision(imageBase64, mimeType) {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (!geminiKey) return '[图片识别服务未配置：缺少 GEMINI_API_KEY]';
+  // 已迁移到 callVisionModel，保留此函数名作为兼容入口
+  return callVisionModel(imageBase64, mimeType);
+}
+
+async function callVisionModel(imageBase64, mimeType, userPrompt) {
+  const sfKey = process.env.SILICONFLOW_API_KEY;
+  if (!sfKey) return '[图片识别服务未配置：缺少 SILICONFLOW_API_KEY]';
+
+  const prompt = userPrompt || '请详细描述这张图片的内容，包括文字、数据、图表等所有信息。如果是医学图像或医美相关图像，请提供专业分析。请用中文回答。';
 
   return new Promise((resolve) => {
     const body = JSON.stringify({
-      contents: [{
-        parts: [
-          { text: '请详细描述这张图片的内容，包括文字、数据、图表等所有信息。如果是医学图像或医美相关图像，请提供专业分析。请用中文回答。' },
-          { inline_data: { mime_type: mimeType, data: imageBase64 } }
+      model: 'Qwen/Qwen2.5-VL-72B-Instruct',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+          { type: 'text', text: prompt }
         ]
-      }]
+      }],
+      max_tokens: 2048,
+      stream: false
     });
     const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+      hostname: 'api.siliconflow.cn',
+      path: '/v1/chat/completions',
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sfKey}`,
+        'Content-Length': Buffer.byteLength(body)
+      }
     };
     const req = https.request(options, res => {
       let data = '';
@@ -262,7 +277,7 @@ async function callGeminiVision(imageBase64, mimeType) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+          const text = json.choices?.[0]?.message?.content;
           resolve(text || '[图片识别失败：无法获取结果]');
         } catch { resolve('[图片识别失败：响应解析错误]'); }
       });
