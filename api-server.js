@@ -1282,9 +1282,15 @@ async function generateImageModelScope(promptKey, customPrompt) {
   }
 
   const submitData = await submitResp.json();
+
+  // 兼容同步直接返回 SUCCEED 的情况
+  if (submitData.task_status === 'SUCCEED') {
+    const imgUrl = submitData.output_images?.[0];
+    if (imgUrl) return { url: imgUrl, prompt: finalPrompt };
+  }
+
   const taskId = submitData.task_id;
   if (!taskId) throw new Error('No task_id returned from ModelScope');
-
   // Step 2: 轮询结果（最多等 90 秒）
   const pollHeaders = {
     'Authorization': `Bearer ${MODELSCOPE_API_KEY}`,
