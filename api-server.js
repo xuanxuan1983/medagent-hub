@@ -2476,11 +2476,7 @@ const server = http.createServer(async (req, res) => {
 
   // Daily brief API - 每日行业摘要
   if (url.pathname === '/api/daily-brief' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
+    // 日报为公开内容，无需登录验证
     try {
       const briefPath = path.join(DATA_DIR, 'data', 'daily-brief.json');
       if (fs.existsSync(briefPath)) {
