@@ -310,7 +310,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       margin: 0 auto 1.5rem;
       animation: float 3.5s ease-in-out infinite;
     }
-    .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+    .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; }
     .desktop-greeting {
       font-size: 2rem; font-weight: 700; color: var(--text);
       font-family: 'Noto Serif SC', serif; margin-bottom: 0.375rem;
@@ -487,7 +487,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       width: 90px; height: 90px; margin-bottom: 1rem;
       animation: breathe 4s ease-in-out infinite;
     }
-    .welcome-mascot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+    .welcome-mascot img { width: 100%; height: 100%; object-fit: contain; }
     .welcome-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 0.375rem; font-family: 'Noto Serif SC', serif; }
     .welcome-sub { font-size: 0.85rem; color: var(--text-3); max-width: 320px; line-height: 1.6; }
     .welcome-error { color: #DC2626; font-size: 0.875rem; }
@@ -1012,7 +1012,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   <div class="desktop-view active" id="desktopView">
     <div class="desktop-welcome">
       <div class="desktop-mascot">
-        <img src="/mascot-elf.jpg" alt="豆豆">
+        <img src="/mascot-elf.png" alt="豆豆">
       </div>
       <div class="desktop-greeting" id="desktopGreeting">你好！</div>
       <div class="desktop-sub" id="desktopSub">选择一个 Agent 开始对话，或直接向豆豆提问</div>
@@ -1071,7 +1071,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     </div>
     <div class="chat-messages" id="chatMessages">
       <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="/mascot-elf.jpg" alt="豆豆"></div>
+        <div class="welcome-mascot"><img src="/mascot-elf.png" alt="豆豆"></div>
         <div class="welcome-title" id="welcomeTitle">你好！</div>
         <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
       </div>
@@ -1669,7 +1669,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     // Reset chat
     document.getElementById('chatMessages').innerHTML = `
       <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="/mascot-elf.jpg" alt="豆豆"></div>
+        <div class="welcome-mascot"><img src="/mascot-elf.png" alt="豆豆"></div>
         <div class="welcome-title" id="welcomeTitle">${agent.name}</div>
         <div class="welcome-sub" id="welcomeSub">${agent.desc}</div>
       </div>`;
