@@ -754,6 +754,21 @@ function incrementMonthlyImg(code) {
   return p.img_month_count;
 }
 
+// 记录当月联网搜索数
+function incrementSearchCount(code) {
+  const profiles = loadProfiles();
+  if (!profiles[code]) profiles[code] = {};
+  const p = profiles[code];
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  if (p.search_month !== thisMonth) {
+    p.search_month = thisMonth;
+    p.search_month_count = 0;
+  }
+  p.search_month_count = (p.search_month_count || 0) + 1;
+  saveProfiles(profiles);
+  return p.search_month_count;
+}
+
 // 记录当日图片生成数（免费用户）
 function incrementDailyImg(code) {
   const profiles = loadProfiles();
