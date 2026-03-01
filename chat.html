@@ -654,6 +654,51 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       color: white; font-weight: 600;
     }
     .search-toggle-btn.active:hover { background: #C85A4A; }
+    .draw-btn {
+      background: var(--bg-warm); border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 0.3rem 0.7rem;
+      font-size: 0.78rem; cursor: pointer; color: #888;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.25rem;
+      font-family: inherit;
+    }
+    .draw-btn:hover { border-color: #b89a6a; color: #8a6a3a; background: #fdf6ee; }
+    .draw-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    /* 绘图弹窗 */
+    .draw-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 1000; display: flex; align-items: center; justify-content: center;
+    }
+    .draw-modal-card {
+      background: var(--bg); border-radius: 16px; padding: 1.5rem;
+      width: min(480px, 92vw); box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      position: relative;
+    }
+    .draw-modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+    .draw-prompt-input {
+      width: 100%; box-sizing: border-box;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 0.7rem 0.9rem; font-size: 0.875rem;
+      font-family: inherit; resize: vertical; min-height: 90px;
+      background: var(--bg-warm); color: var(--text);
+      outline: none; transition: border-color 0.2s;
+    }
+    .draw-prompt-input:focus { border-color: #AEAAA5; }
+    .draw-modal-footer { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; }
+    .draw-cancel-btn {
+      padding: 0.5rem 1.1rem; border-radius: 8px;
+      border: 1.5px solid var(--border); background: none;
+      font-size: 0.825rem; cursor: pointer; color: var(--text-2);
+      font-family: inherit;
+    }
+    .draw-submit-btn {
+      padding: 0.5rem 1.25rem; border-radius: 8px;
+      background: var(--text); color: white;
+      border: none; font-size: 0.825rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .draw-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .draw-result-img { width: 100%; border-radius: 10px; margin-top: 0.75rem; display: block; }
+    .draw-status { font-size: 0.82rem; color: var(--text-3); margin-top: 0.6rem; text-align: center; }
     .chat-send-btn {
       padding: 0.5rem 1.25rem; border-radius: 8px;
       background: var(--text); color: white;
@@ -1041,6 +1086,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             </button>
             <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
               🌐 联网
+            </button>
+            <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图">
+              🎨 绘图
             </button>
             <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
           </div>
@@ -1703,6 +1751,84 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   function willSearch(msg) {
     return webSearchEnabled;
+  }
+
+  // ===== 绘图功能 =====
+  let drawModalEl = null;
+
+  function openDrawModal() {
+    if (drawModalEl) return;
+    drawModalEl = document.createElement('div');
+    drawModalEl.className = 'draw-modal-overlay';
+    drawModalEl.innerHTML = `
+      <div class="draw-modal-card">
+        <div class="draw-modal-title">🎨 AI 绘图</div>
+        <textarea class="draw-prompt-input" id="drawPromptInput" placeholder="描述你想要的画面，例如：一名医美顾问向客户介绍玻尿酸项目，专业、温暖、现代风格" rows="3"></textarea>
+        <div class="draw-status" id="drawStatus"></div>
+        <img class="draw-result-img" id="drawResultImg" style="display:none" />
+        <div class="draw-modal-footer">
+          <button class="draw-cancel-btn" onclick="closeDrawModal()"> 取消</button>
+          <button class="draw-submit-btn" id="drawSubmitBtn" onclick="submitDraw()"> 生成图片</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(drawModalEl);
+    drawModalEl.addEventListener('click', e => { if (e.target === drawModalEl) closeDrawModal(); });
+    setTimeout(() => document.getElementById('drawPromptInput')?.focus(), 100);
+  }
+
+  function closeDrawModal() {
+    if (drawModalEl) { drawModalEl.remove(); drawModalEl = null; }
+  }
+
+  async function submitDraw() {
+    const prompt = document.getElementById('drawPromptInput')?.value?.trim();
+    if (!prompt) { document.getElementById('drawStatus').textContent = '请输入画面描述'; return; }
+    const submitBtn = document.getElementById('drawSubmitBtn');
+    const statusEl = document.getElementById('drawStatus');
+    const resultImg = document.getElementById('drawResultImg');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '生成中...';
+    statusEl.textContent = '正在调用 LibLib AI，预计 20-40 秒...';
+    resultImg.style.display = 'none';
+    try {
+      const token = localStorage.getItem('medagent_token');
+      const res = await fetch('/api/image/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ prompt, sessionId })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        const errMap = {
+          'not_pro': '绘图功能仅 Pro 用户可用，请升级订阅',
+          'img_quota_exceeded': '本月绘图次数已用完',
+          'trial_expired': '试用期已到期，请订阅'
+        };
+        statusEl.textContent = errMap[data.error] || (data.message || '生成失败，请稍后重试');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '重新生成';
+        return;
+      }
+      if (data.imageUrl) {
+        resultImg.src = data.imageUrl;
+        resultImg.style.display = 'block';
+        statusEl.textContent = '生成成功！点击图片可保存';
+        resultImg.onclick = () => { const a = document.createElement('a'); a.href = data.imageUrl; a.download = 'medagent-draw.png'; a.target='_blank'; a.click(); };
+        resultImg.style.cursor = 'pointer';
+        // 将图片插入聊天记录
+        addMessage('assistant', `🎨 已根据描述「${prompt}」生成图片\n\n![AI绘图](${data.imageUrl})`);
+        setTimeout(() => closeDrawModal(), 1500);
+      } else {
+        statusEl.textContent = '生成失败，请稍后重试';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '重新生成';
+      }
+    } catch(e) {
+      statusEl.textContent = '网络错误，请稍后重试';
+      submitBtn.disabled = false;
+      submitBtn.textContent = '重新生成';
+    }
   }
 
   async function sendMessage() {
