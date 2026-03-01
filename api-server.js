@@ -1006,7 +1006,8 @@ const agentSkillMap = {
   'finance-bp': 'finance-bp',
   'hrbp': 'hrbp',
   'procurement-manager': 'procurement-manager',
-  'new-media-director': 'new-media-director'
+  'new-media-director': 'new-media-director',
+  'kv-design-director': 'kv-design-director'
 };
 
 const agentNames = {
@@ -1031,7 +1032,8 @@ const agentNames = {
   'finance-bp': '财务BP',
   'hrbp': '战略HRBP',
   'procurement-manager': '采购经理',
-  'new-media-director': '医美合规内容专家'
+  'new-media-director': '医美合规内容专家',
+  'kv-design-director': '视觉KV设计总监'
 };
 
 // 微信支付初始化
