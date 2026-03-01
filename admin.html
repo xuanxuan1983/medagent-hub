@@ -118,6 +118,15 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Token 统计
     </div>
+    <div class="nav-section">内容工具</div>
+    <div class="nav-item" onclick="window.open('/knowledge.html','_blank')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      语料中心 ↗
+    </div>
+    <div class="nav-item" onclick="window.open('/daily-brief.html','_blank')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      行业日报 ↗
+    </div>
     <div class="nav-section">渠道管理</div>
     <div class="nav-item" onclick="showPage('channel')" id="nav-channel">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -172,23 +181,17 @@
       </div>
       <div class="card">
         <div class="card-title">生成新邀请码</div>
+        <p style="font-size:0.8rem;color:#767676;margin-bottom:0.75rem">每个邀请码绑定一个用户名，用于标识该码归属。</p>
         <div class="input-row">
-          <input class="input" id="newCodePrefix" placeholder="前缀（可选，如 VIP）" style="max-width:180px">
-          <select class="select" id="newCodeCount">
-            <option value="1">1 个</option>
-            <option value="5" selected>5 个</option>
-            <option value="10">10 个</option>
-            <option value="20">20 个</option>
-            <option value="50">50 个</option>
-          </select>
-          <select class="select" id="newCodeMaxUses">
+          <input class="input" id="newCodeName" placeholder="用户名（必填，如：张医生、VIP001）">
+          <select class="select" id="newCodeMaxUses" style="flex-shrink:0;width:160px">
             <option value="1">最多使用 1 次</option>
             <option value="3">最多使用 3 次</option>
             <option value="5" selected>最多使用 5 次</option>
             <option value="10">最多使用 10 次</option>
             <option value="99">不限次数</option>
           </select>
-          <button class="btn btn-primary" onclick="generateCodes()">生成</button>
+          <button class="btn btn-primary" onclick="generateCodes()" style="flex-shrink:0">生成邀请码</button>
         </div>
         <div id="newCodesResult"></div>
       </div>
@@ -486,14 +489,18 @@ async function loadCodes() {
 }
 
 async function generateCodes() {
-  const prefix = document.getElementById('newCodePrefix').value.trim();
-  const count = parseInt(document.getElementById('newCodeCount').value);
+  const name = document.getElementById('newCodeName').value.trim();
   const maxUses = parseInt(document.getElementById('newCodeMaxUses').value);
-  const res = await api('/api/admin/codes', 'POST', { prefix, count, maxUses });
-  if (res && res.codes) {
+  if (!name) { showToast('请填写用户名'); return; }
+  const res = await api('/api/admin/codes', 'POST', { name, maxUses });
+  if (res && res.code) {
     const el = document.getElementById('newCodesResult');
-    el.innerHTML = '<div style="margin-top:0.75rem"><div style="font-size:0.75rem;color:#767676;margin-bottom:0.5rem">生成成功，点击复制：</div>' +
-      res.codes.map(c => `<span class="code-chip" onclick="copyText('${c}')" style="margin:2px">${c}</span>`).join('') + '</div>';
+    el.innerHTML = `<div style="margin-top:0.75rem;padding:0.75rem;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0">
+      <div style="font-size:0.75rem;color:#166534;margin-bottom:0.5rem">✅ 生成成功！点击复制：</div>
+      <span class="code-chip" onclick="copyText('${res.code}')" style="font-size:1rem;padding:4px 12px">${res.code}</span>
+      <span style="font-size:0.75rem;color:#5a5a5a;margin-left:0.5rem">归属：${res.name} · 最多使用 ${res.maxUses >= 99 ? '不限' : res.maxUses + '次'}</span>
+    </div>`;
+    document.getElementById('newCodeName').value = '';
     loadCodes();
   } else {
     showToast('❌ 生成失败：' + (res?.error || '未知'));
