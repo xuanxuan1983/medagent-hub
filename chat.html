@@ -1258,6 +1258,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <div class="info-row"><span class="info-row-label">用户</span><span class="info-row-val" id="infoUser">—</span></div>
         <div class="info-row"><span class="info-row-label">套餐</span><span class="info-row-val">免费版</span></div>
         <div class="info-row"><span class="info-row-label">今日使用</span><span class="info-row-val" id="infoUsage">—</span></div>
+        <!-- 管理员专属入口 -->
+        <div id="adminEntrySection" style="display:none;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
+          <div style="font-size:0.75rem;color:var(--text-3);margin-bottom:0.75rem;font-weight:600;letter-spacing:0.05em">管理员工具</div>
+          <a href="/admin.html" target="_blank" style="display:flex;align-items:center;gap:0.6rem;background:#191919;color:#fff;border-radius:8px;padding:0.7rem 1rem;text-decoration:none;font-size:0.875rem;font-weight:600;transition:opacity 0.15s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            数据管理中心
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </div>
       </div>
       <!-- API -->
       <div class="modal-pane" id="pane-api">
@@ -1664,6 +1673,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       // 管理员显示隐藏 Agent 标签
       const btnHidden = document.getElementById('btnFilterHidden');
       if (btnHidden) btnHidden.style.display = currentIsAdmin ? '' : 'none';
+      // 管理员专属入口区域
+      const adminEntry = document.getElementById('adminEntrySection');
+      if (adminEntry) adminEntry.style.display = currentIsAdmin ? '' : 'none';
       // 更新反馈标签状态
       updateFeedbackTabState();
       buildStore(); // 重新渲染 Agent 列表，使锁定状态生效
