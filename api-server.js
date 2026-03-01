@@ -13,6 +13,7 @@ const mammoth = require('mammoth');
 const XLSX = require('xlsx');
 const { Client: NotionClient } = require('@notionhq/client');
 const { execSync } = require('child_process');
+const kb = require('./knowledge-base');
 
 const PORT = process.env.PORT || 3002;
 const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
@@ -191,6 +192,30 @@ const upload = multer({
     }
   }
 });
+
+// ===== 知识库文件上传 multer 实例（支持 100MB）=====
+const kbStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, kb.KB_ROOT),
+  filename: (req, file, cb) => {
+    const ts = Date.now();
+    const safe = file.originalname.replace(/[^a-zA-Z0-9._\u4e00-\u9fa5-]/g, '_');
+    cb(null, `${ts}_${safe}`);
+  }
+});
+const kbUpload = multer({
+  storage: kbStorage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain', 'text/markdown'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(file.mimetype) || ['.pdf','.docx','.doc','.txt','.md'].includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('知识库仅支持 PDF、Word、TXT 格式'), false);
+    }
+  }
+});
+const kbUploadMiddleware = kbUpload.single('file');
 
 // ===== FILE CONTENT EXTRACTION =====
 async function extractFileContent(filePath, mimeType, originalName, openaiApiKey) {
@@ -2177,6 +2202,25 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // 4️⃣ RAG 知识库检索（自动触发）
+      try {
+        const kbStats = kb.getStats();
+        if (kbStats.totalFiles > 0) {
+          const sfKey = process.env.SILICONFLOW_API_KEY;
+          const kbChunks = await Promise.race([
+            kb.retrieve(message, session.agentId, sfKey, 5),
+            new Promise(resolve => setTimeout(() => resolve([]), 5000))
+          ]);
+          if (kbChunks && kbChunks.length > 0) {
+            const kbContext = kb.formatKnowledgeContext(kbChunks);
+            enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + kbContext;
+            console.log(`✅ [RAG知识库] 检索到 ${kbChunks.length} 个相关段落`);
+          }
+        }
+      } catch (e) {
+        console.warn('[RAG] 知识库检索跳过:', e.message);
+      }
+
       // Determine provider
       const activeProvider = (userProvider && userApiKey)
         ? createProviderFromConfig(userProvider, userApiKey, userModel)
@@ -2398,6 +2442,25 @@ const server = http.createServer(async (req, res) => {
         } catch (e) {
           console.warn('[Notion] 查询跳过:', e.message);
         }
+      }
+
+      // 4️⃣ RAG 知识库检索（自动触发）
+      try {
+        const kbStats2 = kb.getStats();
+        if (kbStats2.totalFiles > 0) {
+          const sfKey2 = process.env.SILICONFLOW_API_KEY;
+          const kbChunks2 = await Promise.race([
+            kb.retrieve(message, session.agentId, sfKey2, 5),
+            new Promise(resolve => setTimeout(() => resolve([]), 5000))
+          ]);
+          if (kbChunks2 && kbChunks2.length > 0) {
+            const kbContext2 = kb.formatKnowledgeContext(kbChunks2);
+            enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + kbContext2;
+            console.log(`✅ [RAG知识库] 检索到 ${kbChunks2.length} 个相关段落`);
+          }
+        }
+      } catch (e) {
+        console.warn('[RAG] 知识库检索跳过:', e.message);
       }
 
       // Use user-supplied provider if provided, otherwise fall back to server default
@@ -3645,6 +3708,75 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
+  // ===== 知识库管理 API =====
+  // 获取知识库统计
+  if (url.pathname === '/api/admin/kb/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const stats = kb.getStats();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(stats));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // 删除知识库文档
+  if (url.pathname === '/api/admin/kb/delete' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const { fileId } = await parseRequestBody(req);
+      const removed = kb.removeDocument(fileId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, removed }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // 上传并向量化文档（SSE 流式进度）
+  if (url.pathname === '/api/admin/kb/upload' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    kbUploadMiddleware(req, res, async (err) => {
+      if (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+      if (!req.file) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '未收到文件' }));
+        return;
+      }
+      const scope = req.body?.scope || 'global';
+      const filePath = req.file.path;
+      const sfKey = process.env.SILICONFLOW_API_KEY;
+      // 使用 SSE 推送进度
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
+      const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+      try {
+        const result = await kb.addDocument(filePath, scope, sfKey, (progress) => send(progress));
+        // 删除临时文件
+        try { fs.unlinkSync(filePath); } catch {}
+        send({ step: 'complete', ...result });
+        res.end();
+      } catch (e) {
+        try { fs.unlinkSync(filePath); } catch {}
+        send({ step: 'error', error: e.message });
+        res.end();
+      }
+    });
+    return;
+  }
+
   // 微信支付 - 创建订单
   if (url.pathname === '/api/payment/create-order' && req.method === 'POST') {
     try {
@@ -3792,7 +3924,7 @@ const server = http.createServer(async (req, res) => {
   const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.mp4': 'video/mp4', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
   const contentType = mimeTypes[ext] || 'application/octet-stream';
   const protectedPages = ['chat.html'];
-  const adminPages = ['admin.html', 'corpus.html'];
+  const adminPages = ['admin.html', 'corpus.html', 'knowledge.html'];
   const requestedFile = path.basename(filePath);
   if (adminPages.includes(requestedFile) && !isAdmin(req)) {
     res.writeHead(302, { Location: '/login.html' });

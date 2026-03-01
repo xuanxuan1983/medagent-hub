@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>知识库管理 - MedAgent Hub</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 30px; display: flex; align-items: center; gap: 16px; }
+    .header h1 { font-size: 22px; font-weight: 600; }
+    .header .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .header .back-btn:hover { background: rgba(255,255,255,0.3); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center; }
+    .stat-card .num { font-size: 36px; font-weight: 700; color: #667eea; }
+    .stat-card .label { font-size: 13px; color: #888; margin-top: 4px; }
+    .section { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px; }
+    .section h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 8px; }
+    .upload-area { border: 2px dashed #d0d7de; border-radius: 10px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafbfc; }
+    .upload-area:hover, .upload-area.drag-over { border-color: #667eea; background: #f0f0ff; }
+    .upload-area .icon { font-size: 48px; margin-bottom: 12px; }
+    .upload-area p { color: #666; font-size: 15px; }
+    .upload-area p.hint { font-size: 12px; color: #999; margin-top: 8px; }
+    .upload-area input[type=file] { display: none; }
+    .scope-select { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+    .scope-option { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.2s; }
+    .scope-option.active { border-color: #667eea; background: #f0f0ff; color: #667eea; font-weight: 600; }
+    .upload-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 15px; cursor: pointer; width: 100%; margin-top: 16px; font-weight: 600; transition: opacity 0.2s; }
+    .upload-btn:hover { opacity: 0.9; }
+    .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .progress-box { margin-top: 16px; display: none; }
+    .progress-bar { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px; transition: width 0.3s; width: 0%; }
+    .progress-text { font-size: 13px; color: #666; margin-top: 8px; }
+    .file-list { display: flex; flex-direction: column; gap: 12px; }
+    .file-item { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid #e8eaed; border-radius: 10px; background: #fafbfc; }
+    .file-icon { font-size: 28px; flex-shrink: 0; }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { font-size: 14px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { font-size: 12px; color: #888; margin-top: 4px; }
+    .file-scope { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .file-scope.global { background: #e8f5e9; color: #2e7d32; }
+    .file-scope.agent { background: #e3f2fd; color: #1565c0; }
+    .delete-btn { background: none; border: 1px solid #ffcdd2; color: #e53935; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; flex-shrink: 0; transition: all 0.2s; }
+    .delete-btn:hover { background: #ffebee; }
+    .empty-state { text-align: center; padding: 40px; color: #999; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; display: none; }
+    .alert.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .alert.error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+    .selected-file { background: #f0f0ff; border: 1px solid #667eea; border-radius: 8px; padding: 12px 16px; margin-top: 12px; display: none; font-size: 14px; color: #555; }
+    .agent-select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; display: none; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="/chat.html" class="back-btn">← 返回</a>
+    <h1>📚 知识库管理</h1>
+  </div>
+
+  <div class="container">
+    <div id="alert" class="alert"></div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="num" id="statFiles">-</div>
+        <div class="label">已上传文献</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statChunks">-</div>
+        <div class="label">全局向量块</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="statAgentFiles">-</div>
+        <div class="label">Agent 专属文献</div>
+      </div>
+    </div>
+
+    <!-- 上传区域 -->
+    <div class="section">
+      <h2>📤 上传新文献</h2>
+      <div class="upload-area" id="uploadArea">
+        <div class="icon">📄</div>
+        <p>点击选择文件，或拖拽到此处</p>
+        <p class="hint">支持 PDF、Word (.docx)、TXT 格式，单文件最大 100MB</p>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md">
+      </div>
+      <div class="selected-file" id="selectedFile"></div>
+
+      <div style="margin-top: 16px;">
+        <p style="font-size: 14px; color: #555; margin-bottom: 8px; font-weight: 600;">归属范围：</p>
+        <div class="scope-select">
+          <div class="scope-option active" data-scope="global" onclick="setScope('global', this)">
+            🌐 全局知识库（所有 Agent 共享）
+          </div>
+          <div class="scope-option" data-scope="agent" onclick="setScope('agent', this)">
+            🤖 指定 Agent 专属
+          </div>
+        </div>
+        <select class="agent-select" id="agentSelect">
+          <option value="senior-consultant">金牌医美咨询师</option>
+          <option value="sparring-robot">医美实战陪练机器人</option>
+          <option value="materials-mentor">医美材料学硬核导师</option>
+          <option value="gtm-strategy">GTM战略大师</option>
+          <option value="product-expert">产品材料专家</option>
+          <option value="academic-liaison">学术推广专家</option>
+          <option value="marketing-director">市场创意总监</option>
+          <option value="sales-director">销售作战总监</option>
+          <option value="operations-director">运营效能总监</option>
+          <option value="training-director">培训赋能总监</option>
+          <option value="area-manager">大区经理</option>
+          <option value="channel-manager">商务经理</option>
+        </select>
+      </div>
+
+      <div class="progress-box" id="progressBox">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">准备中...</div>
+      </div>
+
+      <button class="upload-btn" id="uploadBtn" onclick="uploadFile()">开始上传并向量化</button>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="section">
+      <h2>📋 已上传文献列表</h2>
+      <div class="file-list" id="fileList">
+        <div class="empty-state">
+          <div class="icon">📭</div>
+          <p>加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedScope = 'global';
+    let selectedFile = null;
+
+    function setScope(scope, el) {
+      selectedScope = scope;
+      document.querySelectorAll('.scope-option').forEach(o => o.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('agentSelect').style.display = scope === 'agent' ? 'block' : 'none';
+    }
+
+    function showAlert(msg, type) {
+      const el = document.getElementById('alert');
+      el.textContent = msg;
+      el.className = 'alert ' + type;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 5000);
+    }
+
+    // 文件选择
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFileSelect(file);
+    });
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleFileSelect(e.target.files[0]);
+    });
+
+    function handleFileSelect(file) {
+      selectedFile = file;
+      const el = document.getElementById('selectedFile');
+      el.style.display = 'block';
+      el.innerHTML = `<strong>已选择：</strong>${file.name} <span style="color:#999">(${(file.size/1024/1024).toFixed(1)} MB)</span>`;
+    }
+
+    async function uploadFile() {
+      if (!selectedFile) { showAlert('请先选择文件', 'error'); return; }
+      const scope = selectedScope === 'agent'
+        ? document.getElementById('agentSelect').value
+        : 'global';
+
+      const btn = document.getElementById('uploadBtn');
+      const progressBox = document.getElementById('progressBox');
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+
+      btn.disabled = true;
+      progressBox.style.display = 'block';
+      progressFill.style.width = '5%';
+      progressText.textContent = '上传文件中...';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('scope', scope);
+
+      try {
+        const response = await fetch('/api/admin/kb/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || '上传失败');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.step === 'parse') {
+                progressFill.style.width = '20%';
+                progressText.textContent = '解析文档内容...';
+              } else if (data.step === 'chunk') {
+                progressFill.style.width = '40%';
+                progressText.textContent = `文本分块处理... (${data.chunks || 0} 块)`;
+              } else if (data.step === 'embed') {
+                if (data.done !== undefined) {
+                  const pct = 40 + Math.round((data.done / data.total) * 50);
+                  progressFill.style.width = pct + '%';
+                  progressText.textContent = `向量化中... ${data.done}/${data.total} 块 (${data.progress}%)`;
+                }
+              } else if (data.step === 'complete') {
+                progressFill.style.width = '100%';
+                progressText.textContent = `✅ 完成！共 ${data.chunks} 个向量块`;
+                showAlert(`文献「${selectedFile.name}」上传成功，共 ${data.chunks} 个向量块`, 'success');
+                selectedFile = null;
+                document.getElementById('selectedFile').style.display = 'none';
+                fileInput.value = '';
+                loadStats();
+                loadFiles();
+              } else if (data.step === 'error') {
+                throw new Error(data.error);
+              }
+            } catch (e) {
+              if (e.message !== 'Unexpected end of JSON input') {
+                progressText.textContent = '❌ ' + e.message;
+                showAlert('处理失败：' + e.message, 'error');
+              }
+            }
+          }
+        }
+      } catch (e) {
+        progressText.textContent = '❌ ' + e.message;
+        showAlert('上传失败：' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => { progressBox.style.display = 'none'; }, 3000);
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/kb/stats', { credentials: 'include' });
+        const data = await res.json();
+        document.getElementById('statFiles').textContent = data.totalFiles || 0;
+        document.getElementById('statChunks').textContent = (data.globalChunks || 0).toLocaleString();
+        const agentFiles = Object.values(data.agentStats || {}).reduce((a, b) => a + b, 0);
+        document.getElementById('statAgentFiles').textContent = agentFiles;
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadFiles() {
+      try {
+        const res = await fetch('/api/admin/kb/stats', { credentials: 'include' });
+        const data = await res.json();
+        const list = document.getElementById('fileList');
+        if (!data.files || data.files.length === 0) {
+          list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无文献，请上传第一个文件</p></div>';
+          return;
+        }
+        list.innerHTML = data.files.map(f => {
+          const ext = f.name.split('.').pop().toLowerCase();
+          const icon = ext === 'pdf' ? '📕' : ext === 'docx' || ext === 'doc' ? '📘' : '📄';
+          const scopeLabel = f.scope === 'global' ? '全局' : f.scope;
+          const scopeClass = f.scope === 'global' ? 'global' : 'agent';
+          const sizeMB = f.size ? (f.size / 1024 / 1024).toFixed(1) + ' MB' : '-';
+          const date = f.addedAt ? new Date(f.addedAt).toLocaleDateString('zh-CN') : '-';
+          return `
+            <div class="file-item" id="file-${f.id}">
+              <div class="file-icon">${icon}</div>
+              <div class="file-info">
+                <div class="file-name" title="${f.name}">${f.name}</div>
+                <div class="file-meta">
+                  <span class="file-scope ${scopeClass}">${scopeLabel}</span>
+                  &nbsp;${f.chunks} 个向量块 &nbsp;·&nbsp; ${sizeMB} &nbsp;·&nbsp; ${date}
+                </div>
+              </div>
+              <button class="delete-btn" onclick="deleteFile('${f.id}', '${f.name.replace(/'/g, "\\'")}')">删除</button>
+            </div>
+          `;
+        }).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function deleteFile(fileId, fileName) {
+      if (!confirm(`确定要删除「${fileName}」吗？\n\n删除后 Agent 将无法再检索此文献中的内容。`)) return;
+      try {
+        const res = await fetch('/api/admin/kb/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileId }),
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(`已删除「${fileName}」`, 'success');
+          document.getElementById('file-' + fileId)?.remove();
+          loadStats();
+        } else {
+          showAlert('删除失败：' + (data.error || '未知错误'), 'error');
+        }
+      } catch (e) {
+        showAlert('删除失败：' + e.message, 'error');
+      }
+    }
+
+    // 初始化
+    loadStats();
+    loadFiles();
+  </script>
+</body>
+</html>
