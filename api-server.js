@@ -1007,7 +1007,9 @@ const agentSkillMap = {
   'hrbp': 'hrbp',
   'procurement-manager': 'procurement-manager',
   'new-media-director': 'new-media-director',
-  'kv-design-director': 'kv-design-director'
+  'kv-design-director': 'kv-design-director',
+  'meta-prompt-architect': 'meta-prompt-architect',
+  'prompt-engineer-pro': 'prompt-engineer-pro'
 };
 
 const agentNames = {
@@ -1033,7 +1035,9 @@ const agentNames = {
   'hrbp': '战略HRBP',
   'procurement-manager': '采购经理',
   'new-media-director': '医美合规内容专家',
-  'kv-design-director': '视觉KV设计总监'
+  'kv-design-director': '视觉KV设计总监',
+  'meta-prompt-architect': '元提示词架构师',
+  'prompt-engineer-pro': '高级Prompt工程师'
 };
 
 // 微信支付初始化
