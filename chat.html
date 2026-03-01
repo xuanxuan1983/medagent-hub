@@ -649,10 +649,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     .chat-textarea::placeholder { color: #AEAAA5; }
     .chat-input-footer {
       display: flex; align-items: center; justify-content: space-between;
-      margin-top: 0.5rem;
+      margin-top: 0.5rem; gap: 0.375rem;
     }
-    .chat-input-left { display: flex; align-items: center; gap: 0.375rem; }
-    .chat-input-hint { font-size: 0.72rem; color: #AEAAA5; }
+    .chat-input-left { display: flex; align-items: center; gap: 0.375rem; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+    .chat-input-left::-webkit-scrollbar { display: none; }
+    .chat-input-right { display: flex; align-items: center; gap: 0.375rem; flex-shrink: 0; }
+    .chat-input-hint { font-size: 0.72rem; color: #AEAAA5; white-space: nowrap; }
+    @media (max-width: 600px) {
+      .chat-input-hint { display: none; }
+    }
     .search-toggle-btn {
       background: var(--bg-warm); border: 1.5px solid var(--border);
       border-radius: 8px; padding: 0.3rem 0.7rem;
@@ -1124,12 +1129,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图">
               🎨 绘图
             </button>
+            <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
+          </div>
+          <div class="chat-input-right">
             <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入">
               🎙️ 语音
             </button>
-            <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
+            <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
           </div>
-          <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
         </div>
       </div>
     </div>
