@@ -66,12 +66,13 @@ function extractNotionTitle(page) {
   return '（无标题）';
 }
 
-// 搜索 Notion 知识库（关键词匹配）
+// 搜索 Notion 知识库（关键词匹配，带超时保护）
 async function searchNotion(query, maxResults = 5) {
   if (!notionClient) return { success: false, results: [], reason: 'Notion未配置' };
-  try {
+  // 超时保护：最多等 4 秒，避免阻塞对话
+  const searchPromise = (async () => {
     const results = [];
-    // 使用全局搜索（兼容所有数据库结构）
+    // 使用全局搜索（将容所有数据库结构）
     const searchResp = await notionClient.search({
       query,
       filter: { value: 'page', property: 'object' },
@@ -98,6 +99,10 @@ async function searchNotion(query, maxResults = 5) {
       if (results.length >= maxResults) break;
     }
     return { success: true, results, query };
+  })();
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Notion搜索超时')), 4000));
+  try {
+    return await Promise.race([searchPromise, timeout]);
   } catch (e) {
     console.error('[Notion搜索失败]', e.message);
     return { success: false, results: [], reason: e.message };
