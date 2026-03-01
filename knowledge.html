@@ -3,133 +3,363 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>知识库管理 - MedAgent Hub</title>
+  <title>语料中心 - MedAgent Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 30px; display: flex; align-items: center; gap: 16px; }
-    .header h1 { font-size: 22px; font-weight: 600; }
-    .header .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-    .header .back-btn:hover { background: rgba(255,255,255,0.3); }
-    .container { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
-    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center; }
-    .stat-card .num { font-size: 36px; font-weight: 700; color: #667eea; }
-    .stat-card .label { font-size: 13px; color: #888; margin-top: 4px; }
-    .section { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px; }
-    .section h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 8px; }
-    .upload-area { border: 2px dashed #d0d7de; border-radius: 10px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafbfc; }
-    .upload-area:hover, .upload-area.drag-over { border-color: #667eea; background: #f0f0ff; }
-    .upload-area .icon { font-size: 48px; margin-bottom: 12px; }
-    .upload-area p { color: #666; font-size: 15px; }
-    .upload-area p.hint { font-size: 12px; color: #999; margin-top: 8px; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #FAF8F5; color: #191919; min-height: 100vh; }
+
+    /* ── Header ── */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #E8E5E0;
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 15px;
+      color: #191919;
+      text-decoration: none;
+    }
+    .header-logo-dot {
+      width: 8px; height: 8px;
+      background: #E8715A;
+      border-radius: 50%;
+    }
+    .header-divider { width: 1px; height: 20px; background: #E8E5E0; }
+    .header-title { font-size: 14px; font-weight: 600; color: #5A5A5A; }
+    .header-spacer { flex: 1; }
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid #E8E5E0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #5A5A5A;
+      background: #fff;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-back:hover { border-color: #191919; color: #191919; }
+
+    /* ── Layout ── */
+    .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── Stats ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: #fff;
+      border: 1px solid #E8E5E0;
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+    .stat-num { font-size: 32px; font-weight: 700; color: #191919; line-height: 1; }
+    .stat-label { font-size: 12px; color: #767676; margin-top: 6px; }
+
+    /* ── Section ── */
+    .section {
+      background: #fff;
+      border: 1px solid #E8E5E0;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #191919;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: '';
+      display: block;
+      width: 3px; height: 14px;
+      background: #E8715A;
+      border-radius: 2px;
+    }
+
+    /* ── Upload Area ── */
+    .upload-area {
+      border: 1.5px dashed #E8E5E0;
+      border-radius: 10px;
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #FAF8F5;
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: #E8715A;
+      background: #FFF0EC;
+    }
+    .upload-icon {
+      width: 44px; height: 44px;
+      background: #F5F3F0;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+    }
+    .upload-area p { font-size: 14px; color: #5A5A5A; }
+    .upload-area p.hint { font-size: 12px; color: #767676; margin-top: 6px; }
     .upload-area input[type=file] { display: none; }
-    .scope-select { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
-    .scope-option { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.2s; }
-    .scope-option.active { border-color: #667eea; background: #f0f0ff; color: #667eea; font-weight: 600; }
-    .upload-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 15px; cursor: pointer; width: 100%; margin-top: 16px; font-weight: 600; transition: opacity 0.2s; }
-    .upload-btn:hover { opacity: 0.9; }
-    .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .selected-file {
+      background: #FFF0EC;
+      border: 1px solid #F5C4BB;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      display: none;
+      font-size: 13px;
+      color: #5A5A5A;
+    }
+
+    /* ── Scope ── */
+    .scope-label { font-size: 13px; font-weight: 600; color: #191919; margin: 16px 0 8px; }
+    .scope-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .scope-option {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      border: 1.5px solid #E8E5E0;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #5A5A5A;
+    }
+    .scope-option.active {
+      border-color: #191919;
+      background: #191919;
+      color: #fff;
+      font-weight: 600;
+    }
+    .agent-select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #E8E5E0;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+      margin-top: 10px;
+      background: #fff;
+      color: #191919;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    /* ── Progress ── */
     .progress-box { margin-top: 16px; display: none; }
-    .progress-bar { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px; transition: width 0.3s; width: 0%; }
-    .progress-text { font-size: 13px; color: #666; margin-top: 8px; }
-    .file-list { display: flex; flex-direction: column; gap: 12px; }
-    .file-item { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid #e8eaed; border-radius: 10px; background: #fafbfc; }
-    .file-icon { font-size: 28px; flex-shrink: 0; }
+    .progress-bar { height: 4px; background: #E8E5E0; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #191919; border-radius: 2px; transition: width 0.3s; width: 0%; }
+    .progress-text { font-size: 12px; color: #767676; margin-top: 8px; }
+
+    /* ── Upload Button ── */
+    .btn-upload {
+      width: 100%;
+      margin-top: 16px;
+      padding: 11px;
+      background: #191919;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-upload:hover { opacity: 0.85; }
+    .btn-upload:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── File List ── */
+    .file-list { display: flex; flex-direction: column; gap: 10px; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid #E8E5E0;
+      border-radius: 10px;
+      background: #fff;
+      transition: border-color 0.15s;
+    }
+    .file-item:hover { border-color: #C8C5C0; }
+    .file-type-badge {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: #F5F3F0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #5A5A5A;
+      flex-shrink: 0;
+    }
+    .file-type-badge.pdf { background: #FFF0EC; color: #E8715A; }
+    .file-type-badge.docx { background: #EBF3FE; color: #3B82F6; }
+    .file-type-badge.txt { background: #E8F7F0; color: #10B981; }
     .file-info { flex: 1; min-width: 0; }
-    .file-name { font-size: 14px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .file-meta { font-size: 12px; color: #888; margin-top: 4px; }
-    .file-scope { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-    .file-scope.global { background: #e8f5e9; color: #2e7d32; }
-    .file-scope.agent { background: #e3f2fd; color: #1565c0; }
-    .delete-btn { background: none; border: 1px solid #ffcdd2; color: #e53935; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; flex-shrink: 0; transition: all 0.2s; }
-    .delete-btn:hover { background: #ffebee; }
-    .empty-state { text-align: center; padding: 40px; color: #999; }
-    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; display: none; }
-    .alert.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-    .alert.error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-    .selected-file { background: #f0f0ff; border: 1px solid #667eea; border-radius: 8px; padding: 12px 16px; margin-top: 12px; display: none; font-size: 14px; color: #555; }
-    .agent-select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; display: none; margin-top: 8px; }
+    .file-name { font-size: 13px; font-weight: 600; color: #191919; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { font-size: 11px; color: #767676; margin-top: 3px; display: flex; align-items: center; gap: 8px; }
+    .scope-tag {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .scope-tag.global { background: #E8F7F0; color: #065F46; }
+    .scope-tag.agent { background: #EBF3FE; color: #1E40AF; }
+    .btn-delete {
+      background: none;
+      border: 1px solid #E8E5E0;
+      color: #767676;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .btn-delete:hover { border-color: #E8715A; color: #E8715A; background: #FFF0EC; }
+
+    /* ── Empty State ── */
+    .empty-state { text-align: center; padding: 48px 24px; color: #767676; }
+    .empty-state svg { opacity: 0.3; margin-bottom: 12px; }
+    .empty-state p { font-size: 13px; }
+
+    /* ── Alert ── */
+    .alert {
+      padding: 11px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      display: none;
+    }
+    .alert.success { background: #E8F7F0; color: #065F46; border: 1px solid #A7F3D0; }
+    .alert.error { background: #FFF0EC; color: #9A3412; border: 1px solid #F5C4BB; }
+
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .container { padding: 20px 16px; }
+      .header { padding: 0 16px; }
+    }
   </style>
 </head>
 <body>
+
   <div class="header">
-    <a href="/chat.html" class="back-btn">← 返回</a>
-    <h1>📚 知识库管理</h1>
+    <a href="/chat.html" class="header-logo">
+      <div class="header-logo-dot"></div>
+      MedAgent Hub
+    </a>
+    <div class="header-divider"></div>
+    <span class="header-title">语料中心</span>
+    <div class="header-spacer"></div>
+    <a href="/admin.html" class="btn-back">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      数据管理中心
+    </a>
+    <a href="/chat.html" class="btn-back" style="margin-left:6px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      返回工作台
+    </a>
   </div>
 
   <div class="container">
     <div id="alert" class="alert"></div>
 
-    <!-- 统计卡片 -->
-    <div class="stats-grid">
+    <!-- Stats -->
+    <div class="stats-row">
       <div class="stat-card">
-        <div class="num" id="statFiles">-</div>
-        <div class="label">已上传文献</div>
+        <div class="stat-num" id="statFiles">—</div>
+        <div class="stat-label">已上传文献</div>
       </div>
       <div class="stat-card">
-        <div class="num" id="statChunks">-</div>
-        <div class="label">全局向量块</div>
+        <div class="stat-num" id="statChunks">—</div>
+        <div class="stat-label">全局向量块</div>
       </div>
       <div class="stat-card">
-        <div class="num" id="statAgentFiles">-</div>
-        <div class="label">Agent 专属文献</div>
+        <div class="stat-num" id="statAgentFiles">—</div>
+        <div class="stat-label">Agent 专属文献</div>
       </div>
     </div>
 
-    <!-- 上传区域 -->
+    <!-- Upload -->
     <div class="section">
-      <h2>📤 上传新文献</h2>
+      <div class="section-title">上传新文献</div>
+
       <div class="upload-area" id="uploadArea">
-        <div class="icon">📄</div>
+        <div class="upload-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#767676" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
         <p>点击选择文件，或拖拽到此处</p>
         <p class="hint">支持 PDF、Word (.docx)、TXT 格式，单文件最大 100MB</p>
         <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md">
       </div>
       <div class="selected-file" id="selectedFile"></div>
 
-      <div style="margin-top: 16px;">
-        <p style="font-size: 14px; color: #555; margin-bottom: 8px; font-weight: 600;">归属范围：</p>
-        <div class="scope-select">
-          <div class="scope-option active" data-scope="global" onclick="setScope('global', this)">
-            🌐 全局知识库（所有 Agent 共享）
-          </div>
-          <div class="scope-option" data-scope="agent" onclick="setScope('agent', this)">
-            🤖 指定 Agent 专属
-          </div>
+      <div class="scope-label">归属范围</div>
+      <div class="scope-row">
+        <div class="scope-option active" data-scope="global" onclick="setScope('global', this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          全局知识库（所有 Agent 共享）
         </div>
-        <select class="agent-select" id="agentSelect">
-          <option value="senior-consultant">金牌医美咨询师</option>
-          <option value="sparring-robot">医美实战陪练机器人</option>
-          <option value="materials-mentor">医美材料学硬核导师</option>
-          <option value="gtm-strategy">GTM战略大师</option>
-          <option value="product-expert">产品材料专家</option>
-          <option value="academic-liaison">学术推广专家</option>
-          <option value="marketing-director">市场创意总监</option>
-          <option value="sales-director">销售作战总监</option>
-          <option value="operations-director">运营效能总监</option>
-          <option value="training-director">培训赋能总监</option>
-          <option value="area-manager">大区经理</option>
-          <option value="channel-manager">商务经理</option>
-        </select>
+        <div class="scope-option" data-scope="agent" onclick="setScope('agent', this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+          指定 Agent 专属
+        </div>
       </div>
+      <select class="agent-select" id="agentSelect">
+        <option value="senior-consultant">金牌医美咨询师</option>
+        <option value="sparring-robot">医美实战陪练机器人</option>
+        <option value="materials-mentor">医美材料学硬核导师</option>
+        <option value="gtm-strategy">GTM战略大师</option>
+        <option value="product-expert">产品材料专家</option>
+        <option value="academic-liaison">学术推广专家</option>
+        <option value="marketing-director">市场创意总监</option>
+        <option value="sales-director">销售作战总监</option>
+        <option value="operations-director">运营效能总监</option>
+        <option value="training-director">培训赋能总监</option>
+        <option value="area-manager">大区经理</option>
+        <option value="channel-manager">商务经理</option>
+      </select>
 
       <div class="progress-box" id="progressBox">
         <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
         <div class="progress-text" id="progressText">准备中...</div>
       </div>
 
-      <button class="upload-btn" id="uploadBtn" onclick="uploadFile()">开始上传并向量化</button>
+      <button class="btn-upload" id="uploadBtn" onclick="uploadFile()">开始上传并向量化</button>
     </div>
 
-    <!-- 文件列表 -->
+    <!-- File List -->
     <div class="section">
-      <h2>📋 已上传文献列表</h2>
+      <div class="section-title">已上传文献列表</div>
       <div class="file-list" id="fileList">
         <div class="empty-state">
-          <div class="icon">📭</div>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           <p>加载中...</p>
         </div>
       </div>
@@ -155,7 +385,6 @@
       setTimeout(() => el.style.display = 'none', 5000);
     }
 
-    // 文件选择
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
 
@@ -176,7 +405,7 @@
       selectedFile = file;
       const el = document.getElementById('selectedFile');
       el.style.display = 'block';
-      el.innerHTML = `<strong>已选择：</strong>${file.name} <span style="color:#999">(${(file.size/1024/1024).toFixed(1)} MB)</span>`;
+      el.innerHTML = `<strong>已选择：</strong>${file.name} <span style="color:#767676">(${(file.size/1024/1024).toFixed(1)} MB)</span>`;
     }
 
     async function uploadFile() {
@@ -283,27 +512,31 @@
         const data = await res.json();
         const list = document.getElementById('fileList');
         if (!data.files || data.files.length === 0) {
-          list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无文献，请上传第一个文件</p></div>';
+          list.innerHTML = `<div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>暂无文献，请上传第一个文件</p>
+          </div>`;
           return;
         }
         list.innerHTML = data.files.map(f => {
           const ext = f.name.split('.').pop().toLowerCase();
-          const icon = ext === 'pdf' ? '📕' : ext === 'docx' || ext === 'doc' ? '📘' : '📄';
+          const badgeClass = ext === 'pdf' ? 'pdf' : (ext === 'docx' || ext === 'doc') ? 'docx' : 'txt';
+          const badgeText = ext === 'pdf' ? 'PDF' : (ext === 'docx' || ext === 'doc') ? 'DOC' : 'TXT';
           const scopeLabel = f.scope === 'global' ? '全局' : f.scope;
           const scopeClass = f.scope === 'global' ? 'global' : 'agent';
           const sizeMB = f.size ? (f.size / 1024 / 1024).toFixed(1) + ' MB' : '-';
           const date = f.addedAt ? new Date(f.addedAt).toLocaleDateString('zh-CN') : '-';
           return `
             <div class="file-item" id="file-${f.id}">
-              <div class="file-icon">${icon}</div>
+              <div class="file-type-badge ${badgeClass}">${badgeText}</div>
               <div class="file-info">
                 <div class="file-name" title="${f.name}">${f.name}</div>
                 <div class="file-meta">
-                  <span class="file-scope ${scopeClass}">${scopeLabel}</span>
-                  &nbsp;${f.chunks} 个向量块 &nbsp;·&nbsp; ${sizeMB} &nbsp;·&nbsp; ${date}
+                  <span class="scope-tag ${scopeClass}">${scopeLabel}</span>
+                  ${f.chunks} 个向量块 · ${sizeMB} · ${date}
                 </div>
               </div>
-              <button class="delete-btn" onclick="deleteFile('${f.id}', '${f.name.replace(/'/g, "\\'")}')">删除</button>
+              <button class="btn-delete" onclick="deleteFile('${f.id}', '${f.name.replace(/'/g, "\\'")}')">删除</button>
             </div>
           `;
         }).join('');
@@ -332,7 +565,6 @@
       }
     }
 
-    // 初始化
     loadStats();
     loadFiles();
   </script>
