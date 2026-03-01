@@ -988,7 +988,11 @@ function loadSkillPrompt(skillName) {
   }
 
   // ④ 附加全局格式规范
-  return promptContent + FORMAT_RULES;
+  // ⑤ 注入当前日期（防止模型以为还在训练截止年份）
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', timeZone: 'Asia/Shanghai' });
+  const DATE_CONTEXT = `\n\n---\n## 当前时间\n今天是 ${dateStr}。你的知识库训练截止于2024年，但现在已经是2026年。在回答涉及"最新"、"当前"、"今年"等时间敏感问题时，请明确说明你的知识截止于2024年，并建议用户查阅最新资料。不要将2024年的数据当作当前数据引用。`;
+  return promptContent + FORMAT_RULES + DATE_CONTEXT;
 }
 
 // Agent ID to skill name mapping
