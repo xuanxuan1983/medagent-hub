@@ -807,7 +807,7 @@ function isAdmin(req) {
 }
 
 // AI Provider configuration
-const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini'; // gemini, kimi, deepseek, anthropic
+const AI_PROVIDER = process.env.AI_PROVIDER || 'siliconflow'; // siliconflow, gemini, kimi, deepseek, anthropic
 
 // Load skill prompts
 const skillsDir = path.join(__dirname, 'skills');
@@ -2010,15 +2010,22 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 3️⃣ Notion 知识库查询（自动触发）
+      // 3️⃣ Notion 知识库查询（自动触发，最多等 3 秒，超时自动跳过）
       if (notionClient) {
-        const notionData = await searchNotion(message.substring(0, 100), 3);
-        if (notionData.success && notionData.results.length > 0) {
-          const notionContext = notionData.results.map((r, i) =>
-            `[${i+1}] ${r.title}\n链接: ${r.url}\n内容: ${r.content || '（无正文）'}`
-          ).join('\n\n');
-          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== Notion 知识库参考资料 =====\n以下是来自内部知识库的相关内容，请优先参考这些内部资料回答问题：\n\n${notionContext}\n\n如果知识库内容与问题高度相关，请明确引用。`;
-          console.log(`✅ [Notion] 找到 ${notionData.results.length} 条相关内容`);
+        try {
+          const notionData = await Promise.race([
+            searchNotion(message.substring(0, 100), 3),
+            new Promise(resolve => setTimeout(() => resolve({ success: false, results: [] }), 3000))
+          ]);
+          if (notionData.success && notionData.results.length > 0) {
+            const notionContext = notionData.results.map((r, i) =>
+              `[${i+1}] ${r.title}\n链接: ${r.url}\n内容: ${r.content || '（无正文）'}`
+            ).join('\n\n');
+            enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== Notion 知识库参考资料 =====\n以下是来自内部知识库的相关内容，请优先参考这些内部资料回答问题：\n\n${notionContext}\n\n如果知识库内容与问题高度相关，请明确引用。`;
+            console.log(`✅ [Notion] 找到 ${notionData.results.length} 条相关内容`);
+          }
+        } catch (e) {
+          console.warn('[Notion] 查询跳过:', e.message);
         }
       }
 
@@ -2216,15 +2223,22 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 3️⃣ Notion 知识库查询（自动触发）
+      // 3️⃣ Notion 知识库查询（自动触发，最多等 3 秒，超时自动跳过）
       if (notionClient) {
-        const notionData2 = await searchNotion(message.substring(0, 100), 3);
-        if (notionData2.success && notionData2.results.length > 0) {
-          const notionContext2 = notionData2.results.map((r, i) =>
-            `[${i+1}] ${r.title}\n链接: ${r.url}\n内容: ${r.content || '（无正文）'}`
-          ).join('\n\n');
-          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== Notion 知识库参考资料 =====\n以下是来自内部知识库的相关内容，请优先参考这些内部资料回答问题：\n\n${notionContext2}\n\n如果知识库内容与问题高度相关，请明确引用。`;
-          console.log(`✅ [Notion] 找到 ${notionData2.results.length} 条相关内容`);
+        try {
+          const notionData2 = await Promise.race([
+            searchNotion(message.substring(0, 100), 3),
+            new Promise(resolve => setTimeout(() => resolve({ success: false, results: [] }), 3000))
+          ]);
+          if (notionData2.success && notionData2.results.length > 0) {
+            const notionContext2 = notionData2.results.map((r, i) =>
+              `[${i+1}] ${r.title}\n链接: ${r.url}\n内容: ${r.content || '（无正文）'}`
+            ).join('\n\n');
+            enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== Notion 知识库参考资料 =====\n以下是来自内部知识库的相关内容，请优先参考这些内部资料回答问题：\n\n${notionContext2}\n\n如果知识库内容与问题高度相关，请明确引用。`;
+            console.log(`✅ [Notion] 找到 ${notionData2.results.length} 条相关内容`);
+          }
+        } catch (e) {
+          console.warn('[Notion] 查询跳过:', e.message);
         }
       }
 
