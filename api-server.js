@@ -367,10 +367,14 @@ function needsWebSearch(message) {
     '有没有最新', '最新进展', '最新研究', '最新指南', '最新数据', '最新消息',
     '最新动态', '最新报告', '最新文献', '最新临床',
     '文献综述', '临床试验', '循证', 'RCT', 'meta分析',
-    '2025年', '2026年', '今年最新'
+    '2025年', '2026年', '今年最新',
+    '最新', '现在', '目前', '当前', '近期', '近年', '今年', '去年',
+    '行情', '市场规模', '市场数据', '市场趋势', '行业数据', '行业报告',
+    '政策', '法规', '监管', '获批', '注册证', '新规',
+    '价格', '售价', '多少钱', '费用', '报价'
   ];
   // 时效性关键词（需要实时信息）
-  const timeKeywords = ['今天', '今日', '昨天', '本周', '本月', '近期新闻'];
+  const timeKeywords = ['今天', '今日', '昨天', '本周', '本月', '近期新闻', '最近'];
   return intentKeywords.some(kw => message.includes(kw)) ||
          timeKeywords.some(kw => message.includes(kw));
 }
@@ -2038,8 +2042,9 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 2️⃣ 联网搜索（用户手动开启）
-      if (webSearch) {
+      // 2️⃣ 联网搜索（用户手动开启 OR 自动检测时效性问题）
+      const autoSearch = !webSearch && needsWebSearch(message) && planStatus.canSearch;
+      if (webSearch || autoSearch) {
         const searchQuery = extractSearchQuery(message);
         console.log(`🔍 [联网搜索] 搜索: ${searchQuery.substring(0, 60)}`);
         const searchData = await bochaSearch(searchQuery, 5);
@@ -2048,8 +2053,10 @@ const server = http.createServer(async (req, res) => {
           const searchContext = searchData.results.map(r =>
             `[${r.index}] ${r.title}\n来源: ${r.url}\n摘要: ${r.snippet}`
           ).join('\n\n');
-          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果 =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
+          const searchDate1 = new Date().toLocaleDateString('zh-CN', {timeZone:'Asia/Shanghai'});
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果（实时，搜索于${searchDate1}） =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
           console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
+          if (autoSearch) incrementSearchCount(userCode);
         }
       }
 
@@ -2251,8 +2258,9 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 2️⃣ 联网搜索（用户手动开启）
-      if (webSearch) {
+      // 2️⃣ 联网搜索（用户手动开启 OR 自动检测时效性问题）
+      const autoSearch2 = !webSearch && needsWebSearch(message) && planStatus2.canSearch;
+      if (webSearch || autoSearch2) {
         const searchQuery = extractSearchQuery(message);
         console.log(`🔍 [联网搜索] 搜索: ${searchQuery.substring(0, 60)}`);
         const searchData = await bochaSearch(searchQuery, 5);
@@ -2261,8 +2269,10 @@ const server = http.createServer(async (req, res) => {
           const searchContext = searchData.results.map(r =>
             `[${r.index}] ${r.title}\n来源: ${r.url}\n摘要: ${r.snippet}`
           ).join('\n\n');
-          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果 =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
+          const searchDate2 = new Date().toLocaleDateString('zh-CN', {timeZone:'Asia/Shanghai'});
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果（实时，搜索于${searchDate2}） =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
           console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
+          if (autoSearch2) incrementSearchCount(userCode2);
         }
       }
 
