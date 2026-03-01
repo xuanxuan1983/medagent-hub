@@ -342,7 +342,7 @@ function showToast(msg, duration = 2500) {
 
 // ===== API Helper =====
 async function api(path, method = 'GET', body = null) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  const opts = { method, credentials: 'include', headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
   if (res.status === 302 || res.redirected) { location.href = '/login.html'; return null; }
