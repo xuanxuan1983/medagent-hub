@@ -566,20 +566,30 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       color: var(--text-2); font-style: italic;
     }
     .msg-bubble blockquote p { margin-bottom: 0; }
-    /* 表格 */
+    /* 表格：包裹可横向滑动容器，防止手机端文字被挤压 */
+    .msg-bubble .table-wrapper {
+      width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      margin: 0.5rem 0 0.75rem; border-radius: 8px;
+      border: 1px solid var(--border);
+    }
     .msg-bubble table {
-      width: 100%; border-collapse: collapse;
-      margin: 0.5rem 0 0.75rem; font-size: 0.82rem;
+      min-width: 400px; border-collapse: collapse;
+      font-size: 0.82rem; width: 100%;
     }
     .msg-bubble th {
       background: var(--bg-warm); font-weight: 600;
-      padding: 0.4rem 0.6rem; border: 1px solid var(--border);
-      text-align: left; color: var(--text);
+      padding: 0.5rem 0.75rem; border-bottom: 1.5px solid var(--border);
+      border-right: 1px solid var(--border); text-align: left;
+      color: var(--text); white-space: nowrap;
     }
+    .msg-bubble th:last-child { border-right: none; }
     .msg-bubble td {
-      padding: 0.35rem 0.6rem; border: 1px solid var(--border-light);
-      color: var(--text-2);
+      padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border-light);
+      border-right: 1px solid var(--border-light);
+      color: var(--text-2); white-space: nowrap;
     }
+    .msg-bubble td:last-child { border-right: none; }
+    .msg-bubble tr:last-child td { border-bottom: none; }
     .msg-bubble tr:nth-child(even) td { background: var(--bg-warm); }
     /* 链接 */
     .msg-bubble a { color: #5a7fa8; text-decoration: none; border-bottom: 1px solid rgba(90,127,168,0.3); }
@@ -1472,6 +1482,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         });
       });
       pre.appendChild(btn);
+    });
+  }
+
+  // 表格包裹函数：给 bubble 内所有表格加上可横向滑动的容器
+  function wrapTables(bubble) {
+    bubble.querySelectorAll('table').forEach(table => {
+      if (table.parentNode && !table.parentNode.classList.contains('table-wrapper')) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-wrapper';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      }
     });
   }
 
@@ -2398,6 +2420,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                   const backticks = (renderText.match(/`/g) || []).length;
                   if (backticks % 2 !== 0) renderText += '`';
                   bubble.innerHTML = marked.parse(renderText);
+                  wrapTables(bubble);
                 } else {
                   bubble.textContent = fullText;
                 }
@@ -2474,6 +2497,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (typeof marked !== 'undefined') {
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
+      wrapTables(bubble);
     } else {
       bubble.textContent = mainContent;
     }
@@ -2585,6 +2609,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (role === 'assistant' && typeof marked !== 'undefined') {
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
+      wrapTables(bubble);
     } else {
       // For user messages: render text + optional image thumbnail
       if (fileAttachment && fileAttachment.isImage) {
