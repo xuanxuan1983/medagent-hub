@@ -1018,7 +1018,14 @@ const agentSkillMap = {
   'kv-design-director': 'kv-design-director',
   'meta-prompt-architect': 'meta-prompt-architect',
   'prompt-engineer-pro': 'prompt-engineer-pro',
-  'doudou': 'doudou'
+  'doudou': 'doudou',
+  'xhs-content-creator': 'xhs-content-creator',
+  'ppt-creator': 'ppt-creator',
+  'wechat-content-creator': 'wechat-content-creator',
+  'comic-creator': 'comic-creator',
+  'article-illustrator': 'article-illustrator',
+  'cover-image-creator': 'cover-image-creator',
+  'social-media-creator': 'social-media-creator'
 };
 
 const agentNames = {
@@ -1047,7 +1054,14 @@ const agentNames = {
   'kv-design-director': '视觉KV设计总监',
   'meta-prompt-architect': '元提示词架构师',
   'prompt-engineer-pro': '高级Prompt工程师',
-  'doudou': '豆豆'
+  'doudou': '豆豆',
+  'xhs-content-creator': '小红书图文创作顾问',
+  'ppt-creator': 'PPT创作顾问',
+  'wechat-content-creator': '微信公众号运营顾问',
+  'comic-creator': '知识漫画创作顾问',
+  'article-illustrator': '文章配图顾问',
+  'cover-image-creator': '封面图创作顾问',
+  'social-media-creator': '社交媒体运营顾问'
 };
 
 // 微信支付初始化
