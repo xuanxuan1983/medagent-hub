@@ -1,8 +1,8 @@
 {
   "name": "MedAgent Hub",
   "version": "1.0.0",
-  "description": "医美行业智能Agent平台 - 21个精品Agent覆盖上下游全链路",
-  "totalAgents": 21,
+  "description": "医美行业智能Agent平台 - 22个精品Agent覆盖上下游全链路",
+  "totalAgents": 22,
   "categories": {
     "upstream": {
       "name": "上游厂商",
@@ -36,10 +36,18 @@
         "material-architect",
         "visual-translator"
       ]
+    },
+    "other": {
+      "name": "其他",
+      "count": 1,
+      "agents": [
+        "new-media-director"
+      ]
     }
   },
   "departments": {
     "upstream": ["战略部", "产品部", "医学部", "市场部", "销售部", "运营部", "培训部", "财务部", "人力资源部", "采购部"],
-    "downstream": ["咨询部", "培训部", "客服部", "运营部", "医疗部"]
+    "downstream": ["咨询部", "培训部", "客服部", "运营部", "医疗部"],
+    "other": ["合规部"]
   }
 }
