@@ -1217,17 +1217,11 @@ const MEDAESTHETIC_IMAGE_PROMPTS = {
   }
 };
 
-// ===== LibLib AI 图片生成 =====
-const crypto = require('crypto');
+// ===== 魔搭 Z-Image-Turbo 图片生成 =====
+const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || 'ms-2301e8af-a457-4927-8041-9fbd9ef50c8e';
+const MODELSCOPE_BASE_URL = 'https://api-inference.modelscope.cn';
 
-function liblibSign(uri, timestamp, nonce) {
-  const content = `${uri}&${timestamp}&${nonce}`;
-  const hmac = crypto.createHmac('sha1', LIBLIB_SECRET_KEY);
-  hmac.update(content);
-  return hmac.digest('base64');
-}
-
-async function generateImageLibLib(promptKey, customPrompt) {
+async function generateImageModelScope(promptKey, customPrompt) {
   const template = MEDAESTHETIC_IMAGE_PROMPTS[promptKey];
   const finalPrompt = customPrompt
     ? `${template ? template.prompt + ', ' : ''}${customPrompt}`
@@ -1235,71 +1229,58 @@ async function generateImageLibLib(promptKey, customPrompt) {
 
   if (!finalPrompt) throw new Error('Prompt is required');
 
-  const uri = '/api/generate/webui/text2img/ultra';
-  const timestamp = Date.now().toString();
-  const nonce = Math.random().toString(36).substring(2, 10);
-  const signature = liblibSign(uri, timestamp, nonce);
+  const headers = {
+    'Authorization': `Bearer ${MODELSCOPE_API_KEY}`,
+    'Content-Type': 'application/json',
+    'X-ModelScope-Async-Mode': 'true'
+  };
 
   // Step 1: 提交生成任务
-  const submitResp = await fetch(`${LIBLIB_API_URL}${uri}?AccessKey=${LIBLIB_ACCESS_KEY}&Timestamp=${timestamp}&SignatureNonce=${nonce}&Signature=${encodeURIComponent(signature)}`, {
+  const submitResp = await fetch(`${MODELSCOPE_BASE_URL}/v1/images/generations`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
-      templateUuid: '5d7e67009b344550bc1aa6ccbfa1d7f4', // Star-3 Alpha
-      generateParams: {
-        prompt: finalPrompt,
-        negativePrompt: 'ugly, blurry, low quality, watermark, text, deformed',
-        width: 1024,
-        height: 1024,
-        imgCount: 1,
-        steps: 20,
-        cfgScale: 7
-      }
+      model: 'Tongyi-MAI/Z-Image-Turbo',
+      prompt: finalPrompt
     })
   });
 
-  const submitData = await submitResp.json();
-  if (!submitResp.ok || submitData.code !== 0) {
-    throw new Error(submitData.msg || `LibLib submit failed: ${submitResp.status}`);
+  if (!submitResp.ok) {
+    const errText = await submitResp.text();
+    throw new Error(`ModelScope submit failed: ${submitResp.status} ${errText}`);
   }
 
-  const generateUuid = submitData.data?.generateUuid;
-  if (!generateUuid) throw new Error('No generateUuid returned');
+  const submitData = await submitResp.json();
+  const taskId = submitData.task_id;
+  if (!taskId) throw new Error('No task_id returned from ModelScope');
 
-  // Step 2: 轮询结果（最多等 60 秒）
-  for (let i = 0; i < 20; i++) {
-    await new Promise(r => setTimeout(r, 3000));
-
-    const queryUri = '/api/generate/webui/query';
-    const qTs = Date.now().toString();
-    const qNonce = Math.random().toString(36).substring(2, 10);
-    const qSig = liblibSign(queryUri, qTs, qNonce);
-
-    const queryResp = await fetch(`${LIBLIB_API_URL}${queryUri}?AccessKey=${LIBLIB_ACCESS_KEY}&Timestamp=${qTs}&SignatureNonce=${qNonce}&Signature=${encodeURIComponent(qSig)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ generateUuid })
+  // Step 2: 轮询结果（最多等 90 秒）
+  const pollHeaders = {
+    'Authorization': `Bearer ${MODELSCOPE_API_KEY}`,
+    'X-ModelScope-Task-Type': 'image_generation'
+  };
+  for (let i = 0; i < 18; i++) {
+    await new Promise(r => setTimeout(r, 5000));
+    const queryResp = await fetch(`${MODELSCOPE_BASE_URL}/v1/tasks/${taskId}`, {
+      headers: pollHeaders
     });
-
+    if (!queryResp.ok) continue;
     const queryData = await queryResp.json();
-    if (queryData.code !== 0) throw new Error(queryData.msg || 'Query failed');
-
-    const status = queryData.data?.generateStatus;
-    // 5 = 完成, 6 = 失败
-    if (status === 5) {
-      const imgUrl = queryData.data?.images?.[0]?.imageUrl;
+    const status = queryData.task_status;
+    if (status === 'SUCCEED') {
+      const imgUrl = queryData.output_images?.[0];
       if (!imgUrl) throw new Error('No image URL in response');
       return { url: imgUrl, prompt: finalPrompt };
-    } else if (status === 6) {
-      throw new Error('图片生成失败');
+    } else if (status === 'FAILED') {
+      throw new Error('图片生成失败（ModelScope）');
     }
-    // 其他状态继续等待
+    // PENDING / RUNNING 继续等待
   }
   throw new Error('图片生成超时，请稍后重试');
 }
 
-// 兼容旧函数名
-const generateImage = generateImageLibLib;
+// 使用魔搭 Z-Image-Turbo 作为生图引擎
+const generateImage = generateImageModelScope;
 
 // Providers config exposed to frontend
 const PROVIDERS_CONFIG = {
