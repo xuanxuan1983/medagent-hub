@@ -12,6 +12,7 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const XLSX = require('xlsx');
 const { Client: NotionClient } = require('@notionhq/client');
+const { execSync } = require('child_process');
 
 const PORT = process.env.PORT || 3002;
 const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
@@ -3418,6 +3419,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 远程部署接口：git pull + pm2 restart
+  if (url.pathname === '/api/admin/deploy' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const appDir = __dirname;
+      const pullOut = execSync('git pull origin master', { cwd: appDir, timeout: 30000 }).toString();
+      const restartOut = execSync('pm2 restart api-server', { timeout: 15000 }).toString();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, pull: pullOut, restart: restartOut }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: e.message }));
+    }
+    return;
+  }
   // 微信支付 - 创建订单
   if (url.pathname === '/api/payment/create-order' && req.method === 'POST') {
     try {
