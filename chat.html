@@ -1310,9 +1310,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         { id: 'training-director',   icon: '📚', name: '培训赋能总监',         desc: 'ASK模型、反差教学、通关护照的培训专家', category: '上游厂商' },
         { id: 'area-manager',        icon: '🗺️', name: '大区经理',             desc: 'Forecast分级测谎、进销存逻辑闭环、情境模拟辅导', category: '上游厂商' },
         { id: 'channel-manager',     icon: '🤝', name: '商务经理',             desc: 'ROI利润精算、反向背调、窜货雷霆管控、库存博弈', category: '上游厂商' },
-        { id: 'finance-bp',          icon: '💰', name: '财务BP',               desc: '税务合规与交易结构优化，货折替代票折保护利润', category: '上游厂商' },
-        { id: 'hrbp',                icon: '🎯', name: '战略HRBP',             desc: '精准猎聘竞品人才，背调侦查与竞业攻防', category: '上游厂商' },
-        { id: 'procurement-manager', icon: '📦', name: '采购经理',             desc: 'Kraljic矩阵与Should-Cost模型优化TCO', category: '上游厂商' },
+        { id: 'finance-bp',          icon: '💰', name: '财务BP',               desc: '税务合规与交易结构优化，货折替代票折保护利润', category: '上游厂商', hidden: true },
+        { id: 'hrbp',                icon: '🎯', name: '战略HRBP',             desc: '精准猎聘竞品人才，背调侦查与竞业攻防', category: '上游厂商', hidden: true },
+        { id: 'procurement-manager', icon: '📦', name: '采购经理',             desc: 'Kraljic矩阵与Should-Cost模型优化TCO', category: '上游厂商', hidden: true },
       ]
     },
     {
@@ -1636,8 +1636,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     grid.innerHTML = '';
     AGENT_GROUPS.forEach(group => {
       if (group.hidden) return; // 跳过隐藏分组（如豆豆）
-      group.agents.forEach(agent => {
-        // 管理员专属Agent：非管理员完全不显示
+      group.agents.forEach(agent => {        // 隐藏的 Agent：完全不显示
+        if (agent.hidden) return;
+        // 管理员专属 Agent：非管理员完全不显示
         if (ADMIN_ONLY_AGENTS.has(agent.id) && !currentIsAdmin) return;
         if (filter && filter !== 'all' && agent.category !== filter) return;
         // 判断锁定状态
