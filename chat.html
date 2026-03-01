@@ -729,6 +729,23 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     .upload-btn:hover { background: var(--bg-warm); border-color: #AEAAA5; color: var(--text); }
     .upload-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .mic-btn {
+      display: flex; align-items: center; gap: 0.25rem;
+      padding: 0.3rem 0.6rem; border-radius: 6px;
+      background: none; border: 1px solid var(--border);
+      font-size: 0.75rem; color: var(--text-2); cursor: pointer;
+      font-family: inherit; transition: all 0.15s;
+    }
+    .mic-btn:hover { background: var(--bg-warm); border-color: #AEAAA5; color: var(--text); }
+    .mic-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .mic-btn.recording {
+      background: #fff0ee; border-color: var(--coral); color: var(--coral);
+      animation: mic-pulse 1s ease-in-out infinite;
+    }
+    @keyframes mic-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(232,113,90,0.4); }
+      50% { box-shadow: 0 0 0 5px rgba(232,113,90,0); }
+    }
     .file-preview-card {
       display: flex; align-items: center; gap: 0.5rem;
       background: var(--bg-warm); border: 1px solid var(--border);
@@ -1106,6 +1123,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             </button>
             <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图">
               🎨 绘图
+            </button>
+            <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入">
+              🎙️ 语音
             </button>
             <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
           </div>
@@ -1800,6 +1820,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       document.getElementById('messageInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('uploadBtn').disabled = false;
+      if (document.getElementById('micBtn')) document.getElementById('micBtn').disabled = false;
       document.getElementById('chatInputHint').textContent = 'Enter 发送，Shift+Enter 换行';
       document.getElementById('messageInput').focus();
 
@@ -1907,6 +1928,85 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   function willSearch(msg) {
     return webSearchEnabled;
+  }
+
+  // ===== 语音输入 =====
+  let recognition = null;
+  let isRecording = false;
+
+  function toggleVoiceInput() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('您的浏览器不支持语音识别，请使用 Chrome 或 Safari。');
+      return;
+    }
+
+    const btn = document.getElementById('micBtn');
+    const input = document.getElementById('messageInput');
+
+    if (isRecording) {
+      // 停止录音
+      if (recognition) recognition.stop();
+      return;
+    }
+
+    // 开始录音
+    recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    let finalTranscript = '';
+    let interimTranscript = '';
+    const originalPlaceholder = input.placeholder;
+
+    recognition.onstart = () => {
+      isRecording = true;
+      btn.classList.add('recording');
+      btn.innerHTML = '🔴 说话中';
+      input.placeholder = '正在聆听，请说话...';
+    };
+
+    recognition.onresult = (e) => {
+      interimTranscript = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) { finalTranscript += t; }
+        else { interimTranscript += t; }
+      }
+      // 实时显示中间结果
+      input.value = finalTranscript + interimTranscript;
+      autoResize(input);
+    };
+
+    recognition.onend = () => {
+      isRecording = false;
+      btn.classList.remove('recording');
+      btn.innerHTML = '🎙️ 语音';
+      input.placeholder = originalPlaceholder;
+      if (finalTranscript.trim()) {
+        input.value = finalTranscript.trim();
+        autoResize(input);
+        input.focus();
+      }
+      recognition = null;
+    };
+
+    recognition.onerror = (e) => {
+      isRecording = false;
+      btn.classList.remove('recording');
+      btn.innerHTML = '🎙️ 语音';
+      input.placeholder = originalPlaceholder;
+      recognition = null;
+      if (e.error === 'not-allowed') {
+        alert('请允许浏览器使用麦克风权限。');
+      } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
+        console.warn('Speech recognition error:', e.error);
+      }
+    };
+
+    recognition.start();
   }
 
   // ===== 绘图功能 =====
