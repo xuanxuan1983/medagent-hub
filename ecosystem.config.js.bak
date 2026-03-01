@@ -1,0 +1,28 @@
+// PM2 Ecosystem 配置文件
+// 所有环境变量在此永久保存，pm2 restart 后自动生效
+// 更新后执行：pm2 start ecosystem.config.js 或 pm2 restart api-server
+
+module.exports = {
+  apps: [
+    {
+      name: 'api-server',
+      script: './api-server.js',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+
+        // ✅ AI 提供商（默认硅基流动，国内可访问）
+        AI_PROVIDER: 'siliconflow',
+        SILICONFLOW_API_KEY: 'sk-ofsefwdlyhehonvqdeyupmctskzurehbfasdiflhapyvguem',
+        SILICONFLOW_MODEL: 'deepseek-ai/DeepSeek-V3',
+
+        // ✅ Notion 知识库（如服务器无法访问 notion.so，留空即可，不影响对话）
+        NOTION_API_KEY: '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',
+        NOTION_DATABASE_IDS: '26b8295e0f328142ad3df8349adb7fae,26b8295e0f32815f9a5edac728b16d16,cae52537069f42a1a281bd4c649efc98,ec5f5b1b1d5b42e98cdfc2a18f84d06f,f7f7dd1c309b4c66a144229e64ce60e1',
+      }
+    }
+  ]
+};

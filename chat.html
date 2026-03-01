@@ -1227,22 +1227,49 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <div class="modal-pane" id="pane-pricing">
         <div class="modal-pane-title">升级套餐</div>
         <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1.25rem;line-height:1.6">解锁全部 21 个医美专属 Agent，无限对话，优先响应。</p>
+
+        <!-- 免费版 -->
         <div style="border:1.5px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:0.75rem">
           <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">免费版</div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">每日有限次数，体验核心功能</div>
+          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">每日有限次数，体验3个核心 Agent</div>
           <div style="font-size:1.25rem;font-weight:700">¥0 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">/ 月</span></div>
         </div>
+
+        <!-- 专业版 Pro -->
         <div style="border:2px solid var(--text);border-radius:12px;padding:1rem;margin-bottom:0.75rem">
-          <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">专业版 Pro</div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">12 个核心 Agent，无限对话，优先响应</div>
-          <div style="font-size:1.25rem;font-weight:700">¥299 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">/ 月</span></div>
-          <button class="btn-save" id="btnBuyPro" style="width:100%;margin-top:0.75rem" onclick="startPayment({name:'专业版Pro',price:29900})">立即订阅</button>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem">
+            <div style="font-weight:700;font-size:0.875rem">专业版 Pro</div>
+            <div style="font-size:0.7rem;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:20px">上游厂商首选</div>
+          </div>
+          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">12 个上游 Agent，无限对话，50张图/月</div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+            <button class="btn-save" id="btnBuyPro" style="flex:1" onclick="startPayment({name:'专业版Pro',price:29900})">¥299/月</button>
+            <button class="btn-save" id="btnBuyProYear" style="flex:1;background:var(--text)" onclick="startPayment({name:'专业版Pro年付',price:238000})">¥2,380/年 <span style="font-size:0.65rem;opacity:0.8">省¥200</span></button>
+          </div>
         </div>
-        <div style="border:1.5px solid var(--border);border-radius:12px;padding:1rem">
-          <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">全能版 Pro+</div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">全部 21 个 Agent，图片生成，联网搜索</div>
-          <div style="font-size:1.25rem;font-weight:700">¥499 <span style="font-size:0.75rem;font-weight:400;color:var(--text-3)">/ 月</span></div>
-          <button class="btn-save" id="btnBuyProPlus" style="width:100%;margin-top:0.75rem;background:linear-gradient(135deg,#7c3aed,#4f46e5)" onclick="startPayment({name:'全能版Pro+',price:49900})">立即订阅</button>
+
+        <!-- 全能版 Pro+ -->
+        <div style="border:2px solid #7c3aed;border-radius:12px;padding:1rem;margin-bottom:0.75rem;background:linear-gradient(135deg,rgba(124,58,237,0.04),rgba(79,70,229,0.04))">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem">
+            <div style="font-weight:700;font-size:0.875rem">全能版 Pro+</div>
+            <div style="font-size:0.7rem;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;padding:2px 8px;border-radius:20px">推荐</div>
+          </div>
+          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem">全部 21 个 Agent + 内容创作，100张图/月，联网搜索</div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+            <button class="btn-save" id="btnBuyProPlus" style="flex:1;background:linear-gradient(135deg,#7c3aed,#4f46e5)" onclick="startPayment({name:'全能版Pro+',price:49900})">¥499/月</button>
+            <button class="btn-save" id="btnBuyProPlusYear" style="flex:1;background:linear-gradient(135deg,#5b21b6,#3730a3)" onclick="startPayment({name:'全能版Pro+年付',price:398000})">¥3,980/年 <span style="font-size:0.65rem;opacity:0.8">省¥608</span></button>
+          </div>
+        </div>
+
+        <!-- Level 2 全案服务入口 -->
+        <div style="border:1.5px solid #f59e0b;border-radius:12px;padding:1rem;background:linear-gradient(135deg,rgba(245,158,11,0.05),rgba(217,119,6,0.05))">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+            <span style="font-size:1rem">🌟</span>
+            <div style="font-weight:700;font-size:0.875rem">数字孪生全案服务 Level 2</div>
+          </div>
+          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem;line-height:1.5">不只是工具，而是一套完整的 AI 数字分身系统。萩宜 1-on-1 深度诊断 + 21 天陆跑，赠全能版终身码。</div>
+          <div style="font-size:0.825rem;font-weight:700;color:#92400e;margin-bottom:0.75rem">¥29,800 · 前 5 名限额</div>
+          <a href="https://dmy.com" target="_blank" style="display:block;text-align:center;padding:0.6rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:8px;font-size:0.825rem;font-weight:600;text-decoration:none">了解全案服务 →</a>
         </div>
       </div>
     </div>
@@ -1357,8 +1384,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   let currentUserName = '';
   let currentUserPlan = '免费版';
   let currentIsPro = false;
+  let currentIsProPlus = false;
   // 试用期开放的 Agent 白名单
   const TRIAL_AGENTS = ['senior-consultant', 'sparring-robot', 'materials-mentor'];
+  // 专业版 Pro 可用的 Agent（12个上游 + 试用期3个）
+  const PRO_AGENTS = new Set([
+    'gtm-strategy','product-expert','academic-liaison','marketing-director',
+    'sales-director','operations-director','training-director','area-manager',
+    'channel-manager','finance-bp','hrbp','procurement-manager',
+    'senior-consultant','sparring-robot','materials-mentor'
+  ]);
   // 仅管理员可见的 Agent（非管理员完全不显示）
   const ADMIN_ONLY_AGENTS = new Set(['meta-prompt-architect', 'prompt-engineer-pro', 'first-principles-analyst']);
   let currentIsAdmin = false;
@@ -1389,8 +1424,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const data = await res.json();
       const name = data.name || data.phone || data.code || '用户';
       currentUserName = name;
-      currentUserPlan = data.plan === 'pro' ? '专业版 Pro' : (data.plan === 'admin' ? '管理员' : '免费版');
-      currentIsPro = data.plan === 'pro' || data.plan === 'admin';
+      if (data.plan === 'lifetime') currentUserPlan = '全能版 Pro+ 终身';
+      else if (data.plan === 'pro_plus') currentUserPlan = '全能版 Pro+';
+      else if (data.plan === 'pro') currentUserPlan = '专业版 Pro';
+      else if (data.plan === 'admin') currentUserPlan = '管理员';
+      else currentUserPlan = '免费版';
+      currentIsPro = data.isPro || data.plan === 'admin';
+      currentIsProPlus = data.isProPlus || data.plan === 'admin';
       currentIsAdmin = data.plan === 'admin';
       buildStore(); // 重新渲染 Agent 列表，使锁定状态生效
 
@@ -1597,16 +1637,21 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         // 管理员专属Agent：非管理员完全不显示
         if (ADMIN_ONLY_AGENTS.has(agent.id) && !currentIsAdmin) return;
         if (filter && filter !== 'all' && agent.category !== filter) return;
-        const isLocked = !currentIsPro && !TRIAL_AGENTS.includes(agent.id);
+        // 判断锁定状态
+        const isLockedPro = !currentIsPro && !TRIAL_AGENTS.includes(agent.id);
+        const isLockedProPlus = currentIsPro && !currentIsProPlus && !PRO_AGENTS.has(agent.id);
+        const isLocked = isLockedPro || isLockedProPlus;
+        const lockLabel = isLockedProPlus ? 'Pro+' : 'Pro';
+        const lockHint = isLockedProPlus ? 'showUpgradeProPlusHint' : 'showUpgradeHint';
         const card = document.createElement('div');
         card.className = 'store-card' + (isLocked ? ' store-card-locked' : '');
         card.innerHTML = `
           <span class="store-card-icon">${agent.icon}</span>
-          <div class="store-card-name">${agent.name}${isLocked ? ' <span class="pro-badge">Pro</span>' : ''}</div>
+          <div class="store-card-name">${agent.name}${isLocked ? ` <span class="pro-badge">${lockLabel}</span>` : ''}</div>
           <div class="store-card-desc">${agent.desc}</div>
           <span class="store-card-tag">${agent.category}</span>
           ${isLocked
-            ? `<button class="store-card-use store-card-locked-btn" onclick="showUpgradeHint()">🔒 Pro 专属</button>`
+            ? `<button class="store-card-use store-card-locked-btn" onclick="${lockHint}()">🔒 ${lockLabel} 专属</button>`
             : `<button class="store-card-use" onclick="startChat('${agent.id}')">使用</button>`
           }`;
         grid.appendChild(card);
@@ -1615,7 +1660,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   function showUpgradeHint() {
-    alert('该 Agent 为 Pro 会员专属。升级后可解锁全部 21 个 Agent，请前往订阅页面了解详情。');
+    openSettings('pricing');
+  }
+  function showUpgradeProPlusHint() {
+    openSettings('pricing');
   }
 
   function filterStore(btn, cat) {

@@ -120,10 +120,13 @@ const LIBLIB_API_URL = 'https://openapi.liblibai.cloud';
 // ===== 权限体系常量 =====
 const TRIAL_DAYS = 7;                  // 免费试用天数
 const FREE_DAILY_MSG_LIMIT = 9999;     // 试用期每日消息上限（不限）
-const PRO_DAILY_MSG_LIMIT = 1000;      // Pro 版每日消息上限
-const PRO_MONTHLY_IMG_LIMIT = 50;      // Pro 版每月图片生成上限
+const PRO_DAILY_MSG_LIMIT = 1000;      // 专业版 Pro 每日消息上限
+const PRO_PLUS_DAILY_MSG_LIMIT = 1000; // 全能版 Pro+ 每日消息上限
+const PRO_MONTHLY_IMG_LIMIT = 50;      // 专业版 Pro 每月图片生成上限
+const PRO_PLUS_MONTHLY_IMG_LIMIT = 100;// 全能版 Pro+ 每月图片生成上限
 const FREE_DAILY_IMG_LIMIT = 10;       // 免费用户每日图片生成上限
-const PRO_MONTHLY_SEARCH_LIMIT = 300;  // Pro 版每月联网搜索上限
+const PRO_MONTHLY_SEARCH_LIMIT = 300;  // 专业版 Pro 每月联网搜索上限
+const PRO_PLUS_MONTHLY_SEARCH_LIMIT = 600; // 全能版 Pro+ 每月联网搜索上限
 
 // 试用期开放的 Agent 白名单（仅这3个可用）
 const TRIAL_AGENTS = [
@@ -131,6 +134,26 @@ const TRIAL_AGENTS = [
   'sparring-robot',      // 医美实战陪练机器人
   'materials-mentor',    // 医美材料学硬核导师
 ];
+
+// 专业版 Pro 可用的 Agent（12个上游 Agent + 试用期3个）
+const PRO_AGENTS = new Set([
+  'gtm-strategy',        // GTM战略大师
+  'product-expert',      // 产品材料专家
+  'academic-liaison',    // 学术推广专家
+  'marketing-director',  // 市场创意总监
+  'sales-director',      // 销售作战总监
+  'operations-director', // 运营效能总监
+  'training-director',   // 培训赋能总监
+  'area-manager',        // 大区经理
+  'channel-manager',     // 商务经理
+  'finance-bp',          // 财务BP
+  'hrbp',                // 战略HRBP
+  'procurement-manager', // 采购经理
+  // 试用期 Agent 同样包含
+  'senior-consultant',
+  'sparring-robot',
+  'materials-mentor',
+]);
 
 // 仅管理员可用的 Agent（任何非管理员访问均返回403，且不在前端列表中显示）
 const ADMIN_ONLY_AGENTS = new Set([
@@ -601,9 +624,13 @@ function getOrInitProfile(code) {
 }
 
 // 检查用户权限状态
+// plan 字段取值: 'free' | 'pro' | 'pro_plus' | 'lifetime' | 'expired' | 'admin'
+// - pro: 专业版，12个上游 Agent
+// - pro_plus: 全能版，全部21个 Agent + 内容创作
+// - lifetime: 终身版（pro_plus 永不过期）
 function getUserPlanStatus(code) {
   if (code === ADMIN_CODE) {
-    return { plan: 'admin', isPro: true, canChat: true, canSearch: true, canImage: true,
+    return { plan: 'admin', isPro: true, isProPlus: true, canChat: true, canSearch: true, canImage: true,
              dailyRemaining: 9999, imgRemaining: 9999, searchRemaining: 9999,
              trialDaysLeft: 999, isExpired: false, isTrialExpired: false };
   }
@@ -616,8 +643,12 @@ function getUserPlanStatus(code) {
   const trialElapsed = (now - trialStart) / (1000 * 60 * 60 * 24); // 天数
   const trialDaysLeft = Math.max(0, TRIAL_DAYS - Math.floor(trialElapsed));
 
-  // 判断是否 Pro
-  const isPro = p.plan === 'pro' && p.plan_expires && new Date(p.plan_expires) > now;
+  // 判断 plan 类型
+  const planExpires = p.plan_expires ? new Date(p.plan_expires) : null;
+  const isActivePlan = planExpires && planExpires > now;
+  const isPro = (p.plan === 'pro' || p.plan === 'pro_plus' || p.plan === 'lifetime') && isActivePlan;
+  const isProPlus = (p.plan === 'pro_plus' || p.plan === 'lifetime') && isActivePlan;
+  const isLifetime = p.plan === 'lifetime' && isActivePlan; // plan_expires=2099 表示终身
 
   // 判断试用期是否到期
   const isTrialExpired = !isPro && trialDaysLeft === 0;
@@ -625,13 +656,14 @@ function getUserPlanStatus(code) {
   // 每日消息计数
   const today = now.toISOString().slice(0, 10);
   const dailyCount = (p.daily_msg_date === today) ? (p.daily_msg_count || 0) : 0;
-  const dailyLimit = isPro ? PRO_DAILY_MSG_LIMIT : FREE_DAILY_MSG_LIMIT;
+  const dailyLimit = isProPlus ? PRO_PLUS_DAILY_MSG_LIMIT : (isPro ? PRO_DAILY_MSG_LIMIT : FREE_DAILY_MSG_LIMIT);
   const dailyRemaining = Math.max(0, dailyLimit - dailyCount);
 
-  // 每月图片计数（Pro）
+  // 每月图片计数
   const thisMonth = now.toISOString().slice(0, 7);
   const imgCount = (p.img_month === thisMonth) ? (p.img_month_count || 0) : 0;
-  const imgRemaining = isPro ? Math.max(0, PRO_MONTHLY_IMG_LIMIT - imgCount) : 0;
+  const imgMonthLimit = isProPlus ? PRO_PLUS_MONTHLY_IMG_LIMIT : PRO_MONTHLY_IMG_LIMIT;
+  const imgRemaining = isPro ? Math.max(0, imgMonthLimit - imgCount) : 0;
 
   // 每日图片计数（免费用户）
   const imgDailyCount = (p.img_daily_date === today) ? (p.img_daily_count || 0) : 0;
@@ -639,14 +671,25 @@ function getUserPlanStatus(code) {
 
   // 每月搜索计数
   const searchCount = (p.search_month === thisMonth) ? (p.search_month_count || 0) : 0;
-  const searchRemaining = isPro ? Math.max(0, PRO_MONTHLY_SEARCH_LIMIT - searchCount) : 0;
+  const searchMonthLimit = isProPlus ? PRO_PLUS_MONTHLY_SEARCH_LIMIT : PRO_MONTHLY_SEARCH_LIMIT;
+  const searchRemaining = isPro ? Math.max(0, searchMonthLimit - searchCount) : 0;
 
-  // 生图权限：Pro 用每月限额；免费用每日 10 张
+  // 生图权限
   const canImage = isPro ? imgRemaining > 0 : (!isTrialExpired && freeImgRemaining > 0);
 
+  // 确定 plan 显示名称
+  let planName;
+  if (isLifetime) planName = 'lifetime';
+  else if (isProPlus) planName = 'pro_plus';
+  else if (isPro) planName = 'pro';
+  else if (isTrialExpired) planName = 'expired';
+  else planName = 'free';
+
   return {
-    plan: isPro ? 'pro' : (isTrialExpired ? 'expired' : 'free'),
+    plan: planName,
     isPro,
+    isProPlus,
+    isLifetime,
     isTrialExpired,
     trialDaysLeft,
     trialStart: trialStart.toISOString(),
@@ -1988,15 +2031,28 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      // 检查试用期 Agent 白名单（非 Pro 用户只能用指定 3 个）
-      if (!planStatus.isPro && session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
-        res.writeHead(403, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: 'agent_locked',
-          message: '该 Agent 为 Pro 会员专属，升级后可解锁全部 21 个 Agent',
-          planStatus
-        }));
-        return;
+      // 检查 Agent 访问权限（分级控制）
+      if (session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
+        if (!planStatus.isPro) {
+          // 免费用户：只能用 TRIAL_AGENTS
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'agent_locked',
+            message: '该 Agent 为 Pro 会员专属，升级专业版或全能版后可解锁',
+            planStatus
+          }));
+          return;
+        }
+        if (!planStatus.isProPlus && !PRO_AGENTS.has(session.agentId)) {
+          // 专业版用户：只能用 PRO_AGENTS，不能用 Pro+ 专属 Agent
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'agent_locked_pro_plus',
+            message: '该 Agent 为全能版 Pro+ 专属，升级全能版后可解锁全部 21 个 Agent',
+            planStatus
+          }));
+          return;
+        }
       }
 
       // 检查每日消息配额
@@ -2222,11 +2278,18 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'trial_expired', message: '免费试用期已结束，请升级为 Pro 会员继续使用', planStatus: planStatus2 }));
         return;
       }
-      // 检查试用期 Agent 白名单
-      if (!planStatus2.isPro && session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
-        res.writeHead(403, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'agent_locked', message: '该 Agent 为 Pro 会员专属，升级后可解锁全部 21 个 Agent', planStatus: planStatus2 }));
-        return;
+      // 检查 Agent 访问权限（分级控制）
+      if (session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
+        if (!planStatus2.isPro) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'agent_locked', message: '该 Agent 为 Pro 会员专属，升级专业版或全能版后可解锁', planStatus: planStatus2 }));
+          return;
+        }
+        if (!planStatus2.isProPlus && !PRO_AGENTS.has(session.agentId)) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'agent_locked_pro_plus', message: '该 Agent 为全能版 Pro+ 专属，升级全能版后可解锁全部 21 个 Agent', planStatus: planStatus2 }));
+          return;
+        }
       }
       if (planStatus2.dailyRemaining <= 0) {
         res.writeHead(429, { 'Content-Type': 'application/json' });
@@ -2705,6 +2768,86 @@ const server = http.createServer(async (req, res) => {
       console.log(`🔒 管理员将 ${code} 降级为免费`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true, code, plan: 'free' }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: 升级用户为全能版 Pro+
+  if (url.pathname === '/api/admin/set-pro-plus' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const { code, months } = await parseRequestBody(req);
+      if (!code) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请提供用户邀请码' }));
+        return;
+      }
+      const profiles = loadProfiles();
+      if (!profiles[code]) profiles[code] = {};
+      const m = parseInt(months) || 1;
+      const now = new Date();
+      const currentExpires = profiles[code].plan_expires ? new Date(profiles[code].plan_expires) : null;
+      const base = (currentExpires && currentExpires > now) ? currentExpires : now;
+      const expires = new Date(base);
+      expires.setMonth(expires.getMonth() + m);
+      profiles[code].plan = 'pro_plus';
+      profiles[code].plan_expires = expires.toISOString();
+      if (!profiles[code].trial_start) profiles[code].trial_start = now.toISOString();
+      saveProfiles(profiles);
+      console.log(`💳 管理员将 ${code} 升级为 Pro+，到期: ${expires.toISOString()}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, code, plan: 'pro_plus', plan_expires: expires.toISOString(), months: m }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: 生成终身版邀请码（Level 2 赠品）
+  if (url.pathname === '/api/admin/generate-lifetime-code' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const { name, note } = await parseRequestBody(req);
+      if (!name || !name.trim()) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请填写客户姓名' }));
+        return;
+      }
+      // 生成邀请码
+      const code = 'lt' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      const codes = loadCodes();
+      codes[code] = name.trim();
+      saveCodes(codes);
+      // 设置为单次使用
+      const usageLimits = loadUsageLimits();
+      usageLimits[code] = 1;
+      saveUsageLimits(usageLimits);
+      // 预设终身版权益（注册时自动生效）
+      const profiles = loadProfiles();
+      profiles[code] = {
+        name: name.trim(),
+        plan: 'lifetime',
+        plan_expires: '2099-12-31T23:59:59.000Z',
+        trial_start: new Date().toISOString(),
+        note: note || 'Level 2 赠品',
+        created_at: new Date().toISOString()
+      };
+      saveProfiles(profiles);
+      console.log(`🎁 生成终身版邀请码: ${code} 客户: ${name.trim()}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, code, name: name.trim(), plan: 'lifetime', note: note || 'Level 2 赠品' }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
@@ -3536,21 +3679,26 @@ const server = http.createServer(async (req, res) => {
       const tradeState = (result.data && result.data.trade_state) || result.trade_state;
       const paid = tradeState === 'SUCCESS';
       if (paid) {
-        // 支付成功，升级用户套餐
-        const cookies = parseCookies(req);
-        const username = getUserName(req);
-        const usersPath = path.join(DATA_DIR, 'users.json');
+        // 支付成功，根据订单名称升级用户套餐
+        const userCode = getUserCode(req);
+        const planName = result.data && result.data.description ? result.data.description : '';
+        const isProPlus = planName.includes('Pro+') || planName.includes('全能版');
+        const isYearly = planName.includes('年付');
+        const months = isYearly ? 12 : 1;
+        const newPlan = isProPlus ? 'pro_plus' : 'pro';
         try {
-          if (fs.existsSync(usersPath)) {
-            let users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
-            const user = users.find(u => u.username === username || u.name === username);
-            if (user) {
-              user.plan = 'pro';
-              user.plan_expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-              fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-              console.log('✅ 用户', username, '已升级为专业版 Pro');
-            }
-          }
+          const profiles = loadProfiles();
+          if (!profiles[userCode]) profiles[userCode] = {};
+          const now = new Date();
+          const currentExpires = profiles[userCode].plan_expires ? new Date(profiles[userCode].plan_expires) : null;
+          const base = (currentExpires && currentExpires > now) ? currentExpires : now;
+          const expires = new Date(base);
+          expires.setMonth(expires.getMonth() + months);
+          profiles[userCode].plan = newPlan;
+          profiles[userCode].plan_expires = expires.toISOString();
+          if (!profiles[userCode].trial_start) profiles[userCode].trial_start = now.toISOString();
+          saveProfiles(profiles);
+          console.log(`✅ 用户 ${userCode} 已升级为 ${newPlan}，${months}个月，到期: ${expires.toISOString()}`);
         } catch (e) { console.error('升级用户套餐失败:', e.message); }
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
