@@ -943,6 +943,62 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     /* ===== MOBILE ===== */
     @media (max-width: 640px) {
       .sidebar { display: none; }
+
+      /* 顶部栏精简 */
+      .chat-topbar {
+        padding: 0.625rem 1rem;
+        gap: 0.625rem;
+      }
+      .chat-agent-avatar {
+        width: 32px; height: 32px; font-size: 1rem;
+      }
+      .chat-agent-name { font-size: 0.85rem; }
+      .chat-agent-desc { display: none; }
+      .chat-status { font-size: 0.7rem; }
+      /* 顶部按钮：隐藏文字标签，只保留图标 */
+      .btn-label { display: none; }
+      .chat-topbar-btn {
+        padding: 0.375rem 0.5rem;
+        min-width: 32px;
+        display: flex; align-items: center; justify-content: center;
+        margin-left: 0.25rem;
+        font-size: 1rem;
+      }
+
+      /* 消息区域 */
+      .chat-messages { padding: 1rem 0.875rem; gap: 0.75rem; }
+      .msg-bubble { font-size: 0.9rem; line-height: 1.6; }
+
+      /* 输入区域 - iOS safe area 适配 */
+      .chat-input-area {
+        padding: 0.625rem 0.75rem;
+        padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+      }
+      .chat-input-box { padding: 0.625rem 0.75rem; }
+      .chat-textarea { font-size: 1rem; } /* iOS 防止自动缩放 */
+
+      /* 底部工具栏按钮：只显示图标 */
+      .upload-btn, .search-toggle-btn, .draw-btn, .mic-btn {
+        padding: 0.35rem 0.5rem;
+        min-width: 34px;
+        display: flex; align-items: center; justify-content: center;
+        gap: 0;
+        font-size: 1.1rem;
+      }
+
+      /* 发送按钮 */
+      .chat-send-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+      }
+
+      /* 引导问题 */
+      .guided-questions { padding: 0 0.875rem 0.5rem; }
+      .guided-q-btn { font-size: 0.8rem; padding: 0.45rem 0.875rem; }
+
+      /* 欢迎区域 */
+      .welcome-wrap { padding: 1.5rem 1rem; }
+      .welcome-mascot { width: 70px; height: 70px; }
     }
   </style>
 </head>
@@ -1099,9 +1155,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <div class="chat-status" id="chatStatus" style="display:none">
         <div class="chat-status-dot"></div>在线
       </div>
-      <button class="chat-topbar-btn" onclick="showHistory()">📜 历史</button>
-      <button class="chat-topbar-btn" onclick="clearChat()">清空对话</button>
-      <button class="chat-topbar-btn" onclick="openSettings('api')">⚙ 设置</button>
+      <button class="chat-topbar-btn" onclick="showHistory()">📜<span class="btn-label"> 历史</span></button>
+      <button class="chat-topbar-btn" onclick="clearChat()"><span class="btn-label">清空对话</span></button>
+      <button class="chat-topbar-btn" onclick="openSettings('api')">⚙<span class="btn-label"> 设置</span></button>
     </div>
     <div class="chat-messages" id="chatMessages">
       <div class="welcome-wrap" id="welcomeWrap">
@@ -1117,23 +1173,23 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <!-- Hidden file input -->
         <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.md,.png,.jpg,.jpeg,.gif,.webp,.bmp" onchange="handleFileSelect(event)">
       <div class="chat-input-box">
-        <textarea class="chat-textarea" id="messageInput" placeholder="输入您的问题... (Enter 发送，Shift+Enter 换行)" rows="1" disabled oninput="autoResize(this)" onkeydown="chatKeydown(event)"></textarea>
+        <textarea class="chat-textarea" id="messageInput" placeholder="输入问题..." rows="1" disabled oninput="autoResize(this)" onkeydown="chatKeydown(event)"></textarea>
         <div class="chat-input-footer">
           <div class="chat-input-left">
             <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
-              📎 上传文件
+              📎<span class="btn-label"> 上传文件</span>
             </button>
             <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
-              🌐 联网
+              🌐<span class="btn-label"> 联网</span>
             </button>
             <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图">
-              🎨 绘图
+              🎨<span class="btn-label"> 绘图</span>
             </button>
             <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
           </div>
           <div class="chat-input-right">
             <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入">
-              🎙️ 语音
+              🎙️<span class="btn-label"> 语音</span>
             </button>
             <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
           </div>
