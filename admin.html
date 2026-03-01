@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedAgent Hub · 数据管理中心</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Inter','PingFang SC','Helvetica Neue',sans-serif;background:#f5f5f5;color:#191919;min-height:100vh}
+  .topbar{background:#191919;color:#fff;padding:0 1.5rem;height:52px;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100}
+  .topbar-logo{font-weight:700;font-size:1rem;letter-spacing:-0.02em}
+  .topbar-badge{background:#e8715a;color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:0.05em}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:0.75rem}
+  .topbar-link{color:rgba(255,255,255,0.6);font-size:0.8rem;text-decoration:none;transition:color 0.15s}
+  .topbar-link:hover{color:#fff}
+  .layout{display:flex;min-height:calc(100vh - 52px)}
+  .sidebar{width:200px;background:#fff;border-right:1px solid #e8e5e0;padding:1rem 0;flex-shrink:0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+  .nav-section{padding:0.25rem 0.75rem;font-size:0.65rem;font-weight:700;color:#aaa;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.75rem}
+  .nav-item{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem;font-size:0.825rem;color:#5a5a5a;cursor:pointer;transition:all 0.15s;border-left:3px solid transparent}
+  .nav-item:hover{background:#faf8f5;color:#191919}
+  .nav-item.active{background:#faf8f5;color:#191919;border-left-color:#e8715a;font-weight:600}
+  .nav-item svg{flex-shrink:0;opacity:0.6}
+  .nav-item.active svg{opacity:1}
+  .main{flex:1;padding:1.5rem;overflow-y:auto;max-width:1200px}
+  .page{display:none}
+  .page.active{display:block}
+  .page-title{font-size:1.25rem;font-weight:700;margin-bottom:1.25rem;display:flex;align-items:center;gap:0.5rem}
+  .card{background:#fff;border-radius:10px;border:1px solid #e8e5e0;padding:1.25rem;margin-bottom:1rem}
+  .card-title{font-size:0.8rem;font-weight:700;color:#767676;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.75rem;margin-bottom:1rem}
+  .stat-card{background:#fff;border:1px solid #e8e5e0;border-radius:10px;padding:1rem;text-align:center}
+  .stat-num{font-size:1.75rem;font-weight:800;color:#191919;line-height:1}
+  .stat-label{font-size:0.7rem;color:#767676;margin-top:0.35rem}
+  .stat-card.accent .stat-num{color:#e8715a}
+  table{width:100%;border-collapse:collapse;font-size:0.825rem}
+  th{text-align:left;padding:0.5rem 0.75rem;font-size:0.7rem;font-weight:700;color:#767676;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e8e5e0;background:#faf8f5}
+  td{padding:0.6rem 0.75rem;border-bottom:1px solid #f0ede8;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#faf8f5}
+  .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600}
+  .badge-free{background:#f0ede8;color:#767676}
+  .badge-pro{background:#dbeafe;color:#1d4ed8}
+  .badge-proplus{background:#fce7f3;color:#9d174d}
+  .badge-admin{background:#191919;color:#fff}
+  .badge-green{background:#dcfce7;color:#166534}
+  .badge-red{background:#fee2e2;color:#991b1b}
+  .btn{display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.85rem;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;border:none;transition:all 0.15s}
+  .btn-primary{background:#191919;color:#fff}
+  .btn-primary:hover{background:#333}
+  .btn-danger{background:#fee2e2;color:#991b1b}
+  .btn-danger:hover{background:#fecaca}
+  .btn-success{background:#dcfce7;color:#166534}
+  .btn-success:hover{background:#bbf7d0}
+  .btn-ghost{background:#f0ede8;color:#5a5a5a}
+  .btn-ghost:hover{background:#e8e5e0}
+  .btn-sm{padding:0.25rem 0.6rem;font-size:0.75rem}
+  .input{width:100%;padding:0.5rem 0.75rem;border:1px solid #e8e5e0;border-radius:6px;font-size:0.875rem;outline:none;transition:border 0.15s}
+  .input:focus{border-color:#191919}
+  .input-row{display:flex;gap:0.5rem;margin-bottom:0.75rem}
+  .input-row .input{flex:1}
+  .select{padding:0.5rem 0.75rem;border:1px solid #e8e5e0;border-radius:6px;font-size:0.875rem;outline:none;background:#fff;cursor:pointer}
+  .select:focus{border-color:#191919}
+  .tag{display:inline-block;background:#faf8f5;border:1px solid #e8e5e0;border-radius:4px;padding:1px 6px;font-size:0.7rem;color:#5a5a5a;margin:1px}
+  .empty{text-align:center;padding:2rem;color:#aaa;font-size:0.875rem}
+  .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#191919;color:#fff;padding:0.6rem 1.25rem;border-radius:8px;font-size:0.875rem;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none}
+  .toast.show{opacity:1}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:center;justify-content:center}
+  .modal-overlay.show{display:flex}
+  .modal-box{background:#fff;border-radius:12px;padding:1.5rem;width:420px;max-width:90vw}
+  .modal-title{font-size:1rem;font-weight:700;margin-bottom:1rem}
+  .modal-label{font-size:0.8rem;font-weight:600;color:#5a5a5a;margin-bottom:0.35rem;display:block}
+  .modal-actions{display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem}
+  .loading{color:#aaa;font-size:0.875rem;padding:1rem 0}
+  .code-chip{font-family:monospace;background:#faf8f5;border:1px solid #e8e5e0;border-radius:4px;padding:2px 6px;font-size:0.8rem;cursor:pointer}
+  .code-chip:hover{background:#e8e5e0}
+  .section-actions{display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+  .divider{height:1px;background:#e8e5e0;margin:1rem 0}
+  .feedback-content{font-size:0.8rem;color:#5a5a5a;line-height:1.5;max-width:300px;white-space:pre-wrap;word-break:break-all}
+  @media(max-width:768px){
+    .sidebar{display:none}
+    .stats-grid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">MedAgent Hub</span>
+  <span class="topbar-badge">ADMIN</span>
+  <div class="topbar-right">
+    <a href="/chat.html" class="topbar-link">← 返回对话</a>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="nav-section">概览</div>
+    <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      数据概览
+    </div>
+    <div class="nav-section">用户管理</div>
+    <div class="nav-item" onclick="showPage('users')" id="nav-users">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      用户列表
+    </div>
+    <div class="nav-item" onclick="showPage('codes')" id="nav-codes">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h0M2 9.5h20"/></svg>
+      邀请码管理
+    </div>
+    <div class="nav-section">内容管理</div>
+    <div class="nav-item" onclick="showPage('feedback')" id="nav-feedback">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      用户反馈
+    </div>
+    <div class="nav-item" onclick="showPage('tokens')" id="nav-tokens">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Token 统计
+    </div>
+    <div class="nav-section">渠道管理</div>
+    <div class="nav-item" onclick="showPage('channel')" id="nav-channel">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      渠道结算
+    </div>
+    <div class="nav-item" onclick="showPage('referral')" id="nav-referral">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      推荐返佣
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        数据概览
+      </div>
+      <div id="statsGrid" class="stats-grid"><div class="loading">加载中...</div></div>
+      <div class="card">
+        <div class="card-title">今日 Token 消耗（Top Agent）</div>
+        <div id="tokenChart"><div class="loading">加载中...</div></div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="page" id="page-users">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        用户列表
+      </div>
+      <div class="section-actions">
+        <input class="input" id="userSearch" placeholder="搜索用户名或邀请码..." style="max-width:260px" oninput="filterUsers()">
+        <button class="btn btn-ghost btn-sm" onclick="loadUsers()">刷新</button>
+        <button class="btn btn-primary btn-sm" onclick="exportData()">导出 Excel</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table id="usersTable">
+          <thead><tr><th>用户</th><th>邀请码</th><th>套餐</th><th>今日消息</th><th>注册时间</th><th>操作</th></tr></thead>
+          <tbody id="usersBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Codes -->
+    <div class="page" id="page-codes">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h0M2 9.5h20"/></svg>
+        邀请码管理
+      </div>
+      <div class="card">
+        <div class="card-title">生成新邀请码</div>
+        <div class="input-row">
+          <input class="input" id="newCodePrefix" placeholder="前缀（可选，如 VIP）" style="max-width:180px">
+          <select class="select" id="newCodeCount">
+            <option value="1">1 个</option>
+            <option value="5" selected>5 个</option>
+            <option value="10">10 个</option>
+            <option value="20">20 个</option>
+            <option value="50">50 个</option>
+          </select>
+          <select class="select" id="newCodeMaxUses">
+            <option value="1">最多使用 1 次</option>
+            <option value="3">最多使用 3 次</option>
+            <option value="5" selected>最多使用 5 次</option>
+            <option value="10">最多使用 10 次</option>
+            <option value="99">不限次数</option>
+          </select>
+          <button class="btn btn-primary" onclick="generateCodes()">生成</button>
+        </div>
+        <div id="newCodesResult"></div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:0.75rem 1rem;display:flex;align-items:center;gap:0.5rem;border-bottom:1px solid #e8e5e0">
+          <span style="font-size:0.8rem;font-weight:700;color:#767676">现有邀请码</span>
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadCodes()">刷新</button>
+        </div>
+        <table id="codesTable">
+          <thead><tr><th>邀请码</th><th>使用次数</th><th>上限</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody id="codesBody"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Feedback -->
+    <div class="page" id="page-feedback">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        用户反馈
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table id="feedbackTable">
+          <thead><tr><th>时间</th><th>用户</th><th>类型</th><th>内容</th><th>联系方式</th></tr></thead>
+          <tbody id="feedbackBody"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tokens -->
+    <div class="page" id="page-tokens">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Token 使用统计
+      </div>
+      <div class="section-actions">
+        <select class="select" id="tokenDays" onchange="loadTokenStats()">
+          <option value="7">最近 7 天</option>
+          <option value="30" selected>最近 30 天</option>
+          <option value="90">最近 90 天</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadTokenStats()">刷新</button>
+      </div>
+      <div id="tokenStatsGrid" class="stats-grid"></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr><th>用户</th><th>Agent</th><th>输入 Token</th><th>输出 Token</th><th>总计</th><th>时间</th></tr></thead>
+          <tbody id="tokenBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Channel -->
+    <div class="page" id="page-channel">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        渠道结算
+      </div>
+      <div class="card">
+        <div class="card-title">创建渠道</div>
+        <div class="input-row">
+          <input class="input" id="channelName" placeholder="渠道名称">
+          <input class="input" id="channelRate" placeholder="佣金比例（如 0.2）" style="max-width:180px">
+          <button class="btn btn-primary" onclick="createChannel()">创建</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table id="channelTable">
+          <thead><tr><th>渠道名称</th><th>渠道码</th><th>佣金比例</th><th>累计金额</th><th>已结算</th><th>操作</th></tr></thead>
+          <tbody id="channelBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Referral -->
+    <div class="page" id="page-referral">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        推荐返佣
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr><th>推荐人</th><th>邀请数</th><th>总赠金</th><th>已到账</th><th>待处理</th><th>操作</th></tr></thead>
+          <tbody id="referralBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- User Edit Modal -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal-box">
+    <div class="modal-title" id="userModalTitle">设置用户套餐</div>
+    <div style="margin-bottom:0.75rem">
+      <label class="modal-label">用户</label>
+      <div id="modalUserName" style="font-size:0.875rem;color:#191919;font-weight:600"></div>
+    </div>
+    <div style="margin-bottom:0.75rem">
+      <label class="modal-label">套餐</label>
+      <select class="select" id="modalPlan" style="width:100%">
+        <option value="free">免费版</option>
+        <option value="pro">Pro 专业版</option>
+        <option value="pro_plus">Pro+ 全能版</option>
+      </select>
+    </div>
+    <div id="modalExpireRow" style="margin-bottom:0.75rem">
+      <label class="modal-label">到期时间（留空=永久）</label>
+      <input class="input" id="modalExpire" type="date" placeholder="YYYY-MM-DD">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveUserPlan()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let allUsers = [];
+let currentEditUser = null;
+
+// ===== Navigation =====
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  // Lazy load
+  if (name === 'dashboard') loadDashboard();
+  else if (name === 'users') loadUsers();
+  else if (name === 'codes') loadCodes();
+  else if (name === 'feedback') loadFeedback();
+  else if (name === 'tokens') loadTokenStats();
+  else if (name === 'channel') loadChannels();
+  else if (name === 'referral') loadReferral();
+}
+
+// ===== Toast =====
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ===== API Helper =====
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (res.status === 302 || res.redirected) { location.href = '/login.html'; return null; }
+  return res.json();
+}
+
+// ===== Dashboard =====
+async function loadDashboard() {
+  const [stats, tokenStats] = await Promise.all([
+    api('/api/admin/stats'),
+    api('/api/admin/token-stats?days=1')
+  ]);
+  if (!stats) return;
+
+  const grid = document.getElementById('statsGrid');
+  const items = [
+    { label: '总用户数', value: stats.totalUsers || 0 },
+    { label: 'Pro 用户', value: stats.proUsers || 0, accent: true },
+    { label: '今日活跃', value: stats.todayActive || 0 },
+    { label: '今日对话', value: stats.todayMessages || 0 },
+    { label: '总对话数', value: stats.totalMessages || 0 },
+    { label: '邀请码总数', value: stats.totalCodes || 0 },
+  ];
+  grid.innerHTML = items.map(i => `
+    <div class="stat-card ${i.accent ? 'accent' : ''}">
+      <div class="stat-num">${i.value.toLocaleString()}</div>
+      <div class="stat-label">${i.label}</div>
+    </div>
+  `).join('');
+
+  // Token chart (simple table)
+  if (tokenStats && tokenStats.byAgent) {
+    const sorted = Object.entries(tokenStats.byAgent).sort((a,b) => b[1] - a[1]).slice(0, 8);
+    const max = sorted[0]?.[1] || 1;
+    document.getElementById('tokenChart').innerHTML = sorted.length ? sorted.map(([agent, tokens]) => `
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">
+        <span style="width:140px;font-size:0.75rem;color:#5a5a5a;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${agent}</span>
+        <div style="flex:1;background:#f0ede8;border-radius:3px;height:8px">
+          <div style="width:${Math.round(tokens/max*100)}%;background:#e8715a;height:8px;border-radius:3px"></div>
+        </div>
+        <span style="font-size:0.75rem;color:#767676;width:60px;text-align:right">${tokens.toLocaleString()}</span>
+      </div>
+    `).join('') : '<div class="empty">暂无数据</div>';
+  }
+}
+
+// ===== Users =====
+async function loadUsers() {
+  const data = await api('/api/admin/users');
+  if (!data) return;
+  allUsers = data.users || [];
+  renderUsers(allUsers);
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('usersBody');
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无用户</td></tr>'; return; }
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td><b>${u.name || '—'}</b></td>
+      <td><span class="code-chip" onclick="copyText('${u.code}')">${u.code}</span></td>
+      <td>${planBadge(u.plan)}</td>
+      <td>${u.todayMessages || 0}</td>
+      <td style="font-size:0.75rem;color:#aaa">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('zh-CN') : '—'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openUserModal('${u.code}','${u.name || ''}','${u.plan || 'free'}')">设置套餐</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterUsers() {
+  const q = document.getElementById('userSearch').value.toLowerCase();
+  renderUsers(allUsers.filter(u => (u.name||'').toLowerCase().includes(q) || (u.code||'').toLowerCase().includes(q)));
+}
+
+function planBadge(plan) {
+  if (plan === 'admin') return '<span class="badge badge-admin">管理员</span>';
+  if (plan === 'pro_plus') return '<span class="badge badge-proplus">Pro+</span>';
+  if (plan === 'pro') return '<span class="badge badge-pro">Pro</span>';
+  return '<span class="badge badge-free">免费</span>';
+}
+
+function openUserModal(code, name, plan) {
+  currentEditUser = code;
+  document.getElementById('modalUserName').textContent = name || code;
+  document.getElementById('modalPlan').value = plan === 'admin' ? 'free' : (plan || 'free');
+  document.getElementById('userModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('userModal').classList.remove('show');
+  currentEditUser = null;
+}
+
+async function saveUserPlan() {
+  if (!currentEditUser) return;
+  const plan = document.getElementById('modalPlan').value;
+  const expire = document.getElementById('modalExpire').value;
+  let endpoint, body;
+  if (plan === 'pro_plus') {
+    endpoint = '/api/admin/set-pro-plus';
+    body = { code: currentEditUser, expireDate: expire || null };
+  } else if (plan === 'pro') {
+    endpoint = '/api/admin/set-pro';
+    body = { code: currentEditUser, expireDate: expire || null };
+  } else {
+    endpoint = '/api/admin/revoke-pro';
+    body = { code: currentEditUser };
+  }
+  const res = await api(endpoint, 'POST', body);
+  if (res && !res.error) {
+    showToast('✅ 套餐已更新');
+    closeModal();
+    loadUsers();
+  } else {
+    showToast('❌ 操作失败：' + (res?.error || '未知错误'));
+  }
+}
+
+// ===== Codes =====
+async function loadCodes() {
+  const data = await api('/api/admin/codes');
+  if (!data) return;
+  const codes = data.codes || [];
+  const tbody = document.getElementById('codesBody');
+  if (!codes.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无邀请码</td></tr>'; return; }
+  tbody.innerHTML = codes.map(c => {
+    const used = c.uses || 0;
+    const max = c.maxUses || 5;
+    const full = used >= max;
+    return `
+      <tr>
+        <td><span class="code-chip" onclick="copyText('${c.code}')">${c.code}</span></td>
+        <td>${used}</td>
+        <td>${max >= 99 ? '不限' : max}</td>
+        <td><span class="badge ${full ? 'badge-red' : 'badge-green'}">${full ? '已用完' : '可用'}</span></td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="deleteCode('${c.code}')">删除</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function generateCodes() {
+  const prefix = document.getElementById('newCodePrefix').value.trim();
+  const count = parseInt(document.getElementById('newCodeCount').value);
+  const maxUses = parseInt(document.getElementById('newCodeMaxUses').value);
+  const res = await api('/api/admin/codes', 'POST', { prefix, count, maxUses });
+  if (res && res.codes) {
+    const el = document.getElementById('newCodesResult');
+    el.innerHTML = '<div style="margin-top:0.75rem"><div style="font-size:0.75rem;color:#767676;margin-bottom:0.5rem">生成成功，点击复制：</div>' +
+      res.codes.map(c => `<span class="code-chip" onclick="copyText('${c}')" style="margin:2px">${c}</span>`).join('') + '</div>';
+    loadCodes();
+  } else {
+    showToast('❌ 生成失败：' + (res?.error || '未知'));
+  }
+}
+
+async function deleteCode(code) {
+  if (!confirm(`确认删除邀请码 ${code}？`)) return;
+  const res = await api('/api/admin/codes/' + encodeURIComponent(code), 'DELETE');
+  if (res && !res.error) { showToast('✅ 已删除'); loadCodes(); }
+  else showToast('❌ 删除失败');
+}
+
+// ===== Feedback =====
+async function loadFeedback() {
+  const data = await api('/api/admin/beta-feedback');
+  if (!data) return;
+  const list = data.feedbacks || [];
+  const tbody = document.getElementById('feedbackBody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无反馈</td></tr>'; return; }
+  tbody.innerHTML = list.slice().reverse().map(f => `
+    <tr>
+      <td style="font-size:0.75rem;color:#aaa;white-space:nowrap">${f.ts ? new Date(f.ts).toLocaleString('zh-CN') : '—'}</td>
+      <td>${f.userName || f.userCode || '—'}</td>
+      <td><span class="tag">${f.category || '—'}</span></td>
+      <td><div class="feedback-content">${(f.content || '').substring(0, 200)}</div></td>
+      <td style="font-size:0.8rem">${f.contact || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ===== Token Stats =====
+async function loadTokenStats() {
+  const days = document.getElementById('tokenDays').value;
+  const data = await api(`/api/admin/token-stats?days=${days}`);
+  if (!data) return;
+
+  const grid = document.getElementById('tokenStatsGrid');
+  grid.innerHTML = `
+    <div class="stat-card"><div class="stat-num">${(data.totalInputTokens||0).toLocaleString()}</div><div class="stat-label">输入 Token</div></div>
+    <div class="stat-card accent"><div class="stat-num">${(data.totalOutputTokens||0).toLocaleString()}</div><div class="stat-label">输出 Token</div></div>
+    <div class="stat-card"><div class="stat-num">${(data.totalRequests||0).toLocaleString()}</div><div class="stat-label">总请求数</div></div>
+    <div class="stat-card"><div class="stat-num">${(data.uniqueUsers||0).toLocaleString()}</div><div class="stat-label">活跃用户</div></div>
+  `;
+
+  const records = data.records || [];
+  const tbody = document.getElementById('tokenBody');
+  if (!records.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无数据</td></tr>'; return; }
+  tbody.innerHTML = records.slice(0, 100).map(r => `
+    <tr>
+      <td>${r.userName || r.userCode || '—'}</td>
+      <td style="font-size:0.8rem">${r.agentId || '—'}</td>
+      <td>${(r.inputTokens||0).toLocaleString()}</td>
+      <td>${(r.outputTokens||0).toLocaleString()}</td>
+      <td><b>${((r.inputTokens||0)+(r.outputTokens||0)).toLocaleString()}</b></td>
+      <td style="font-size:0.75rem;color:#aaa">${r.ts ? new Date(r.ts).toLocaleString('zh-CN') : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ===== Channel =====
+async function loadChannels() {
+  const data = await api('/api/admin/channel/list');
+  if (!data) return;
+  const list = data.channels || [];
+  const tbody = document.getElementById('channelBody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无渠道</td></tr>'; return; }
+  tbody.innerHTML = list.map(c => `
+    <tr>
+      <td><b>${c.name}</b></td>
+      <td><span class="code-chip" onclick="copyText('${c.code}')">${c.code}</span></td>
+      <td>${Math.round((c.rate||0)*100)}%</td>
+      <td>¥${(c.totalAmount||0).toFixed(2)}</td>
+      <td>¥${(c.settledAmount||0).toFixed(2)}</td>
+      <td>
+        <button class="btn btn-success btn-sm" onclick="settleChannel('${c.code}')">结算</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function createChannel() {
+  const name = document.getElementById('channelName').value.trim();
+  const rate = parseFloat(document.getElementById('channelRate').value);
+  if (!name || isNaN(rate)) { showToast('请填写渠道名称和佣金比例'); return; }
+  const res = await api('/api/admin/channel/create', 'POST', { name, rate });
+  if (res && res.code) {
+    showToast('✅ 渠道已创建，渠道码：' + res.code);
+    document.getElementById('channelName').value = '';
+    document.getElementById('channelRate').value = '';
+    loadChannels();
+  } else showToast('❌ 创建失败');
+}
+
+async function settleChannel(code) {
+  if (!confirm('确认结算该渠道？')) return;
+  const res = await api('/api/admin/channel/settle', 'POST', { code });
+  if (res && !res.error) { showToast('✅ 结算成功'); loadChannels(); }
+  else showToast('❌ 结算失败');
+}
+
+// ===== Referral =====
+async function loadReferral() {
+  const data = await api('/api/admin/referral-stats');
+  if (!data) return;
+  const list = data.stats || [];
+  const tbody = document.getElementById('referralBody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无推荐记录</td></tr>'; return; }
+  tbody.innerHTML = list.map(r => `
+    <tr>
+      <td><b>${r.name || r.code}</b></td>
+      <td>${r.inviteCount || 0}</td>
+      <td>¥${(r.totalCredit||0).toFixed(2)}</td>
+      <td>¥${(r.paidCredit||0).toFixed(2)}</td>
+      <td>¥${((r.totalCredit||0)-(r.paidCredit||0)).toFixed(2)}</td>
+      <td>
+        ${(r.totalCredit||0) > (r.paidCredit||0) ? `<button class="btn btn-success btn-sm" onclick="payReferral('${r.code}')">打款</button>` : '<span style="color:#aaa;font-size:0.75rem">已结清</span>'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function payReferral(code) {
+  if (!confirm('确认已完成打款？')) return;
+  const res = await api('/api/admin/referral-pay', 'POST', { code });
+  if (res && !res.error) { showToast('✅ 已标记打款'); loadReferral(); }
+  else showToast('❌ 操作失败');
+}
+
+// ===== Export =====
+async function exportData() {
+  window.open('/api/admin/export-excel', '_blank');
+}
+
+// ===== Utils =====
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制：' + text));
+}
+
+// Init
+loadDashboard();
+</script>
+</body>
+</html>
