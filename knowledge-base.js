@@ -1,6 +1,7 @@
 /**
  * MedAgent Hub - RAG 知识库核心模块
  * 支持 PDF / Word / TXT 文档的解析、分块、向量化与检索
+ * 优化：启动时预加载向量到内存，避免每次对话重复读取大文件
  */
 
 'use strict';
@@ -28,6 +29,75 @@ const EMBED_BATCH = 16;        // 每批向量化数量
 [KB_ROOT, GLOBAL_DIR, AGENTS_DIR, VECTORS_DIR, AGENTS_VECTORS_DIR].forEach(d => {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
+
+// ===== 内存缓存（启动时预加载，避免每次对话重复读取大文件）=====
+const vectorCache = new Map(); // scope -> Array of vector entries
+
+function getVectorPath(scope) {
+  if (scope === 'global') return path.join(VECTORS_DIR, 'global.json');
+  const agentId = scope.replace('agent:', '');
+  return path.join(AGENTS_VECTORS_DIR, `${agentId}.json`);
+}
+
+function loadVectorIndex(scope) {
+  // 优先从内存缓存读取
+  if (vectorCache.has(scope)) return vectorCache.get(scope);
+  const p = getVectorPath(scope);
+  if (!fs.existsSync(p)) return [];
+  try {
+    const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+    vectorCache.set(scope, data);
+    return data;
+  } catch { return []; }
+}
+
+function saveVectorIndex(scope, index) {
+  const p = getVectorPath(scope);
+  fs.writeFileSync(p, JSON.stringify(index), 'utf8');
+  // 同步更新内存缓存
+  vectorCache.set(scope, index);
+}
+
+function invalidateCache(scope) {
+  vectorCache.delete(scope);
+}
+
+// 启动时预加载全局向量索引
+function preloadVectors() {
+  const globalPath = getVectorPath('global');
+  if (fs.existsSync(globalPath)) {
+    try {
+      const start = Date.now();
+      const data = JSON.parse(fs.readFileSync(globalPath, 'utf8'));
+      vectorCache.set('global', data);
+      console.log(`[KB] ✅ 预加载全局向量索引: ${data.length} 个向量块，耗时 ${Date.now() - start}ms`);
+    } catch (e) {
+      console.warn('[KB] ⚠️  全局向量索引加载失败:', e.message);
+    }
+  } else {
+    console.log('[KB] ℹ️  暂无全局向量索引');
+  }
+
+  // 预加载 agent 专属索引
+  if (fs.existsSync(AGENTS_VECTORS_DIR)) {
+    fs.readdirSync(AGENTS_VECTORS_DIR).forEach(f => {
+      if (f.endsWith('.json')) {
+        const agentId = f.replace('.json', '');
+        const scope = `agent:${agentId}`;
+        try {
+          const data = JSON.parse(fs.readFileSync(path.join(AGENTS_VECTORS_DIR, f), 'utf8'));
+          vectorCache.set(scope, data);
+          console.log(`[KB] ✅ 预加载 Agent(${agentId}) 向量索引: ${data.length} 个向量块`);
+        } catch (e) {
+          console.warn(`[KB] ⚠️  Agent(${agentId}) 向量索引加载失败:`, e.message);
+        }
+      }
+    });
+  }
+}
+
+// 立即执行预加载
+preloadVectors();
 
 // ===== 元数据管理 =====
 function loadMeta() {
@@ -65,7 +135,7 @@ async function parseDocument(filePath) {
     throw new Error(`不支持的文件格式: ${ext}`);
   }
 
-  // 清理文本：去除多余空白、特殊字符
+  // 清理文本
   text = text
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
@@ -81,7 +151,6 @@ function chunkText(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
   const chunks = [];
   if (!text || text.length === 0) return chunks;
 
-  // 优先按段落分割，再按字符数限制
   const paragraphs = text.split(/\n\n+/);
   let current = '';
 
@@ -94,12 +163,10 @@ function chunkText(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
     } else {
       if (current) {
         chunks.push(current);
-        // 保留重叠部分
         const words = current.split(/\s+/);
         const overlapWords = words.slice(-Math.floor(overlap / 5));
         current = overlapWords.join(' ') + '\n\n' + trimmed;
       } else {
-        // 单段落超过 chunkSize，强制按字符切割
         for (let i = 0; i < trimmed.length; i += chunkSize - overlap) {
           chunks.push(trimmed.slice(i, i + chunkSize));
         }
@@ -109,7 +176,6 @@ function chunkText(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
   }
   if (current.trim()) chunks.push(current.trim());
 
-  // 过滤太短的块（少于50字符）
   return chunks.filter(c => c.length >= 50);
 }
 
@@ -119,18 +185,14 @@ async function embedTexts(texts, apiKey) {
   if (!texts || texts.length === 0) return [];
 
   const allVectors = [];
-
-  // 分批处理
   for (let i = 0; i < texts.length; i += EMBED_BATCH) {
     const batch = texts.slice(i, i + EMBED_BATCH);
     const vectors = await embedBatch(batch, apiKey);
     allVectors.push(...vectors);
-    // 避免 rate limit
     if (i + EMBED_BATCH < texts.length) {
       await new Promise(r => setTimeout(r, 200));
     }
   }
-
   return allVectors;
 }
 
@@ -187,26 +249,6 @@ function cosineSimilarity(a, b) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-// ===== 向量索引加载/保存 =====
-function getVectorPath(scope) {
-  // scope: 'global' 或 'agent:agentId'
-  if (scope === 'global') return path.join(VECTORS_DIR, 'global.json');
-  const agentId = scope.replace('agent:', '');
-  return path.join(AGENTS_VECTORS_DIR, `${agentId}.json`);
-}
-
-function loadVectorIndex(scope) {
-  const p = getVectorPath(scope);
-  if (!fs.existsSync(p)) return [];
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); }
-  catch { return []; }
-}
-
-function saveVectorIndex(scope, index) {
-  const p = getVectorPath(scope);
-  fs.writeFileSync(p, JSON.stringify(index), 'utf8');
-}
-
 // ===== 添加文档到知识库 =====
 async function addDocument(filePath, scope, apiKey, onProgress) {
   const fileName = path.basename(filePath);
@@ -215,7 +257,6 @@ async function addDocument(filePath, scope, apiKey, onProgress) {
 
   onProgress && onProgress({ step: 'parse', file: fileName, progress: 0 });
 
-  // 1. 解析文档
   let text;
   try {
     text = await parseDocument(filePath);
@@ -229,13 +270,11 @@ async function addDocument(filePath, scope, apiKey, onProgress) {
 
   onProgress && onProgress({ step: 'chunk', file: fileName, progress: 20, textLen: text.length });
 
-  // 2. 分块
   const chunks = chunkText(text);
   if (chunks.length === 0) throw new Error('文档分块失败，无有效内容');
 
   onProgress && onProgress({ step: 'embed', file: fileName, progress: 30, chunks: chunks.length });
 
-  // 3. 向量化（带进度回调）
   const allVectors = [];
   for (let i = 0; i < chunks.length; i += EMBED_BATCH) {
     const batch = chunks.slice(i, i + EMBED_BATCH);
@@ -246,7 +285,7 @@ async function addDocument(filePath, scope, apiKey, onProgress) {
     if (i + EMBED_BATCH < chunks.length) await new Promise(r => setTimeout(r, 200));
   }
 
-  // 4. 保存到向量索引
+  // 追加到现有索引（从缓存读取，避免重新读文件）
   const index = loadVectorIndex(scope);
   const newEntries = chunks.map((chunk, i) => ({
     id: `${fileId}_${i}`,
@@ -257,9 +296,8 @@ async function addDocument(filePath, scope, apiKey, onProgress) {
     vector: allVectors[i]
   }));
   index.push(...newEntries);
-  saveVectorIndex(scope, index);
+  saveVectorIndex(scope, index); // 同时更新缓存
 
-  // 5. 更新元数据
   const meta = loadMeta();
   const stat = fs.statSync(filePath);
   meta.files.push({
@@ -287,7 +325,7 @@ function removeDocument(fileId) {
   const scope = fileInfo.scope;
   const index = loadVectorIndex(scope);
   const newIndex = index.filter(entry => entry.fileId !== fileId);
-  saveVectorIndex(scope, newIndex);
+  saveVectorIndex(scope, newIndex); // 同时更新缓存
 
   meta.files = meta.files.filter(f => f.id !== fileId);
   saveMeta(meta);
@@ -295,11 +333,11 @@ function removeDocument(fileId) {
   return fileInfo;
 }
 
-// ===== RAG 检索 =====
+// ===== RAG 检索（全内存操作，无磁盘 IO）=====
 async function retrieve(query, agentId, apiKey, topK = TOP_K) {
   if (!apiKey) return [];
 
-  // 对 query 向量化
+  // 对 query 向量化（唯一的网络请求）
   let queryVector;
   try {
     const vectors = await embedBatch([query], apiKey);
@@ -309,7 +347,7 @@ async function retrieve(query, agentId, apiKey, topK = TOP_K) {
     return [];
   }
 
-  // 加载全局索引 + 该 Agent 专属索引
+  // 从内存缓存读取（无磁盘 IO）
   const globalIndex = loadVectorIndex('global');
   const agentIndex = agentId ? loadVectorIndex(`agent:${agentId}`) : [];
   const combined = [...globalIndex, ...agentIndex];
@@ -324,7 +362,6 @@ async function retrieve(query, agentId, apiKey, topK = TOP_K) {
 
   scored.sort((a, b) => b.score - a.score);
 
-  // 返回 Top-K，去掉 vector 字段节省内存
   return scored.slice(0, topK).map(({ vector, ...rest }) => rest);
 }
 
@@ -346,7 +383,6 @@ function getStats() {
   const meta = loadMeta();
   const globalIndex = loadVectorIndex('global');
 
-  // 统计各 agent 索引
   const agentStats = {};
   if (fs.existsSync(AGENTS_VECTORS_DIR)) {
     fs.readdirSync(AGENTS_VECTORS_DIR).forEach(f => {
