@@ -425,6 +425,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       transition: opacity 0.12s;
     }
     .store-card-use:hover { opacity: 0.8; }
+    .store-card-locked { opacity: 0.65; }
+    .store-card-locked:hover { transform: none; box-shadow: none; border-color: var(--border); }
+    .store-card-locked-btn { background: #bbb; cursor: default; }
+    .store-card-locked-btn:hover { opacity: 1; }
+    .pro-badge {
+      display: inline-block; padding: 0.1rem 0.35rem;
+      background: linear-gradient(135deg, #f5a623, #e8831a);
+      color: white; border-radius: 4px; font-size: 0.65rem;
+      font-weight: 700; vertical-align: middle; margin-left: 4px;
+    }
 
     /* ===== CHAT VIEW ===== */
     .chat-view {
@@ -1264,6 +1274,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   // ===== INIT =====
   let currentUserName = '';
   let currentUserPlan = '免费版';
+  let currentIsPro = false;
+  // 试用期开放的 Agent 白名单
+  const TRIAL_AGENTS = ['senior-consultant', 'sparring-robot', 'materials-mentor'];
 
   function init() {
     buildStore();
@@ -1292,6 +1305,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const name = data.name || data.phone || data.code || '用户';
       currentUserName = name;
       currentUserPlan = data.plan === 'pro' ? '专业版 Pro' : '免费版';
+      currentIsPro = data.plan === 'pro';
+      buildStore(); // 重新渲染 Agent 列表，使锁定状态生效
 
       // Update sidebar user info
       const avatar = name.charAt(0).toUpperCase();
@@ -1480,17 +1495,25 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     AGENT_GROUPS.forEach(group => {
       group.agents.forEach(agent => {
         if (filter && filter !== 'all' && agent.category !== filter) return;
+        const isLocked = !currentIsPro && !TRIAL_AGENTS.includes(agent.id);
         const card = document.createElement('div');
-        card.className = 'store-card';
+        card.className = 'store-card' + (isLocked ? ' store-card-locked' : '');
         card.innerHTML = `
           <span class="store-card-icon">${agent.icon}</span>
-          <div class="store-card-name">${agent.name}</div>
+          <div class="store-card-name">${agent.name}${isLocked ? ' <span class="pro-badge">Pro</span>' : ''}</div>
           <div class="store-card-desc">${agent.desc}</div>
           <span class="store-card-tag">${agent.category}</span>
-          <button class="store-card-use" onclick="startChat('${agent.id}')">使用</button>`;
+          ${isLocked
+            ? `<button class="store-card-use store-card-locked-btn" onclick="showUpgradeHint()">🔒 Pro 专属</button>`
+            : `<button class="store-card-use" onclick="startChat('${agent.id}')">使用</button>`
+          }`;
         grid.appendChild(card);
       });
     });
+  }
+
+  function showUpgradeHint() {
+    alert('该 Agent 为 Pro 会员专属。升级后可解锁全部 21 个 Agent，请前往订阅页面了解详情。');
   }
 
   function filterStore(btn, cat) {

@@ -32,10 +32,17 @@ const LIBLIB_API_URL = 'https://openapi.liblibai.cloud';
 
 // ===== 权限体系常量 =====
 const TRIAL_DAYS = 7;                  // 免费试用天数
-const FREE_DAILY_MSG_LIMIT = 200;      // 免费版每日消息上限
+const FREE_DAILY_MSG_LIMIT = 9999;     // 试用期每日消息上限（不限）
 const PRO_DAILY_MSG_LIMIT = 1000;      // Pro 版每日消息上限
 const PRO_MONTHLY_IMG_LIMIT = 50;      // Pro 版每月图片生成上限
 const PRO_MONTHLY_SEARCH_LIMIT = 300;  // Pro 版每月联网搜索上限
+
+// 试用期开放的 Agent 白名单（仅这3个可用）
+const TRIAL_AGENTS = [
+  'senior-consultant',   // 金牌医美咨询师
+  'sparring-robot',      // 医美实战陪练机器人
+  'materials-mentor',    // 医美材料学硬核导师
+];
 
 // ===== FILE UPLOAD SETUP =====
 const storage = multer.diskStorage({
@@ -1808,6 +1815,17 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // 检查试用期 Agent 白名单（非 Pro 用户只能用指定 3 个）
+      if (!planStatus.isPro && session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'agent_locked',
+          message: '该 Agent 为 Pro 会员专属，升级后可解锁全部 21 个 Agent',
+          planStatus
+        }));
+        return;
+      }
+
       // 检查每日消息配额
       if (planStatus.dailyRemaining <= 0) {
         res.writeHead(429, { 'Content-Type': 'application/json' });
@@ -2007,6 +2025,12 @@ const server = http.createServer(async (req, res) => {
       if (planStatus2.isTrialExpired) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'trial_expired', message: '免费试用期已结束，请升级为 Pro 会员继续使用', planStatus: planStatus2 }));
+        return;
+      }
+      // 检查试用期 Agent 白名单
+      if (!planStatus2.isPro && session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'agent_locked', message: '该 Agent 为 Pro 会员专属，升级后可解锁全部 21 个 Agent', planStatus: planStatus2 }));
         return;
       }
       if (planStatus2.dailyRemaining <= 0) {
