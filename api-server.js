@@ -1016,7 +1016,8 @@ const agentSkillMap = {
   'new-media-director': 'new-media-director',
   'kv-design-director': 'kv-design-director',
   'meta-prompt-architect': 'meta-prompt-architect',
-  'prompt-engineer-pro': 'prompt-engineer-pro'
+  'prompt-engineer-pro': 'prompt-engineer-pro',
+  'doudou': 'doudou'
 };
 
 const agentNames = {
@@ -1044,7 +1045,8 @@ const agentNames = {
   'new-media-director': '医美合规内容专家',
   'kv-design-director': '视觉KV设计总监',
   'meta-prompt-architect': '元提示词架构师',
-  'prompt-engineer-pro': '高级Prompt工程师'
+  'prompt-engineer-pro': '高级Prompt工程师',
+  'doudou': '豆豆'
 };
 
 // 微信支付初始化
