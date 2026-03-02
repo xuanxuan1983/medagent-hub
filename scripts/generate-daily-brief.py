@@ -33,16 +33,17 @@ today_str = f"{today.year}年{today.month}月{today.day}日"
 # ── 数据来源标签 ──
 SOURCES = [
     "21世纪经济报道", "医美部落", "每日经济新闻",
-    "东方财富", "万联证券", "丁香园", "健康界"
+    "东方财富", "万联证券", "丁香园", "健康界", "华熙生物", "锦波生物"
 ]
 
 # ── 搜索关键词列表 ──
+# 改进搜索关键词，增加深度分析和具体公司
 SEARCH_QUERIES = [
-    "医美行业 政策监管 2026",
-    "医美市场 消费趋势 最新",
-    "医美上游 产品 注册证 获批",
-    "AI 医美 数字化 运营",
-    "医美 国际市场 品牌",
+    "医美行业 政策监管 2026 最新 深度",
+    "医美市场 消费趋势 深度分析 报告",
+    "医美上游 华熙生物 锦波生物 融资 注册证 获批 深度",
+    "AI 医美 数字化 运营 华美浩联 深度",
+    "医美 国际市场 品牌 深度",
 ]
 
 
@@ -88,8 +89,9 @@ def generate_brief_with_ai(search_results: dict) -> dict:
         search_text += f"\n\n=== {category} ===\n"
         for r in results:
             search_text += f"- 标题：{r['title']}\n"
-            search_text += f"  摘要：{r['snippet'][:300]}\n"
+            search_text += f"  摘要：{r['snippet'][:500]}\n" # 增加摘要长度，提供更多上下文
 
+    # 改进 prompt，强调深度分析和具体案例
     prompt = f"""你是医美行业资深分析师，今天是{today_str}。
 
 根据以下搜索到的最新行业资讯，生成一份结构化的每日行业摘要，严格按照 JSON 格式输出。
@@ -118,9 +120,9 @@ def generate_brief_with_ai(search_results: dict) -> dict:
       "color": "#E8715A",
       "news": [
         {{
-          "title": "新闻标题",
-          "summary": "200字以内的摘要，客观陈述事实",
-          "insight": "MedAgent 关注：对医美机构或上游厂商的具体影响和建议（可为null）",
+          "title": "新闻标题（15-30字完整新闻句）",
+          "summary": "详细的深度分析摘要（300-500字），包括事件背景、核心内容、影响分析。必须客观陈述事实，深入剖析，切忌泛泛而谈。如果是公司动态（如华熙生物、锦波生物等），需详细说明其财务表现、产品进展或战略布局。",
+          "insight": "MedAgent 关注：对医美机构或上游厂商的具体影响和落地建议（必须具体、有针对性，可为null）",
           "table": null
         }}
       ]
@@ -161,19 +163,24 @@ def generate_brief_with_ai(search_results: dict) -> dict:
 }}
 
 要求：
-1. priorities 提供 3-5 条，按重要性排序，level 只能是 high/medium/low
-2. 每个 section 至少包含 1 条新闻，如果没有相关资讯则写"今日暂无相关动态"
-3. insight 字段：如果该新闻对 MedAgent Hub 平台或其用户有直接影响，填写具体建议；否则填 null
-4. 所有内容必须基于搜索结果，不要编造数据
-5. 直接输出 JSON，不要有 ```json 标记
-6. 新闻标题必须是简洁的新闻摘要句，严禁包含网站名、来源名、下划线分隔的网站后缀（如"_中研普华_中研网"、"_东方财富"、"_新浪财经"等），标题应为15-30字的完整新闻句
-7. priorities 中的 event 字段同样不得包含任何网站名或来源后缀"""
+1. priorities 提供 3-5 条，按重要性排序，level 只能是 high/medium/low。重点关注融资、新产品获批、重大政策等。
+2. 每个 section 至少包含 1 条新闻，如果没有相关资讯则写"今日暂无相关动态"。
+3. summary 字段：**这是最关键的要求**！必须是深度分析，而不是简单的网页标题堆砌。需要结合上下文，提炼出核心数据（如融资金额、增长率等）、关键人物观点、技术突破点等。字数在300-500字之间，体现专业分析师的水准。
+4. insight 字段：如果该新闻对 MedAgent Hub 平台或其用户有直接影响，填写具体建议；否则填 null。
+5. 所有内容必须基于搜索结果，不要编造数据。
+6. 直接输出 JSON，不要有 ```json 标记。
+7. 新闻标题必须是简洁的新闻摘要句，严禁包含网站名、来源名、下划线分隔的网站后缀（如"_中研普华_中研网"、"_东方财富"、"_新浪财经"、"- 搜狐"、"_腾讯新闻"等），标题应为15-30字的完整新闻句，且不带任何多余的后缀。
+8. priorities 中的 event 字段同样不得包含任何网站名或来源后缀。
+9. 如果搜索结果中包含特定公司（如华熙生物、锦波生物、华美浩联等）的深度信息，请务必在对应的 section 中进行详细的拆解分析。"""
 
     response = client.chat.completions.create(
         model="gemini-2.5-flash",
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": "你是一个严谨、专业的医美行业分析师，擅长从碎片化信息中提取深度洞察，拒绝空洞的套话，只提供有价值的数据和分析。"},
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.3,
-        max_tokens=4000
+        max_tokens=8000
     )
 
     raw = response.choices[0].message.content.strip()
@@ -227,7 +234,7 @@ def main():
     }
     for category, query in category_map.items():
         print(f"  搜索: {query}")
-        results = bocha_search(query, count=4)
+        results = bocha_search(query, count=6) # 增加搜索结果数量，提供更多素材
         search_results[category] = results
         print(f"  获取 {len(results)} 条结果")
 

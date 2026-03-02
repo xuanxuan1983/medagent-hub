@@ -844,7 +844,7 @@ function buildPosterHTML(data) {
   // 取 high 级重点（最多3条）
   const highPriorities = (data.priorities || []).filter(p => p.level === 'high').slice(0, 3);
   const otherPriorities = (data.priorities || []).filter(p => p.level !== 'high').slice(0, 2);
-  const topPriorities = [...highPriorities, ...otherPriorities].slice(0, 3);
+  const topPriorities = [...highPriorities, ...otherPriorities].slice(0, 5);
 
   const newsListHTML = topPriorities.map((p, i) => `
     <div class="pc-news-item">
@@ -870,7 +870,7 @@ function buildPosterHTML(data) {
     <div class="pc-hero">
       <div class="pc-eyebrow">医美行业日报 · 今日速览</div>
       <div class="pc-headline">${headlineMain}${headlineSub ? '<br><em>' + headlineSub + '</em>' : ''}</div>
-      <div class="pc-subline">${topNews.summary ? topNews.summary.slice(0, 72) + '…' : '每日精选医美行业最重要动态，助力从业者快速决策'}</div>
+      <div class="pc-subline">${topNews.summary ? topNews.summary.slice(0, 120) + (topNews.summary.length > 120 ? '…' : '') : '每日精选医美行业最重要动态，助力从业者快速决策'}</div>
     </div>
 
     <div class="pc-divider"></div>
