@@ -598,7 +598,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     /* 用户消息内容不渲染 Markdown */
     .msg-row.user .msg-bubble strong { color: white; }
     .msg-row.user .msg-bubble a { color: rgba(255,255,255,0.85); border-bottom-color: rgba(255,255,255,0.4); }
-    .msg-feedback { display: flex; gap: 0.375rem; margin-top: 0.625rem; padding-top: 0.5rem; border-top: 1px solid var(--border-light); }
+    .msg-feedback { display: flex; align-items: center; gap: 0.375rem; margin-top: 0.625rem; padding-top: 0.5rem; border-top: 1px solid var(--border-light); }
+    .feedback-hint { font-size: 0.72rem; color: var(--text-muted); margin-right: 0.25rem; }
     .feedback-btn {
       padding: 0.2rem 0.5rem; border-radius: 5px;
       border: 1px solid var(--border); background: white;
@@ -2530,7 +2531,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const feedback = document.createElement('div');
     feedback.className = 'msg-feedback';
     const idx = messageIndex++;
-    feedback.innerHTML = '<button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">\ud83d\udc4d</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">\ud83d\udc4e</button>';
+    feedback.innerHTML = '<span class="feedback-hint">有帮助吗？</span><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">\ud83d\udc4d 有用</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">\ud83d\udc4e 不准</button>';
     bubble.appendChild(feedback);
 
     // Suggested questions
@@ -2655,7 +2656,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const feedback = document.createElement('div');
       feedback.className = 'msg-feedback';
       const idx = messageIndex++;
-      feedback.innerHTML = `<button class="feedback-btn" onclick="submitFeedback(this,${idx},'up')">👍</button><button class="feedback-btn" onclick="submitFeedback(this,${idx},'down')">👎</button>`;
+      feedback.innerHTML = `<span class="feedback-hint">有帮助吗？</span><button class="feedback-btn" onclick="submitFeedback(this,${idx},'up')">👍 有用</button><button class="feedback-btn" onclick="submitFeedback(this,${idx},'down')">👎 不准</button>`;
       bubble.appendChild(feedback);
       row.appendChild(avatar);
       row.appendChild(bubble);
@@ -2717,6 +2718,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   async function submitFeedback(btn, idx, val) {
     btn.parentElement.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('active-up','active-down'));
     btn.classList.add(val === 'up' ? 'active-up' : 'active-down');
+    // 显示感谢提示
+    const hint = btn.parentElement.querySelector('.feedback-hint');
+    if (hint) { hint.textContent = val === 'up' ? '✓ 感谢反馈，将用于改进训练' : '✓ 已记录，将持续优化'; hint.style.color = val === 'up' ? '#16A34A' : '#DC2626'; }
     try {
       await fetch('/api/feedback', {
         method: 'POST',
