@@ -1133,6 +1133,7 @@ function loadSkillPrompt(skillName) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', timeZone: 'Asia/Shanghai' });
   const DATE_CONTEXT = "\n\n---\n## 当前时间\n今天是 " + dateStr + "。你可以正常使用\"当前\"、\"目前\"、\"最新\"等表述，无需反复声明训练截止时间。\n**唯一例外**：当用户明确询问政策法规、监管要求、合规标准、平台规则等内容时，在回答末尾注明\"⚠️ 以上信息基于2024年知识，相关政策可能已更新，建议查阅最新官方文件。\"";
+  return promptContent + DATE_CONTEXT;
 }
 
 // Agent ID to skill name mapping
