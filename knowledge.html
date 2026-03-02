@@ -315,9 +315,9 @@
         <div class="upload-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#767676" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
-        <p>点击选择文件，或拖拽到此处</p>
+        <p>点击选择文件（可多选），或拖拽到此处</p>
         <p class="hint">支持 PDF、Word (.docx)、TXT 格式，单文件最大 100MB</p>
-        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md">
+        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md" multiple>
       </div>
       <div class="selected-file" id="selectedFile"></div>
 
@@ -369,7 +369,7 @@
 
   <script>
     let selectedScope = 'global';
-    let selectedFile = null;
+    let selectedFiles = [];
 
     function setScope(scope, el) {
       selectedScope = scope;
@@ -395,22 +395,32 @@
     uploadArea.addEventListener('drop', e => {
       e.preventDefault();
       uploadArea.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file) handleFileSelect(file);
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length) handleFileSelect(files);
     });
     fileInput.addEventListener('change', e => {
-      if (e.target.files[0]) handleFileSelect(e.target.files[0]);
+      if (e.target.files.length) handleFileSelect(Array.from(e.target.files));
     });
 
-    function handleFileSelect(file) {
-      selectedFile = file;
+    function handleFileSelect(files) {
+      selectedFiles = files;
       const el = document.getElementById('selectedFile');
       el.style.display = 'block';
-      el.innerHTML = `<strong>已选择：</strong>${file.name} <span style="color:#767676">(${(file.size/1024/1024).toFixed(1)} MB)</span>`;
+      if (files.length === 1) {
+        el.innerHTML = `<strong>已选择：</strong>${files[0].name} <span style="color:#767676">(${(files[0].size/1024/1024).toFixed(1)} MB)</span>`;
+      } else {
+        const totalSize = files.reduce((s, f) => s + f.size, 0);
+        el.innerHTML = `<strong>已选择 ${files.length} 个文件：</strong>${files.map(f => f.name).join('、')} <span style="color:#767676">（共 ${(totalSize/1024/1024).toFixed(1)} MB）</span>`;
+      }
     }
 
     async function uploadFile() {
-      if (!selectedFile) { showAlert('请先选择文件', 'error'); return; }
+      if (!selectedFiles.length) { showAlert('请先选择文件', 'error'); return; }
+      // 批量上传：逐个处理每个文件
+      if (selectedFiles.length > 1) {
+        await uploadMultipleFiles();
+        return;
+      }
       const scope = selectedScope === 'agent'
         ? document.getElementById('agentSelect').value
         : 'global';
@@ -426,7 +436,7 @@
       progressText.textContent = '上传文件中...';
 
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('file', selectedFiles[0]);
       formData.append('scope', scope);
 
       try {
@@ -470,8 +480,8 @@
               } else if (data.step === 'complete') {
                 progressFill.style.width = '100%';
                 progressText.textContent = `✅ 完成！共 ${data.chunks} 个向量块`;
-                showAlert(`文献「${selectedFile.name}」上传成功，共 ${data.chunks} 个向量块`, 'success');
-                selectedFile = null;
+                showAlert(`文献「${selectedFiles[0].name}」上传成功，共 ${data.chunks} 个向量块`, 'success');
+                selectedFiles = [];
                 document.getElementById('selectedFile').style.display = 'none';
                 fileInput.value = '';
                 loadStats();
@@ -494,6 +504,55 @@
         btn.disabled = false;
         setTimeout(() => { progressBox.style.display = 'none'; }, 3000);
       }
+    }
+
+    async function uploadMultipleFiles() {
+      const scope = selectedScope === 'agent'
+        ? document.getElementById('agentSelect').value
+        : 'global';
+      const btn = document.getElementById('uploadBtn');
+      const progressBox = document.getElementById('progressBox');
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+      btn.disabled = true;
+      progressBox.style.display = 'block';
+      let successCount = 0;
+      let failCount = 0;
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        progressFill.style.width = `${Math.round((i / selectedFiles.length) * 90) + 5}%`;
+        progressText.textContent = `正在上传第 ${i+1}/${selectedFiles.length} 个：${file.name}`;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('scope', scope);
+        try {
+          const response = await fetch('/api/admin/kb/upload', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+          });
+          if (!response.ok) { failCount++; continue; }
+          // 消费 SSE 流直到完成
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+          }
+          successCount++;
+        } catch(e) {
+          failCount++;
+        }
+      }
+      progressFill.style.width = '100%';
+      progressText.textContent = `批量上传完成：${successCount} 个成功，${failCount} 个失败`;
+      btn.disabled = false;
+      selectedFiles = [];
+      document.getElementById('selectedFile').style.display = 'none';
+      setTimeout(() => { progressBox.style.display = 'none'; loadFiles(); }, 2000);
+      showAlert(`批量上传完成：${successCount} 个成功${failCount ? '，' + failCount + ' 个失败' : ''}`, successCount > 0 ? 'success' : 'error');
     }
 
     async function loadStats() {
