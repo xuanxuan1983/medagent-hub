@@ -26,7 +26,8 @@ BOCHA_API_KEY = os.environ.get('BOCHA_API_KEY', 'sk-51d7d709eb6d4150b76dc1316633
 # OpenAI 客户端（使用 Manus 预配置的 API Key）
 client = OpenAI()
 
-today = datetime.date.today()
+# 使用 UTC+8 北京时间，避免沙盒时区与服务器不一致
+today = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).date()
 today_str = f"{today.year}年{today.month}月{today.day}日"
 
 # ── 数据来源标签 ──
