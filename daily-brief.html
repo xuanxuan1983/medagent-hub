@@ -418,196 +418,164 @@
     }
 
     /* ══════════════════════════════════════════
-       朋友圈海报卡片（大字报风格，隐藏，仅截图用）
+       朋友圈海报卡片（暖米色大字报风格，隐藏，仅截图用）
     ══════════════════════════════════════════ */
     #posterCard {
       position: fixed;
       left: -9999px;
       top: 0;
       width: 750px;
-      background: #0F0F0F;
-      font-family: 'PingFang SC', 'Inter', -apple-system, sans-serif;
+      background: #F2EDE6;
+      font-family: 'Noto Serif SC', 'PingFang SC', Georgia, serif;
       overflow: hidden;
     }
 
-    /* 顶部品牌栏 */
+    /* ── 海报：顶部品牌栏 ── */
     .pc-topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 28px 44px 0;
+      padding: 36px 52px 0;
     }
     .pc-brand {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
     }
     .pc-brand-dot {
-      width: 9px; height: 9px;
+      width: 8px; height: 8px;
       background: #E8715A;
       border-radius: 50%;
     }
     .pc-brand-name {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
-      color: rgba(255,255,255,0.5);
-      letter-spacing: 0.08em;
+      color: rgba(30,20,10,0.4);
+      letter-spacing: 0.1em;
+      font-family: 'Inter', sans-serif;
     }
     .pc-date-tag {
       font-size: 11px;
-      color: rgba(255,255,255,0.35);
-      font-weight: 400;
+      color: rgba(30,20,10,0.35);
+      font-family: 'Inter', sans-serif;
     }
 
-    /* 大标题区 */
+    /* ── 海报：超大标题区 ── */
     .pc-hero {
-      padding: 32px 44px 28px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 52px 52px 44px;
+      text-align: center;
     }
     .pc-eyebrow {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       color: #E8715A;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 14px;
+      letter-spacing: 0.14em;
+      margin-bottom: 28px;
+      font-family: 'Inter', sans-serif;
     }
     .pc-headline {
-      font-size: 42px;
+      font-size: 58px;
       font-weight: 900;
-      color: #FFFFFF;
-      line-height: 1.15;
-      margin-bottom: 16px;
-      letter-spacing: -0.01em;
+      color: #1A1208;
+      line-height: 1.18;
+      margin-bottom: 28px;
+      letter-spacing: -0.02em;
     }
     .pc-headline em {
       font-style: normal;
       color: #E8715A;
     }
     .pc-subline {
-      font-size: 15px;
-      color: rgba(255,255,255,0.55);
-      line-height: 1.6;
+      font-size: 18px;
+      color: rgba(30,20,10,0.55);
+      line-height: 1.65;
       font-weight: 400;
+      font-family: 'PingFang SC', sans-serif;
+      max-width: 560px;
+      margin: 0 auto;
     }
 
-    /* 数据亮点行 */
-    .pc-stats {
-      display: flex;
-      gap: 0;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .pc-stat {
-      flex: 1;
-      padding: 22px 24px;
-      border-right: 1px solid rgba(255,255,255,0.08);
-    }
-    .pc-stat:last-child { border-right: none; }
-    .pc-stat-num {
-      font-size: 28px;
-      font-weight: 900;
-      color: #FFFFFF;
-      line-height: 1;
-      margin-bottom: 5px;
-    }
-    .pc-stat-num span { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.4); }
-    .pc-stat-label {
-      font-size: 11px;
-      color: rgba(255,255,255,0.4);
-      font-weight: 500;
+    /* ── 海报：装饰分隔线 ── */
+    .pc-divider {
+      margin: 0 52px;
+      height: 1px;
+      background: rgba(30,20,10,0.1);
     }
 
-    /* 今日重点 */
+    /* ── 海报：重点列表 ── */
     .pc-section {
-      padding: 28px 44px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 36px 52px;
     }
     .pc-section-title {
       font-size: 10px;
       font-weight: 700;
-      color: rgba(255,255,255,0.3);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 18px;
+      color: rgba(30,20,10,0.3);
+      letter-spacing: 0.14em;
+      margin-bottom: 20px;
+      font-family: 'Inter', sans-serif;
     }
     .pc-news-list {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
     .pc-news-item {
       display: flex;
-      gap: 14px;
+      gap: 16px;
       align-items: flex-start;
     }
     .pc-news-num {
-      font-size: 11px;
-      font-weight: 800;
+      font-size: 13px;
+      font-weight: 900;
       color: #E8715A;
-      width: 20px;
+      width: 24px;
       flex-shrink: 0;
-      padding-top: 2px;
+      padding-top: 1px;
+      font-family: 'Inter', sans-serif;
     }
     .pc-news-body {}
     .pc-news-title {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 700;
-      color: #FFFFFF;
-      line-height: 1.4;
+      color: #1A1208;
+      line-height: 1.45;
       margin-bottom: 4px;
     }
     .pc-news-summary {
-      font-size: 12px;
-      color: rgba(255,255,255,0.45);
+      font-size: 13px;
+      color: rgba(30,20,10,0.5);
       line-height: 1.6;
+      font-family: 'PingFang SC', sans-serif;
     }
 
-    /* 标签行 */
-    .pc-tags {
-      padding: 18px 44px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .pc-tag {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 5px 12px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.12);
-      color: rgba(255,255,255,0.5);
-    }
-    .pc-tag.hot {
-      background: rgba(232,113,90,0.15);
-      border-color: rgba(232,113,90,0.4);
-      color: #E8715A;
-    }
-
-    /* 底部 footer */
+    /* ── 海报：底部 footer ── */
     .pc-footer {
-      padding: 22px 44px;
+      padding: 28px 52px 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border-top: 1px solid rgba(30,20,10,0.1);
+      margin-top: 8px;
     }
     .pc-footer-left {}
     .pc-footer-author {
-      font-size: 15px;
-      font-weight: 700;
-      color: #FFFFFF;
-      margin-bottom: 3px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #1A1208;
+      margin-bottom: 4px;
     }
     .pc-footer-desc {
-      font-size: 11px;
-      color: rgba(255,255,255,0.35);
-      line-height: 1.5;
+      font-size: 12px;
+      color: rgba(30,20,10,0.45);
+      line-height: 1.6;
+      font-family: 'PingFang SC', sans-serif;
     }
     .pc-footer-cta {
-      font-size: 11px;
+      font-size: 13px;
       color: #E8715A;
-      font-weight: 600;
-      margin-top: 6px;
+      font-weight: 700;
+      margin-top: 8px;
+      font-family: 'PingFang SC', sans-serif;
     }
     .pc-qr-wrap {
       display: flex;
@@ -616,16 +584,19 @@
       gap: 6px;
     }
     .pc-qr-img {
-      width: 80px;
-      height: 80px;
-      border-radius: 8px;
+      width: 96px;
+      height: 96px;
+      border-radius: 6px;
       background: #fff;
       display: block;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
     }
     .pc-qr-label {
       font-size: 10px;
-      color: rgba(255,255,255,0.35);
+      color: rgba(30,20,10,0.4);
       text-align: center;
+      font-family: 'PingFang SC', sans-serif;
     }
 
     /* 下载遮罩 */
@@ -854,12 +825,12 @@ function scrollToSection(id) {
 
 // ── 生成朋友圈海报（大字报风格）──
 function buildPosterHTML(data) {
-  // 取最重磅的 high 级新闻作为主标题，fallback 到第一条
-  const allNews = (data.sections || []).flatMap(s => s.news.map(n => ({...n, sectionTitle: s.title, sectionIcon: s.icon})));
+  // 取最重磅新闻作主标题
+  const allNews = (data.sections || []).flatMap(s => s.news.map(n => ({...n})));
   const topNews = allNews[0] || { title: '医美行业最新动态', summary: '' };
 
-  // 提取标题中的关键词做高亮（取前半句）
-  const titleParts = topNews.title.split(/[，,、]/); 
+  // 拆分标题：逗号前为黑色主句，逗号后为橙色副句
+  const titleParts = topNews.title.split(/[，,、]/);
   const headlineMain = titleParts[0] || topNews.title;
   const headlineSub  = titleParts.slice(1).join('，') || '';
 
@@ -878,14 +849,6 @@ function buildPosterHTML(data) {
     </div>
   `).join('');
 
-  // 各板块标签
-  const sectionTags = (data.sections || []).map((s, i) => `
-    <div class="pc-tag${i < 2 ? ' hot' : ''}">${s.icon} ${s.title}</div>
-  `).join('');
-
-  const totalNews = (data.sections || []).reduce((a, s) => a + (s.news?.length || 0), 0);
-  const highCount = (data.priorities || []).filter(p => p.level === 'high').length;
-
   return `
     <!-- 顶部品牌栏 -->
     <div class="pc-topbar">
@@ -896,44 +859,27 @@ function buildPosterHTML(data) {
       <div class="pc-date-tag">${data.date}</div>
     </div>
 
-    <!-- 大标题 -->
+    <!-- 超大标题 -->
     <div class="pc-hero">
       <div class="pc-eyebrow">医美行业日报 · 今日速览</div>
-      <div class="pc-headline"><em>${headlineMain}</em>${headlineSub ? '<br>' + headlineSub : ''}</div>
-      <div class="pc-subline">${topNews.summary ? topNews.summary.slice(0, 80) + '…' : '每日精选医美行业最重要动态，助力从业者快速决策'}</div>
+      <div class="pc-headline">${headlineMain}${headlineSub ? '<br><em>' + headlineSub + '</em>' : ''}</div>
+      <div class="pc-subline">${topNews.summary ? topNews.summary.slice(0, 72) + '…' : '每日精选医美行业最重要动态，助力从业者快速决策'}</div>
     </div>
 
-    <!-- 数据亮点 -->
-    <div class="pc-stats">
-      <div class="pc-stat">
-        <div class="pc-stat-num">${totalNews}<span> 条</span></div>
-        <div class="pc-stat-label">今日动态</div>
-      </div>
-      <div class="pc-stat">
-        <div class="pc-stat-num">${highCount}<span> 项</span></div>
-        <div class="pc-stat-label">高优先级事项</div>
-      </div>
-      <div class="pc-stat">
-        <div class="pc-stat-num">${(data.sections || []).length}<span> 个</span></div>
-        <div class="pc-stat-label">覆盖板块</div>
-      </div>
-    </div>
+    <div class="pc-divider"></div>
 
     <!-- 今日重点 -->
     <div class="pc-section">
-      <div class="pc-section-title">今日重点关注</div>
+      <div class="pc-section-title">TODAY'S HIGHLIGHTS</div>
       <div class="pc-news-list">${newsListHTML}</div>
     </div>
-
-    <!-- 板块标签 -->
-    <div class="pc-tags">${sectionTags}</div>
 
     <!-- 底部 -->
     <div class="pc-footer">
       <div class="pc-footer-left">
         <div class="pc-footer-author">陈萱宜</div>
         <div class="pc-footer-desc">系统 × AI 智慧增长架构师<br>MedAgent Hub 医美 AI 工作台</div>
-        <div class="pc-footer-cta">↑ 扫码加微信，获取内测邀请码</div>
+        <div class="pc-footer-cta">扫码加微信，获取内测邀请码 →</div>
       </div>
       <div class="pc-qr-wrap">
         <img class="pc-qr-img" src="/qrcode-wechat.png" crossorigin="anonymous" />
