@@ -165,7 +165,9 @@ def generate_brief_with_ai(search_results: dict) -> dict:
 2. 每个 section 至少包含 1 条新闻，如果没有相关资讯则写"今日暂无相关动态"
 3. insight 字段：如果该新闻对 MedAgent Hub 平台或其用户有直接影响，填写具体建议；否则填 null
 4. 所有内容必须基于搜索结果，不要编造数据
-5. 直接输出 JSON，不要有 ```json 标记"""
+5. 直接输出 JSON，不要有 ```json 标记
+6. 新闻标题必须是简洁的新闻摘要句，严禁包含网站名、来源名、下划线分隔的网站后缀（如"_中研普华_中研网"、"_东方财富"、"_新浪财经"等），标题应为15-30字的完整新闻句
+7. priorities 中的 event 字段同样不得包含任何网站名或来源后缀"""
 
     response = client.chat.completions.create(
         model="gemini-2.5-flash",
