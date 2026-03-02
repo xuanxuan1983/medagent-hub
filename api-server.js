@@ -3258,7 +3258,20 @@ const server = http.createServer(async (req, res) => {
       // 取最后50条，倒序排列（最新的在最前）
       const recentConvs = allConvs.slice(-50).reverse();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ agentCounts, userCounts, feedbackCounts, totalTurns: lines.length, recentConvs }));
+      // 计算前端所需的统计字段
+      const codesPath = path.join(DATA_DIR, 'invite-codes.json');
+      const codes = fs.existsSync(codesPath) ? JSON.parse(fs.readFileSync(codesPath, 'utf8')) : {};
+      const totalCodes = Object.keys(codes).length;
+      // 活跃用户数（有对话记录的不重复用户）
+      const totalUsers = Object.keys(userCounts).length;
+      // 总对话数（非 feedback 的条目）
+      const totalMessages = allConvs.length;
+      // 今日对话数
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayMessages = allConvs.filter(c => c.ts && c.ts.startsWith(todayStr)).length;
+      // 今日活跃用户数
+      const todayUsers = new Set(allConvs.filter(c => c.ts && c.ts.startsWith(todayStr)).map(c => c.user_name || '未知')).size;
+      res.end(JSON.stringify({ agentCounts, userCounts, feedbackCounts, totalTurns: lines.length, recentConvs, totalUsers, totalMessages, todayMessages, todayActive: todayUsers, totalCodes, proUsers: 0 }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
