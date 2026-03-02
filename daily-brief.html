@@ -418,230 +418,214 @@
     }
 
     /* ══════════════════════════════════════════
-       朋友圈海报卡片（隐藏，仅用于截图）
+       朋友圈海报卡片（大字报风格，隐藏，仅截图用）
     ══════════════════════════════════════════ */
     #posterCard {
       position: fixed;
       left: -9999px;
       top: 0;
       width: 750px;
-      background: #FFFFFF;
+      background: #0F0F0F;
       font-family: 'PingFang SC', 'Inter', -apple-system, sans-serif;
       overflow: hidden;
     }
 
-    .poster-header {
-      background: #191919;
-      padding: 40px 44px 32px;
-      position: relative;
-      overflow: hidden;
+    /* 顶部品牌栏 */
+    .pc-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 44px 0;
     }
-    .poster-header::after {
-      content: '';
-      position: absolute;
-      right: -60px;
-      top: -60px;
-      width: 200px;
-      height: 200px;
-      background: rgba(232, 113, 90, 0.15);
-      border-radius: 50%;
-    }
-    .poster-header::before {
-      content: '';
-      position: absolute;
-      right: 40px;
-      bottom: -40px;
-      width: 120px;
-      height: 120px;
-      background: rgba(245, 158, 11, 0.1);
-      border-radius: 50%;
-    }
-
-    .poster-logo {
+    .pc-brand {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 24px;
     }
-    .poster-logo-dot {
-      width: 10px;
-      height: 10px;
+    .pc-brand-dot {
+      width: 9px; height: 9px;
       background: #E8715A;
       border-radius: 50%;
     }
-    .poster-logo-text {
-      font-size: 13px;
+    .pc-brand-name {
+      font-size: 12px;
       font-weight: 700;
-      color: rgba(255,255,255,0.7);
-      letter-spacing: 0.04em;
-    }
-
-    .poster-title {
-      font-size: 38px;
-      font-weight: 900;
-      color: #FFFFFF;
-      line-height: 1.1;
-      margin-bottom: 10px;
-      font-family: 'Noto Serif SC', 'PingFang SC', serif;
-    }
-    .poster-date {
-      font-size: 15px;
       color: rgba(255,255,255,0.5);
+      letter-spacing: 0.08em;
+    }
+    .pc-date-tag {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
       font-weight: 400;
     }
 
-    .poster-body {
-      padding: 32px 44px;
-      background: #FFFFFF;
+    /* 大标题区 */
+    .pc-hero {
+      padding: 32px 44px 28px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-
-    .poster-section-label {
+    .pc-eyebrow {
       font-size: 11px;
       font-weight: 700;
-      color: #767676;
-      letter-spacing: 0.1em;
+      color: #E8715A;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .pc-headline {
+      font-size: 42px;
+      font-weight: 900;
+      color: #FFFFFF;
+      line-height: 1.15;
       margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      letter-spacing: -0.01em;
     }
-    .poster-section-label::after {
-      content: '';
+    .pc-headline em {
+      font-style: normal;
+      color: #E8715A;
+    }
+    .pc-subline {
+      font-size: 15px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    /* 数据亮点行 */
+    .pc-stats {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .pc-stat {
       flex: 1;
-      height: 1px;
-      background: #E8E5E0;
+      padding: 22px 24px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .pc-stat:last-child { border-right: none; }
+    .pc-stat-num {
+      font-size: 28px;
+      font-weight: 900;
+      color: #FFFFFF;
+      line-height: 1;
+      margin-bottom: 5px;
+    }
+    .pc-stat-num span { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.4); }
+    .pc-stat-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      font-weight: 500;
     }
 
-    .poster-priority-list {
+    /* 今日重点 */
+    .pc-section {
+      padding: 28px 44px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .pc-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .pc-news-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-bottom: 28px;
+      gap: 14px;
     }
-
-    .poster-priority-item {
+    .pc-news-item {
       display: flex;
+      gap: 14px;
       align-items: flex-start;
-      gap: 12px;
-      padding: 14px 16px;
-      border-radius: 10px;
-      border: 1px solid #F0EDEA;
-      background: #FAF8F5;
     }
-    .poster-priority-item.high { background: #FFF8F6; border-color: #F5C4BB; }
-
-    .poster-p-left {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
+    .pc-news-num {
+      font-size: 11px;
+      font-weight: 800;
+      color: #E8715A;
+      width: 20px;
       flex-shrink: 0;
       padding-top: 2px;
     }
-    .poster-p-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .poster-p-dot.high { background: #E8715A; }
-    .poster-p-dot.medium { background: #F59E0B; }
-    .poster-p-dot.low { background: #C0BBBB; }
-
-    .poster-p-badge {
-      font-size: 9px;
-      font-weight: 800;
-      padding: 2px 5px;
-      border-radius: 3px;
-      letter-spacing: 0.02em;
-    }
-    .poster-p-badge.high { background: #FFF0EC; color: #E8715A; }
-    .poster-p-badge.medium { background: #FFFBEB; color: #F59E0B; }
-    .poster-p-badge.low { background: #F5F3EF; color: #767676; }
-
-    .poster-p-event {
-      font-size: 14px;
+    .pc-news-body {}
+    .pc-news-title {
+      font-size: 16px;
       font-weight: 700;
-      color: #191919;
-      margin-bottom: 4px;
+      color: #FFFFFF;
       line-height: 1.4;
+      margin-bottom: 4px;
     }
-    .poster-p-action {
+    .pc-news-summary {
       font-size: 12px;
-      color: #767676;
-      line-height: 1.5;
+      color: rgba(255,255,255,0.45);
+      line-height: 1.6;
     }
 
-    .poster-divider {
-      height: 1px;
-      background: #E8E5E0;
-      margin: 24px 0;
-    }
-
-    .poster-news-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 28px;
-    }
-
-    .poster-news-item {
-      padding: 14px;
-      border: 1px solid #E8E5E0;
-      border-radius: 10px;
-      background: #fff;
-    }
-    .poster-news-cat {
-      font-size: 10px;
-      font-weight: 700;
-      margin-bottom: 6px;
+    /* 标签行 */
+    .pc-tags {
+      padding: 18px 44px;
       display: flex;
-      align-items: center;
-      gap: 4px;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .poster-news-title {
-      font-size: 12px;
+    .pc-tag {
+      font-size: 11px;
       font-weight: 600;
-      color: #191919;
-      line-height: 1.5;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.5);
+    }
+    .pc-tag.hot {
+      background: rgba(232,113,90,0.15);
+      border-color: rgba(232,113,90,0.4);
+      color: #E8715A;
     }
 
-    .poster-footer {
-      background: #FAF8F5;
-      border-top: 1px solid #E8E5E0;
-      padding: 20px 44px;
+    /* 底部 footer */
+    .pc-footer {
+      padding: 22px 44px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .poster-footer-left {
-      font-size: 11px;
-      color: #767676;
-      line-height: 1.6;
-    }
-    .poster-footer-qr {
-      width: 56px;
-      height: 56px;
-      background: #191919;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .poster-footer-qr-text {
-      font-size: 8px;
-      color: rgba(255,255,255,0.7);
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-    .poster-footer-url {
-      font-size: 11px;
+    .pc-footer-left {}
+    .pc-footer-author {
+      font-size: 15px;
       font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 3px;
+    }
+    .pc-footer-desc {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      line-height: 1.5;
+    }
+    .pc-footer-cta {
+      font-size: 11px;
       color: #E8715A;
-      margin-top: 2px;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+    .pc-qr-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .pc-qr-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      background: #fff;
+      display: block;
+    }
+    .pc-qr-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
     }
 
     /* 下载遮罩 */
@@ -868,76 +852,92 @@ function scrollToSection(id) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ── 生成朋友圈海报 ──
+// ── 生成朋友圈海报（大字报风格）──
 function buildPosterHTML(data) {
-  const levelMap = { high: '高', medium: '中', low: '低' };
-  const sectionColors = {
-    policy: '#E8715A', market: '#22C55E', product: '#3B82F6', ai: '#8B5CF6', global: '#F59E0B'
-  };
+  // 取最重磅的 high 级新闻作为主标题，fallback 到第一条
+  const allNews = (data.sections || []).flatMap(s => s.news.map(n => ({...n, sectionTitle: s.title, sectionIcon: s.icon})));
+  const topNews = allNews[0] || { title: '医美行业最新动态', summary: '' };
 
-  // 优先级列表（最多5条）
-  const priorities = (data.priorities || []).slice(0, 5);
-  const priorityHTML = priorities.map(p => `
-    <div class="poster-priority-item ${p.level}">
-      <div class="poster-p-left">
-        <div class="poster-p-dot ${p.level}"></div>
-        <div class="poster-p-badge ${p.level}">${levelMap[p.level] || p.level}</div>
-      </div>
-      <div style="flex:1">
-        <div class="poster-p-event">${p.event}</div>
-        <div class="poster-p-action">${p.action}</div>
+  // 提取标题中的关键词做高亮（取前半句）
+  const titleParts = topNews.title.split(/[，,、]/); 
+  const headlineMain = titleParts[0] || topNews.title;
+  const headlineSub  = titleParts.slice(1).join('，') || '';
+
+  // 取 high 级重点（最多3条）
+  const highPriorities = (data.priorities || []).filter(p => p.level === 'high').slice(0, 3);
+  const otherPriorities = (data.priorities || []).filter(p => p.level !== 'high').slice(0, 2);
+  const topPriorities = [...highPriorities, ...otherPriorities].slice(0, 3);
+
+  const newsListHTML = topPriorities.map((p, i) => `
+    <div class="pc-news-item">
+      <div class="pc-news-num">0${i+1}</div>
+      <div class="pc-news-body">
+        <div class="pc-news-title">${p.event}</div>
+        <div class="pc-news-summary">${p.action}</div>
       </div>
     </div>
   `).join('');
 
-  // 各板块头条（每板块取第1条标题）
-  const newsHTML = (data.sections || []).map(s => `
-    <div class="poster-news-item">
-      <div class="poster-news-cat" style="color:${sectionColors[s.id] || '#767676'}">
-        <span>${s.icon}</span> ${s.title}
-      </div>
-      <div class="poster-news-title">${s.news[0]?.title || '暂无动态'}</div>
-    </div>
+  // 各板块标签
+  const sectionTags = (data.sections || []).map((s, i) => `
+    <div class="pc-tag${i < 2 ? ' hot' : ''}">${s.icon} ${s.title}</div>
   `).join('');
 
   const totalNews = (data.sections || []).reduce((a, s) => a + (s.news?.length || 0), 0);
+  const highCount = (data.priorities || []).filter(p => p.level === 'high').length;
 
   return `
-    <div class="poster-header">
-      <div class="poster-logo">
-        <div class="poster-logo-dot"></div>
-        <div class="poster-logo-text">MEDAGENT HUB · 医美 AI 工作台</div>
+    <!-- 顶部品牌栏 -->
+    <div class="pc-topbar">
+      <div class="pc-brand">
+        <div class="pc-brand-dot"></div>
+        <div class="pc-brand-name">MEDAGENT HUB</div>
       </div>
-      <div class="poster-title">医美行业日报</div>
-      <div class="poster-date">${data.date} · 共 ${totalNews} 条动态</div>
+      <div class="pc-date-tag">${data.date}</div>
     </div>
 
-    <div class="poster-body">
-      <div class="poster-section-label">今日重点关注</div>
-      <div class="poster-priority-list">${priorityHTML}</div>
-
-      <div class="poster-section-label">各板块头条</div>
-      <div class="poster-news-grid">${newsHTML}</div>
+    <!-- 大标题 -->
+    <div class="pc-hero">
+      <div class="pc-eyebrow">医美行业日报 · 今日速览</div>
+      <div class="pc-headline"><em>${headlineMain}</em>${headlineSub ? '<br>' + headlineSub : ''}</div>
+      <div class="pc-subline">${topNews.summary ? topNews.summary.slice(0, 80) + '…' : '每日精选医美行业最重要动态，助力从业者快速决策'}</div>
     </div>
 
-    <div class="poster-footer">
-      <div class="poster-footer-left">
-        <div style="font-weight:700;color:#191919;font-size:12px;margin-bottom:4px">medagent.filldmy.com</div>
-        <div>医美行业 AI Agent 平台</div>
-        <div>每日 07:30 自动更新 · 扫码免费体验</div>
+    <!-- 数据亮点 -->
+    <div class="pc-stats">
+      <div class="pc-stat">
+        <div class="pc-stat-num">${totalNews}<span> 条</span></div>
+        <div class="pc-stat-label">今日动态</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;color:#767676;margin-bottom:6px">扫码进入工作台</div>
-        <div class="poster-footer-qr">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
-            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="5" y="5" width="3" height="3" fill="white" stroke="none"/>
-            <rect x="16" y="5" width="3" height="3" fill="white" stroke="none"/>
-            <rect x="5" y="16" width="3" height="3" fill="white" stroke="none"/>
-            <path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill="white" stroke="none"/>
-          </svg>
-        </div>
+      <div class="pc-stat">
+        <div class="pc-stat-num">${highCount}<span> 项</span></div>
+        <div class="pc-stat-label">高优先级事项</div>
+      </div>
+      <div class="pc-stat">
+        <div class="pc-stat-num">${(data.sections || []).length}<span> 个</span></div>
+        <div class="pc-stat-label">覆盖板块</div>
+      </div>
+    </div>
+
+    <!-- 今日重点 -->
+    <div class="pc-section">
+      <div class="pc-section-title">今日重点关注</div>
+      <div class="pc-news-list">${newsListHTML}</div>
+    </div>
+
+    <!-- 板块标签 -->
+    <div class="pc-tags">${sectionTags}</div>
+
+    <!-- 底部 -->
+    <div class="pc-footer">
+      <div class="pc-footer-left">
+        <div class="pc-footer-author">陈萱宜</div>
+        <div class="pc-footer-desc">系统 × AI 智慧增长架构师<br>MedAgent Hub 医美 AI 工作台</div>
+        <div class="pc-footer-cta">↑ 扫码加微信，获取内测邀请码</div>
+      </div>
+      <div class="pc-qr-wrap">
+        <img class="pc-qr-img" src="/qrcode-wechat.png" crossorigin="anonymous" />
+        <div class="pc-qr-label">扫码加微信</div>
       </div>
     </div>
   `;
