@@ -1820,6 +1820,43 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Get current user info (used by chat.html loadUserInfo)
+  // User: get/save personal API config (stored server-side, synced across devices)
+  if (url.pathname === '/api/user/api-config') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    const code = getUserCode(req);
+    if (req.method === 'GET') {
+      const profiles = loadProfiles();
+      const apiConfig = (profiles[code] || {}).apiConfig || {};
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ provider: apiConfig.provider || '', model: apiConfig.model || '', apiKey: apiConfig.apiKey || '', baseUrl: apiConfig.baseUrl || '' }));
+      return;
+    }
+    if (req.method === 'POST') {
+      try {
+        const body = await parseRequestBody(req);
+        const profiles = loadProfiles();
+        if (!profiles[code]) profiles[code] = {};
+        profiles[code].apiConfig = {
+          provider: body.provider || '',
+          model: body.model || '',
+          apiKey: body.apiKey || '',
+          baseUrl: body.baseUrl || ''
+        };
+        saveProfiles(profiles);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+  }
+
   if (url.pathname === '/api/auth/me' && req.method === 'GET') {
     if (!isAuthenticated(req)) {
       res.writeHead(401, { 'Content-Type': 'application/json' });

@@ -1290,8 +1290,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <select class="modal-select" id="settingsModel">
           <option value="">使用服务器默认</option>
         </select>
+        <label class="modal-label" style="margin-top:0.75rem">自定义 Base URL <span style="font-size:0.7rem;color:var(--text-3);font-weight:400">（第三方中转，可选）</span></label>
+        <input class="modal-input" id="settingsBaseUrl" type="text" placeholder="例：https://your-proxy.com/v1">
         <div class="modal-actions">
-          <button class="btn-cancel" onclick="closeSettings()">取消</button>
+          <button class="btn-cancel" onclick="closeSettings( )">取消</button>
           <button class="btn-save" onclick="saveSettings()">保存</button>
         </div>
       </div>
@@ -2731,22 +2733,27 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   // ===== SETTINGS =====
-  function loadSettings() {
-    return {
-      provider: localStorage.getItem('ma_provider') || '',
-      apiKey: localStorage.getItem('ma_apikey') || '',
-      model: localStorage.getItem('ma_model') || ''
-    };
+  // ===== API CONFIG (server-side synced) =====
+  let _cachedApiConfig = null;
+  async function loadSettings() {
+    if (_cachedApiConfig) return _cachedApiConfig;
+    try {
+      const data = await fetch('/api/user/api-config', { credentials: 'include' }).then(r => r.json());
+      _cachedApiConfig = { provider: data.provider || '', apiKey: data.apiKey || '', model: data.model || '', baseUrl: data.baseUrl || '' };
+    } catch {
+      _cachedApiConfig = { provider: localStorage.getItem('ma_provider') || '', apiKey: localStorage.getItem('ma_apikey') || '', model: localStorage.getItem('ma_model') || '', baseUrl: '' };
+    }
+    return _cachedApiConfig;
   }
-  function openSettings(tab) {
-    const s = loadSettings();
+  async function openSettings(tab) {
+    const s = await loadSettings();
     document.getElementById('settingsProvider').value = s.provider;
     document.getElementById('settingsApiKey').value = s.apiKey;
+    document.getElementById('settingsBaseUrl').value = s.baseUrl || '';
     onProviderChange();
     document.getElementById('settingsModel').value = s.model;
     document.getElementById('settingsModal').classList.add('open');
     if (tab) switchTab(tab);
-    // Close user menu
     document.getElementById('userMenu').classList.remove('open');
   }
   function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
@@ -2756,10 +2763,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.getElementById('tab-' + tab).classList.add('active');
     document.getElementById('pane-' + tab).classList.add('active');
   }
-  function saveSettings() {
-    localStorage.setItem('ma_provider', document.getElementById('settingsProvider').value);
-    localStorage.setItem('ma_apikey', document.getElementById('settingsApiKey').value.trim());
-    localStorage.setItem('ma_model', document.getElementById('settingsModel').value);
+  async function saveSettings() {
+    const provider = document.getElementById('settingsProvider').value;
+    const apiKey = document.getElementById('settingsApiKey').value.trim();
+    const model = document.getElementById('settingsModel').value;
+    const baseUrl = document.getElementById('settingsBaseUrl').value.trim();
+    _cachedApiConfig = { provider, apiKey, model, baseUrl };
+    try {
+      await fetch('/api/user/api-config', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider, apiKey, model, baseUrl }) });
+    } catch {}
+    localStorage.setItem('ma_provider', provider);
+    localStorage.setItem('ma_apikey', apiKey);
+    localStorage.setItem('ma_model', model);
     updateModelLabel();
     closeSettings();
   }
@@ -2776,8 +2791,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
   }
   function updateModelLabel() {
-    const m = localStorage.getItem('ma_model');
-    const p = localStorage.getItem('ma_provider');
+    const m = (_cachedApiConfig && _cachedApiConfig.model) || localStorage.getItem('ma_model');
+    const p = (_cachedApiConfig && _cachedApiConfig.provider) || localStorage.getItem('ma_provider');
     const label = m ? m.split('/').pop() : (p ? p : '默认模型');
     document.getElementById('modelLabel').textContent = label;
   }
