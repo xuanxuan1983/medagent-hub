@@ -1132,14 +1132,7 @@ function loadSkillPrompt(skillName) {
   // ⑤ 注入当前日期（防止模型以为还在训练截止年份）
   const now = new Date();
   const dateStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', timeZone: 'Asia/Shanghai' });
-  const DATE_CONTEXT = `\n\n---\n## 当前时间与知识时效性
-今天是 ${dateStr}。
-
-**重要：你的训练数据截止于2024年，现在已是2026年。** 请严格遵守以下规则：
-1. 涉及政策法规、监管要求、合规标准、平台规则时，必须在回答末尾注明"⚠️ 以上信息基于2024年知识，政策法规可能已更新，建议查阅最新官方文件或咨询专业人士。"
-2. 引用具体年份数据时，必须标注"（2024年数据）"，不得省略年份。
-3. 不得使用"最新"、"当前"、"目前"等词描述2024年之前的信息，应改为"截至2024年"。`;
-  return promptContent + FORMAT_RULES + DATE_CONTEXT;
+  const DATE_CONTEXT = `\n\n---\n## 当前时间\n今天是 ${dateStr}。你可以正常使用"当前"、"目前"、"最新"等表述，无需反复声明训练截止时间。\n**唯一例外**：当用户明确询问政策法规、监管要求、合规标准、平台规则等内容时，在回答末尾注明"⚠️ 以上信息基于2024年知识，相关政策可能已更新，建议查阅最新官方文件。"`;\n  return promptContent + FORMAT_RULES + DATE_CONTEXT;
 }
 
 // Agent ID to skill name mapping
