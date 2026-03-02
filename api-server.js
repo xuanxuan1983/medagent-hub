@@ -2892,19 +2892,46 @@ const server = http.createServer(async (req, res) => {
     }
     const codes = loadCodes();
     const usage = loadUsage();
+    // 加载订阅和 profile 数据
+    const subsPath = path.join(DATA_DIR, 'user-subscriptions.json');
+    const profilesPath = path.join(DATA_DIR, 'user-profiles.json');
+    const subs = fs.existsSync(subsPath) ? JSON.parse(fs.readFileSync(subsPath, 'utf8')) : {};
+    const profiles = fs.existsSync(profilesPath) ? JSON.parse(fs.readFileSync(profilesPath, 'utf8')) : {};
+    // 今日对话数（按用户码统计）
+    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayMsgMap = {};
+    if (fs.existsSync(logPath)) {
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean);
+      lines.forEach(line => {
+        try {
+          const e = JSON.parse(line);
+          if (e.ts && e.ts.startsWith(todayStr) && e.user_code) {
+            todayMsgMap[e.user_code] = (todayMsgMap[e.user_code] || 0) + 1;
+          }
+        } catch {}
+      });
+    }
     const users = Object.entries(codes).map(([code, name]) => {
       const maxUses = getCodeMaxUses(code);
       const used = usage[code] || 0;
+      const sub = subs[code] || {};
+      const profile = profiles[code] || {};
+      const planId = sub.planId || 'free';
       return {
         code,
         name,
         usage: used,
         maxUses,
-        remaining: Math.max(0, maxUses - used)
+        remaining: Math.max(0, maxUses - used),
+        plan: planId,
+        expiresAt: sub.expiresAt || null,
+        createdAt: profile.loginAt || profile.trial_start || null,
+        todayMessages: todayMsgMap[code] || 0
       };
     });
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(users));
+    res.end(JSON.stringify({ users }));
     return;
   }
 
