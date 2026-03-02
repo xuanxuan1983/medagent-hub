@@ -3384,7 +3384,21 @@ const server = http.createServer(async (req, res) => {
       `).all();
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ totalStats, todayStats, weekStats, userStats, providerStats, dailyTrend, apiTypeStats, apiTypeStatsToday }));
+      // Per-agent stats (today) for dashboard chart
+      const agentStatsToday = db.prepare(`
+        SELECT 
+          agent_id,
+          SUM(input_tokens + output_tokens) as totalTokens,
+          SUM(estimated_cost) as cost
+        FROM token_usage
+        WHERE created_at >= date('now')
+        GROUP BY agent_id
+        ORDER BY totalTokens DESC
+        LIMIT 10
+      `).all();
+      const byAgent = {};
+      agentStatsToday.forEach(r => { byAgent[r.agent_id] = r.totalTokens; });
+      res.end(JSON.stringify({ totalStats, todayStats, weekStats, userStats, providerStats, dailyTrend, apiTypeStats, apiTypeStatsToday, byAgent }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
