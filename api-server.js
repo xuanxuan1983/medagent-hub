@@ -3231,6 +3231,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const lines = fs.readFileSync(inviteFile, 'utf8').trim().split('\n').filter(Boolean);
       requests = lines.map(l => JSON.parse(l)).reverse(); // 最新的在前
+      requests = lines.map(l => JSON.parse(l)).reverse();
     } catch(e) {}
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ total: requests.length, requests }));
