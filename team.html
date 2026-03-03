@@ -28,7 +28,7 @@
     .back-btn:hover { opacity: 0.8; }
 
     /* Main */
-    .main { max-width: 760px; margin: 0 auto; padding: 32px 16px; }
+    .main { max-width: 860px; margin: 0 auto; padding: 32px 16px; }
 
     /* Cards */
     .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
@@ -68,10 +68,10 @@
     /* Agent usage table */
     .usage-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .usage-table th { text-align: left; padding: 8px 12px; background: var(--bg); color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border); }
-    .usage-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .usage-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
     .usage-table tr:last-child td { border-bottom: none; }
     .usage-bar-wrap { display: flex; align-items: center; gap: 8px; }
-    .usage-bar { height: 6px; background: var(--coral-light); border-radius: 3px; flex: 1; overflow: hidden; }
+    .usage-bar { height: 6px; background: var(--coral-light); border-radius: 3px; flex: 1; overflow: hidden; min-width: 60px; }
     .usage-bar-fill { height: 100%; background: var(--coral); border-radius: 3px; transition: width 0.3s; }
     .usage-num { font-size: 12px; color: var(--text-muted); min-width: 30px; text-align: right; }
 
@@ -96,10 +96,50 @@
     /* Loading */
     .loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
 
-    @media (max-width: 480px) {
+    /* Admin view */
+    .admin-banner { background: linear-gradient(135deg, #2C2C2C 0%, #444 100%); color: #fff; border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+    .admin-banner-icon { font-size: 24px; }
+    .admin-banner-text { font-size: 14px; opacity: 0.9; }
+    .admin-banner-title { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+
+    /* Team list for admin */
+    .team-list { display: flex; flex-direction: column; gap: 12px; }
+    .team-item { background: var(--bg); border-radius: 10px; padding: 16px; border: 1px solid var(--border); }
+    .team-item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .team-item-name { font-size: 15px; font-weight: 600; }
+    .team-item-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 16px; flex-wrap: wrap; }
+    .team-item-meta span { display: flex; align-items: center; gap: 4px; }
+    .team-actions { display: flex; gap: 8px; }
+    .btn-sm { font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; border: 1px solid; transition: all 0.15s; }
+    .btn-expand { color: var(--coral); border-color: var(--coral); background: none; }
+    .btn-expand:hover { background: var(--coral-light); }
+    .btn-delete { color: #dc3545; border-color: #dc3545; background: none; }
+    .btn-delete:hover { background: #dc3545; color: #fff; }
+    .team-members-detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: none; }
+    .team-members-detail.open { display: block; }
+    .member-tag { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 3px 10px; font-size: 12px; margin: 3px; }
+    .member-tag.is-owner { border-color: var(--coral); color: var(--coral); }
+
+    /* Create team form */
+    .create-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-label { font-size: 12px; color: var(--text-muted); }
+    .form-input { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.15s; }
+    .form-input:focus { border-color: var(--coral); }
+    .form-select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #fff; cursor: pointer; }
+    .form-select:focus { border-color: var(--coral); }
+    .create-btn { background: var(--coral); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; height: 38px; }
+    .create-btn:hover { background: var(--coral-hover); }
+
+    /* Summary stats for admin */
+    .admin-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+
+    @media (max-width: 600px) {
       .stats-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
       .stat-num { font-size: 22px; }
       .invite-form { flex-direction: column; }
+      .create-form { grid-template-columns: 1fr 1fr; }
+      .admin-stats { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -115,6 +155,8 @@
 
 <div class="main">
   <div id="loading" class="loading">加载中...</div>
+
+  <!-- 无团队状态 -->
   <div id="no-team" style="display:none">
     <div class="no-team">
       <div class="no-team-icon">👥</div>
@@ -123,9 +165,78 @@
         团队计划支持多人共享 MedAgent Hub 的全部功能。<br>
         一人购买，全团队共用，管理员可查看成员使用情况。
       </div>
-      <a href="/pricing.html" class="contact-btn">查看团队计划定价 →</a>
+      <a href="https://medagent.filldmy.com" class="contact-btn">联系我们了解团队计划 →</a>
     </div>
   </div>
+
+  <!-- ===== 平台创始人管理员视图 ===== -->
+  <div id="admin-view" style="display:none">
+
+    <div class="admin-banner">
+      <div class="admin-banner-icon">🛡️</div>
+      <div>
+        <div class="admin-banner-title">平台管理员视图</div>
+        <div class="admin-banner-text">你正在以平台创始人身份查看所有团队数据</div>
+      </div>
+    </div>
+
+    <!-- 平台汇总统计 -->
+    <div class="admin-stats" id="admin-stats-row">
+      <div class="stat-item">
+        <div class="stat-num" id="admin-stat-teams">-</div>
+        <div class="stat-label">团队总数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="admin-stat-members">-</div>
+        <div class="stat-label">总成员数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="admin-stat-seats">-</div>
+        <div class="stat-label">总席位数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="admin-stat-expiring">-</div>
+        <div class="stat-label">30天内到期</div>
+      </div>
+    </div>
+
+    <!-- 创建团队 -->
+    <div class="card">
+      <div class="card-title"><span class="icon">➕</span>创建团队计划</div>
+      <div id="create-alert"></div>
+      <div class="create-form">
+        <div class="form-group">
+          <label class="form-label">Owner 邀请码</label>
+          <input type="text" class="form-input" id="create-owner" placeholder="如 ma1abc2def">
+        </div>
+        <div class="form-group">
+          <label class="form-label">套餐</label>
+          <select class="form-select" id="create-plan">
+            <option value="team-starter">入门版 5席 ¥999/月</option>
+            <option value="team-standard" selected>标准版 10席 ¥1799/月</option>
+            <option value="team-pro">专业版 20席 ¥2999/月</option>
+            <option value="team-custom">机构定制 50席</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">开通月数</label>
+          <input type="number" class="form-input" id="create-months" value="12" min="1" max="36">
+        </div>
+        <button class="create-btn" onclick="createTeam()">创建团队</button>
+      </div>
+    </div>
+
+    <!-- 团队列表 -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🏢</span>所有团队 <span id="team-count-badge" style="font-size:13px;font-weight:400;color:var(--text-muted);margin-left:4px;"></span></div>
+      <div id="admin-team-list" class="team-list">
+        <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:14px;">暂无团队</div>
+      </div>
+    </div>
+
+  </div><!-- end admin-view -->
+
+  <!-- ===== 团队成员视图（B端客户） ===== -->
   <div id="team-content" style="display:none">
 
     <!-- 团队概览 -->
@@ -142,7 +253,7 @@
           <div class="stat-label">总席位</div>
         </div>
         <div class="stat-item">
-          <div class="stat-num" id="stat-messages">-</div>
+          <div class="stat-num" id="stat-conversations">-</div>
           <div class="stat-label">本月对话</div>
         </div>
       </div>
@@ -152,14 +263,10 @@
       </div>
     </div>
 
-    <!-- 成员管理 -->
+    <!-- 成员管理（仅 owner 可见） -->
     <div class="card" id="members-card" style="display:none">
       <div class="card-title"><span class="icon">👤</span>成员管理</div>
-
-      <div class="member-list" id="member-list">
-        <!-- 动态渲染 -->
-      </div>
-
+      <div class="member-list" id="member-list"></div>
       <div class="invite-form">
         <input type="text" class="invite-input" id="invite-input" placeholder="输入成员邀请码（如 ma1abc2def）">
         <button class="invite-btn" id="invite-btn" onclick="inviteMember()">邀请成员</button>
@@ -169,20 +276,19 @@
       </div>
     </div>
 
-    <!-- 使用统计 -->
+    <!-- 使用统计（仅 owner 可见） -->
     <div class="card" id="stats-card" style="display:none">
-      <div class="card-title"><span class="icon">📊</span>成员使用统计</div>
+      <div class="card-title"><span class="icon">📊</span>成员使用统计（近 30 天）</div>
       <table class="usage-table" id="stats-table">
         <thead>
           <tr>
-            <th>成员</th>
-            <th>总对话数</th>
-            <th>使用量</th>
-            <th>最近活跃</th>
+            <th>成员邀请码</th>
+            <th>对话次数</th>
+            <th>使用占比</th>
+            <th>最常用 Agent</th>
           </tr>
         </thead>
-        <tbody id="stats-tbody">
-        </tbody>
+        <tbody id="stats-tbody"></tbody>
       </table>
     </div>
 
@@ -190,88 +296,259 @@
 </div>
 
 <script>
-let teamData = null;
+// ===== 工具函数 =====
+function showAlert(msg, type, containerId = 'alert-area') {
+  const area = document.getElementById(containerId);
+  if (!area) return;
+  area.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => { area.innerHTML = ''; }, 5000);
+}
 
+function formatDate(iso) {
+  if (!iso) return '永久';
+  return iso.slice(0, 10);
+}
+
+function daysUntil(iso) {
+  if (!iso) return Infinity;
+  return Math.ceil((new Date(iso) - new Date()) / 86400000);
+}
+
+// ===== 入口 =====
+async function init() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) {
+      // 未登录，跳转登录页
+      window.location.href = '/login.html?redirect=/team.html';
+      return;
+    }
+    const me = await res.json();
+    if (me.isAdmin) {
+      await loadAdminView();
+    } else {
+      await loadTeamInfo();
+    }
+  } catch (e) {
+    document.getElementById('loading').textContent = '加载失败，请刷新页面';
+  }
+}
+
+// ===== 平台管理员视图 =====
+async function loadAdminView() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('admin-view').style.display = 'block';
+  await refreshAdminTeams();
+}
+
+async function refreshAdminTeams() {
+  try {
+    const res = await fetch('/api/admin/teams');
+    if (!res.ok) {
+      document.getElementById('admin-team-list').innerHTML =
+        '<div style="text-align:center;padding:20px;color:#C62828;font-size:14px;">加载失败，请检查管理员权限</div>';
+      return;
+    }
+    const data = await res.json();
+    const teams = data.teams || {};
+    const teamArr = Object.values(teams);
+
+    // 汇总统计
+    const totalMembers = teamArr.reduce((s, t) => s + (t.members ? t.members.length : 0), 0);
+    const totalSeats = teamArr.reduce((s, t) => s + (t.seats || 0), 0);
+    const expiringSoon = teamArr.filter(t => daysUntil(t.expireAt) <= 30).length;
+
+    document.getElementById('admin-stat-teams').textContent = teamArr.length;
+    document.getElementById('admin-stat-members').textContent = totalMembers;
+    document.getElementById('admin-stat-seats').textContent = totalSeats;
+    document.getElementById('admin-stat-expiring').textContent = expiringSoon;
+    document.getElementById('team-count-badge').textContent = `共 ${teamArr.length} 个`;
+
+    // 渲染团队列表
+    const listEl = document.getElementById('admin-team-list');
+    if (teamArr.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:14px;">暂无团队，请先创建</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    teamArr.forEach((team, idx) => {
+      const days = daysUntil(team.expireAt);
+      const expiryStr = days <= 30
+        ? `<span style="color:#C62828;font-weight:500">${formatDate(team.expireAt)}（${days}天后到期）</span>`
+        : formatDate(team.expireAt);
+      const memberCount = team.members ? team.members.length : 0;
+      const item = document.createElement('div');
+      item.className = 'team-item';
+      item.innerHTML = `
+        <div class="team-item-header">
+          <div>
+            <div class="team-item-name">
+              <span class="plan-badge" style="font-size:12px;margin-right:8px;">${team.planName || team.planId}</span>
+              Owner: <strong>${team.ownerCode}</strong>
+            </div>
+          </div>
+          <div class="team-actions">
+            <button class="btn-sm btn-expand" onclick="toggleMembers(${idx})">展开成员</button>
+            <button class="btn-sm btn-delete" onclick="deleteTeam('${team.ownerCode}')">删除</button>
+          </div>
+        </div>
+        <div class="team-item-meta">
+          <span>👥 ${memberCount} / ${team.seats} 席位</span>
+          <span>📅 到期：${expiryStr}</span>
+          <span>🆔 ${team.teamId}</span>
+        </div>
+        <div class="team-members-detail" id="members-detail-${idx}">
+          ${(team.members || []).map(m =>
+            `<span class="member-tag ${m === team.ownerCode ? 'is-owner' : ''}">${m === team.ownerCode ? '👑 ' : ''}${m}</span>`
+          ).join('')}
+        </div>
+      `;
+      listEl.appendChild(item);
+    });
+  } catch (e) {
+    console.error(e);
+    document.getElementById('admin-team-list').innerHTML =
+      '<div style="text-align:center;padding:20px;color:#C62828;font-size:14px;">加载出错：' + e.message + '</div>';
+  }
+}
+
+function toggleMembers(idx) {
+  const el = document.getElementById('members-detail-' + idx);
+  if (!el) return;
+  el.classList.toggle('open');
+  const btn = el.closest('.team-item').querySelector('.btn-expand');
+  btn.textContent = el.classList.contains('open') ? '收起成员' : '展开成员';
+}
+
+async function createTeam() {
+  const ownerCode = document.getElementById('create-owner').value.trim();
+  const planId = document.getElementById('create-plan').value;
+  const months = parseInt(document.getElementById('create-months').value) || 12;
+  if (!ownerCode) { showAlert('请输入 Owner 邀请码', 'error', 'create-alert'); return; }
+  try {
+    const res = await fetch('/api/admin/team/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ownerCode, planId, months })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showAlert(`✅ 团队创建成功！Owner: ${ownerCode}，套餐: ${data.team.planName}，到期: ${formatDate(data.team.expireAt)}`, 'success', 'create-alert');
+      document.getElementById('create-owner').value = '';
+      await refreshAdminTeams();
+    } else {
+      showAlert(data.error || '创建失败', 'error', 'create-alert');
+    }
+  } catch (e) {
+    showAlert('网络错误：' + e.message, 'error', 'create-alert');
+  }
+}
+
+async function deleteTeam(ownerCode) {
+  if (!confirm(`确定要删除 ${ownerCode} 的团队吗？此操作不可撤销。`)) return;
+  try {
+    const res = await fetch('/api/admin/team/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ownerCode })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      await refreshAdminTeams();
+    } else {
+      alert(data.error || '删除失败');
+    }
+  } catch (e) {
+    alert('网络错误：' + e.message);
+  }
+}
+
+// ===== 团队成员视图（B端客户） =====
 async function loadTeamInfo() {
   try {
     const res = await fetch('/api/team/info');
     if (!res.ok) { showNoTeam(); return; }
     const data = await res.json();
     if (!data.hasTeam) { showNoTeam(); return; }
+
     document.getElementById('loading').style.display = 'none';
     document.getElementById('team-content').style.display = 'block';
-    // 填充概览
-    document.getElementById('team-name').textContent = data.teamName || '我的团队';
-    document.getElementById('stat-members').textContent = data.memberCount;
-    document.getElementById('stat-seats').textContent = data.seats;
-    document.getElementById('plan-badge').textContent = data.planName;
-    const expiry = data.expiresAt ? data.expiresAt.slice(0, 10) : '永久';
-    document.getElementById('expiry-date').textContent = expiry;
-    // 检查是否快到期（30天内）
-    if (data.expiresAt) {
-      const daysLeft = Math.ceil((new Date(data.expiresAt) - new Date()) / 86400000);
-      if (daysLeft <= 30) {
-        document.getElementById('expiry-date').style.color = '#C62828';
-        document.getElementById('expiry-date').textContent = expiry + `（${daysLeft}天后到期）`;
-      }
-    }
-    // 如果是管理员，显示成员管理和统计
-    if (data.role === 'owner') {
+
+    const team = data.team;
+    document.getElementById('team-name').textContent = team.planName || '我的团队';
+    document.getElementById('stat-members').textContent = team.members ? team.members.length : '-';
+    document.getElementById('stat-seats').textContent = team.seats || '-';
+    document.getElementById('plan-badge').textContent = team.planName || '-';
+
+    const expiry = formatDate(team.expireAt);
+    const days = daysUntil(team.expireAt);
+    const expiryEl = document.getElementById('expiry-date');
+    expiryEl.textContent = days <= 30 ? `${expiry}（${days}天后到期）` : expiry;
+    if (days <= 30) expiryEl.style.color = '#C62828';
+
+    // 仅 owner 显示成员管理和统计
+    if (data.team.isOwner) {
       document.getElementById('members-card').style.display = 'block';
       document.getElementById('stats-card').style.display = 'block';
-      loadStats();
+      renderMemberList(team);
+      await loadMemberStats();
     }
   } catch (e) {
     showNoTeam();
   }
 }
 
-async function loadStats() {
+function renderMemberList(team) {
+  const memberList = document.getElementById('member-list');
+  memberList.innerHTML = '';
+  (team.members || []).forEach(memberCode => {
+    const isOwner = memberCode === team.ownerCode;
+    const item = document.createElement('div');
+    item.className = 'member-item';
+    item.innerHTML = `
+      <div class="member-info">
+        <div class="member-avatar">${memberCode.slice(0, 1).toUpperCase()}</div>
+        <div>
+          <div class="member-name">${memberCode}</div>
+          <div class="member-meta">${isOwner ? '团队管理员' : '团队成员'}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="member-role ${isOwner ? 'role-owner' : 'role-member'}">${isOwner ? '管理员' : '成员'}</span>
+        ${!isOwner ? `<button class="remove-btn" onclick="removeMember('${memberCode}')">移除</button>` : ''}
+      </div>
+    `;
+    memberList.appendChild(item);
+  });
+}
+
+async function loadMemberStats() {
   try {
     const res = await fetch('/api/team/stats');
     if (!res.ok) return;
     const data = await res.json();
-    teamData = data;
-    document.getElementById('stat-messages').textContent = data.totalMessages;
-    // 渲染成员列表
-    const memberList = document.getElementById('member-list');
-    memberList.innerHTML = '';
-    const maxMsg = Math.max(...data.members.map(m => m.totalMessages), 1);
-    data.members.forEach(m => {
-      const item = document.createElement('div');
-      item.className = 'member-item';
-      const topAgent = m.topAgents && m.topAgents[0] ? m.topAgents[0].agent : '暂无';
-      item.innerHTML = `
-        <div class="member-info">
-          <div class="member-avatar">${m.name.slice(0, 1)}</div>
-          <div>
-            <div class="member-name">${m.name}</div>
-            <div class="member-meta">最近活跃：${m.lastActive}　常用：${topAgent}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="member-role ${m.role === 'owner' ? 'role-owner' : 'role-member'}">${m.role === 'owner' ? '管理员' : '成员'}</span>
-          ${m.role !== 'owner' ? `<button class="remove-btn" onclick="removeMember('${m.code}', '${m.name}')">移除</button>` : ''}
-        </div>
-      `;
-      memberList.appendChild(item);
-    });
-    // 渲染统计表格
+
+    // 计算总对话数
+    const totalConv = (data.memberStats || []).reduce((s, m) => s + (m.totalConversations || 0), 0);
+    document.getElementById('stat-conversations').textContent = totalConv;
+
     const tbody = document.getElementById('stats-tbody');
     tbody.innerHTML = '';
-    data.members.forEach(m => {
-      const pct = Math.round((m.totalMessages / maxMsg) * 100);
+    const maxConv = Math.max(...(data.memberStats || []).map(m => m.totalConversations || 0), 1);
+    (data.memberStats || []).forEach(m => {
+      const pct = Math.round(((m.totalConversations || 0) / maxConv) * 100);
+      const topAgent = m.topAgent || '暂无';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><strong>${m.name}</strong>${m.role === 'owner' ? ' <span style="font-size:11px;color:#856404">管理员</span>' : ''}</td>
-        <td>${m.totalMessages}</td>
+        <td><strong>${m.memberCode}</strong></td>
+        <td>${m.totalConversations || 0}</td>
         <td>
           <div class="usage-bar-wrap">
             <div class="usage-bar"><div class="usage-bar-fill" style="width:${pct}%"></div></div>
             <span class="usage-num">${pct}%</span>
           </div>
         </td>
-        <td>${m.lastActive}</td>
+        <td>${topAgent}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -294,10 +571,10 @@ async function inviteMember() {
       body: JSON.stringify({ memberCode: code })
     });
     const data = await res.json();
-    if (data.ok) {
-      showAlert(`✅ 已成功邀请 ${data.memberName} 加入团队（${data.memberCount}/${data.maxSeats} 席位）`, 'success');
+    if (res.ok && data.success) {
+      showAlert(`✅ 已成功邀请 ${code} 加入团队（${data.members.length}/${data.seats} 席位）`, 'success');
       input.value = '';
-      loadStats();
+      await loadTeamInfo();
     } else {
       showAlert(data.error || '邀请失败', 'error');
     }
@@ -308,18 +585,18 @@ async function inviteMember() {
   btn.textContent = '邀请成员';
 }
 
-async function removeMember(code, name) {
-  if (!confirm(`确定要移除成员「${name}」吗？移除后该成员将失去团队权益。`)) return;
+async function removeMember(memberCode) {
+  if (!confirm(`确定要移除成员「${memberCode}」吗？移除后该成员将失去团队权益。`)) return;
   try {
-    const res = await fetch('/api/team/remove-member', {
+    const res = await fetch('/api/team/remove', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberCode: code })
+      body: JSON.stringify({ memberCode })
     });
     const data = await res.json();
-    if (data.ok) {
-      showAlert(`已移除成员 ${name}`, 'success');
-      loadStats();
+    if (res.ok && data.success) {
+      showAlert(`已移除成员 ${memberCode}`, 'success');
+      await loadTeamInfo();
     } else {
       showAlert(data.error || '移除失败', 'error');
     }
@@ -328,18 +605,13 @@ async function removeMember(code, name) {
   }
 }
 
-function showAlert(msg, type) {
-  const area = document.getElementById('alert-area');
-  area.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
-  setTimeout(() => { area.innerHTML = ''; }, 4000);
-}
-
 function showNoTeam() {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('no-team').style.display = 'block';
 }
 
-loadTeamInfo();
+// 启动
+init();
 </script>
 </body>
 </html>
