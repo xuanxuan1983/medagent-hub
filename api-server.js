@@ -4604,6 +4604,17 @@ if (url.pathname.startsWith('/api/admin/teams/') && req.method === 'DELETE') {
 // ===== 团队计划 API 结束 =====
 // ============================================================
 
+
+  // team.html 团队管理页面
+  if (url.pathname === '/team.html' || url.pathname === '/team') {
+    const p = path.join(__dirname, 'team.html');
+    const fs2 = require('fs');
+    if (fs2.existsSync(p)) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      fs2.createReadStream(p).pipe(res);
+    } else { res.writeHead(404); res.end('Not found'); }
+    return;
+  }
 server.listen(PORT, () => {
   console.log(`🎯 MedAgent API Server running on http://localhost:${PORT}`);
   console.log(`🤖 AI Provider: ${AI_PROVIDER.toUpperCase()}`);
