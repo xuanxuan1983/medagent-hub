@@ -2738,6 +2738,41 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── 日报页面邀请码申请 ──
+  if (url.pathname === '/api/invite-request' && req.method === 'POST') {
+    try {
+      const { name, org, phone, note, source } = await parseRequestBody(req);
+      if (!name || !org || !phone) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '请填写姓名、机构和手机号' }));
+        return;
+      }
+      if (!/^1[3-9]\d{9}$/.test(phone)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '手机号格式不正确' }));
+        return;
+      }
+      const record = JSON.stringify({
+        ts: new Date().toISOString(),
+        name: name.trim(),
+        org: org.trim(),
+        phone: phone.trim(),
+        note: (note || '').trim(),
+        source: source || 'daily-brief',
+        status: 'pending'
+      });
+      const inviteFile = path.join(DATA_DIR, 'invite-requests.jsonl');
+      fs.appendFileSync(inviteFile, record + '\n');
+      console.log(`🎟️ [邀请码申请] ${name} / ${org} / ${phone}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, message: '申请已提交，我们将在24小时内联系您' }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
   // Submit feedback (thumbs up/down)
   if (url.pathname === '/api/feedback' && req.method === 'POST') {
     try {
@@ -3116,6 +3151,24 @@ const server = http.createServer(async (req, res) => {
     try { applies = JSON.parse(fs.readFileSync(applyFile, 'utf8')); } catch(e) {}
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ applies }));
+    return;
+  }
+
+  // Admin: 查看日报页面邀请码申请列表
+  if (url.pathname === '/api/admin/invite-requests' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    const inviteFile = path.join(DATA_DIR, 'invite-requests.jsonl');
+    let requests = [];
+    try {
+      const lines = fs.readFileSync(inviteFile, 'utf8').trim().split('\n').filter(Boolean);
+      requests = lines.map(l => JSON.parse(l)).reverse(); // 最新的在前
+    } catch(e) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ total: requests.length, requests }));
     return;
   }
 
