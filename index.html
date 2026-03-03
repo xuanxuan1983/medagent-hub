@@ -229,8 +229,10 @@
         }
         .feature-icon {
             position: absolute; bottom: 1.25rem; right: 1.5rem;
-            font-size: 2.5rem; opacity: 0.5;
+            font-size: 2.5rem; opacity: 0.35;
+            color: var(--text-2);
         }
+        .feature-icon svg { display: block; }
 
         /* ===== COMPANION ===== */
         .companion-section {
@@ -267,7 +269,7 @@
             width: 40px; height: 40px; border-radius: 10px;
             background: var(--coral-light); display: flex;
             align-items: center; justify-content: center; font-size: 1.2rem;
-            flex-shrink: 0;
+            flex-shrink: 0; overflow: hidden;
         }
         .companion-agent-name { font-weight: 600; font-size: 0.875rem; color: var(--text); }
         .companion-agent-desc { font-size: 0.75rem; color: var(--text-3); margin-top: 0.1rem; }
@@ -492,25 +494,25 @@
                 <div class="feature-num">01</div>
                 <div class="feature-title">21 个医美 Agent<br>内测期间全部免费</div>
                 <div class="feature-desc">内测期间全部开放，覆盖 GTM 战略、产品材料、学术推广、市场营销、销售管理、培训赋能等全链路场景。提交反馈还可解锁内容创作全套工具。</div>
-                <div class="feature-icon">🎯</div>
+                <div class="feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
             </div>
             <div class="feature-card">
                 <div class="feature-num">02</div>
                 <div class="feature-title">上游 + 下游<br>全链路覆盖</div>
                 <div class="feature-desc">无论你是医美品牌方的市场总监，还是下游机构的咨询师，都能找到专属的 AI 助手。</div>
-                <div class="feature-icon">🔗</div>
+                <div class="feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
             </div>
             <div class="feature-card">
                 <div class="feature-num">03</div>
                 <div class="feature-title">对话即服务<br>无需学习成本</div>
                 <div class="feature-desc">不需要写 prompt，不需要调参数。像和一位资深同事聊天一样，直接说出你的需求。</div>
-                <div class="feature-icon">💬</div>
+                <div class="feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
             </div>
             <div class="feature-card">
                 <div class="feature-num">04</div>
                 <div class="feature-title">AI 生图能力<br>所见即所得</div>
                 <div class="feature-desc">内置 AI 生图引擎，咨询师和美学顾问可以在对话中直接生成效果示意图、方案图和营销素材。</div>
-                <div class="feature-icon">🎨</div>
+                <div class="feature-icon"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></div>
             </div>
         </div>
     </div>
@@ -526,7 +528,7 @@
         </div>
         <div class="companion-visual">
             <div class="companion-agent-row">
-                <div class="companion-agent-icon">🎯</div>
+                <div class="companion-agent-icon"><img src="/avatars/gtm-strategy.svg" alt="GTM" style="width:100%;height:100%;border-radius:10px;"></div>
                 <div>
                     <div class="companion-agent-name">GTM战略大师</div>
                     <div class="companion-agent-desc">整合战略定位、循证背书、组品方案</div>
@@ -534,7 +536,7 @@
                 <div class="companion-agent-badge">上游</div>
             </div>
             <div class="companion-agent-row">
-                <div class="companion-agent-icon" style="background:#E8F7F0">🥇</div>
+                <div class="companion-agent-icon" style="background:#E8F7F0"><img src="/avatars/senior-consultant.svg" alt="consultant" style="width:100%;height:100%;border-radius:10px;"></div>
                 <div>
                     <div class="companion-agent-name">金牌医美咨询师</div>
                     <div class="companion-agent-desc">10年一线经验，精通SPIN与三明治报价</div>
@@ -542,7 +544,7 @@
                 <div class="companion-agent-badge" style="background:#E8F7F0;color:#3DB88C">下游</div>
             </div>
             <div class="companion-agent-row">
-                <div class="companion-agent-icon">🗺️</div>
+                <div class="companion-agent-icon"><img src="/avatars/area-manager.svg" alt="area" style="width:100%;height:100%;border-radius:10px;"></div>
                 <div>
                     <div class="companion-agent-name">大区经理</div>
                     <div class="companion-agent-desc">Forecast分级测谎、进销存逻辑闭环</div>
