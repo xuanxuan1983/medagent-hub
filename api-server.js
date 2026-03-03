@@ -4148,6 +4148,223 @@ const server = http.createServer(async (req, res) => {
   const staticDir = path.join(__dirname);
   let filePath = path.join(staticDir, url.pathname === '/' ? 'index.html' : url.pathname);
 
+
+  // ===== 团队计划 API =====
+
+  // 读取团队数据
+  function readTeams() {
+    const teamsFile = path.join(__dirname, 'teams.json');
+    try {
+      return JSON.parse(fs.readFileSync(teamsFile, 'utf8'));
+    } catch { return {}; }
+  }
+
+  // 写入团队数据
+  function writeTeams(teams) {
+    const teamsFile = path.join(__dirname, 'teams.json');
+    fs.writeFileSync(teamsFile, JSON.stringify(teams, null, 2));
+  }
+
+  // 团队套餐定义
+  const TEAM_PLANS = {
+    'team-starter':  { name: '团队入门版', seats: 5,  monthlyPrice: 999  },
+    'team-standard': { name: '团队标准版', seats: 10, monthlyPrice: 1799 },
+    'team-pro':      { name: '团队专业版', seats: 20, monthlyPrice: 2999 },
+    'team-custom':   { name: '机构定制版', seats: 50, monthlyPrice: 0    },
+  };
+
+  // Admin：创建团队
+  if (url.pathname === '/api/admin/team/create' && req.method === 'POST' && isAdmin(req)) {
+    const body = await parseRequestBody(req);
+    const { ownerCode, planId, months = 1 } = body;
+    if (!ownerCode || !planId || !TEAM_PLANS[planId]) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '参数错误：需要 ownerCode、planId' }));
+      return;
+    }
+    const teams = readTeams();
+    if (teams[ownerCode]) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '该用户已有团队' }));
+      return;
+    }
+    const plan = TEAM_PLANS[planId];
+    const now = new Date();
+    const expireDate = new Date(now);
+    expireDate.setMonth(expireDate.getMonth() + months);
+    teams[ownerCode] = {
+      teamId: `team_${Date.now()}`,
+      ownerCode,
+      planId,
+      planName: plan.name,
+      seats: plan.seats,
+      members: [ownerCode],
+      createdAt: now.toISOString(),
+      expireAt: expireDate.toISOString(),
+      monthlyPrice: plan.monthlyPrice,
+    };
+    writeTeams(teams);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, team: teams[ownerCode] }));
+    return;
+  }
+
+  // Admin：查看所有团队
+  if (url.pathname === '/api/admin/teams' && req.method === 'GET' && isAdmin(req)) {
+    const teams = readTeams();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ total: Object.keys(teams).length, teams }));
+    return;
+  }
+
+  // Admin：删除团队
+  if (url.pathname === '/api/admin/team/delete' && req.method === 'POST' && isAdmin(req)) {
+    const body = await parseRequestBody(req);
+    const { ownerCode } = body;
+    const teams = readTeams();
+    if (!teams[ownerCode]) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '团队不存在' }));
+      return;
+    }
+    delete teams[ownerCode];
+    writeTeams(teams);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // 获取当前用户的团队信息（用户自己调用）
+  if (url.pathname === '/api/team/info' && req.method === 'GET' && isAuthenticated(req)) {
+    const userCode = getUserCode(req);
+    const teams = readTeams();
+    // 查找用户是否是某个团队的 owner 或 member
+    let myTeam = null;
+    for (const [ownerCode, team] of Object.entries(teams)) {
+      if (team.members && team.members.includes(userCode)) {
+        myTeam = { ...team, isOwner: ownerCode === userCode };
+        break;
+      }
+    }
+    if (!myTeam) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ hasTeam: false }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ hasTeam: true, team: myTeam }));
+    return;
+  }
+
+  // 邀请成员（团队 owner 调用）
+  if (url.pathname === '/api/team/invite' && req.method === 'POST' && isAuthenticated(req)) {
+    const userCode = getUserCode(req);
+    const body = await parseRequestBody(req);
+    const { memberCode } = body;
+    const teams = readTeams();
+    const myTeam = teams[userCode];
+    if (!myTeam) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '你没有团队，或不是团队管理员' }));
+      return;
+    }
+    if (!memberCode) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '请提供成员邀请码' }));
+      return;
+    }
+    if (myTeam.members.length >= myTeam.seats) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `席位已满（${myTeam.seats} 席），请升级套餐` }));
+      return;
+    }
+    if (myTeam.members.includes(memberCode)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '该成员已在团队中' }));
+      return;
+    }
+    // 验证成员邀请码是否存在
+    const inviteCodes = readInviteCodes ? readInviteCodes() : {};
+    if (Object.keys(inviteCodes).length > 0 && !inviteCodes[memberCode]) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '邀请码不存在，请确认成员邀请码正确' }));
+      return;
+    }
+    myTeam.members.push(memberCode);
+    writeTeams(teams);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, members: myTeam.members, seats: myTeam.seats }));
+    return;
+  }
+
+  // 移除成员（团队 owner 调用）
+  if (url.pathname === '/api/team/remove' && req.method === 'POST' && isAuthenticated(req)) {
+    const userCode = getUserCode(req);
+    const body = await parseRequestBody(req);
+    const { memberCode } = body;
+    const teams = readTeams();
+    const myTeam = teams[userCode];
+    if (!myTeam) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '你没有团队，或不是团队管理员' }));
+      return;
+    }
+    if (memberCode === userCode) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '不能移除自己（团队管理员）' }));
+      return;
+    }
+    myTeam.members = myTeam.members.filter(m => m !== memberCode);
+    writeTeams(teams);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, members: myTeam.members }));
+    return;
+  }
+
+  // 团队使用统计（团队 owner 调用）
+  if (url.pathname === '/api/team/stats' && req.method === 'GET' && isAuthenticated(req)) {
+    const userCode = getUserCode(req);
+    const teams = readTeams();
+    const myTeam = teams[userCode];
+    if (!myTeam) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '你没有团队，或不是团队管理员' }));
+      return;
+    }
+    // 从 SQLite 查询每个成员的使用统计
+    const memberStats = [];
+    for (const memberCode of myTeam.members) {
+      try {
+        const rows = db.prepare(`
+          SELECT agent_id, COUNT(*) as count
+          FROM token_usage
+          WHERE user_code = ?
+          AND created_at >= datetime('now', '-30 days')
+          GROUP BY agent_id
+          ORDER BY count DESC
+        `).all(memberCode);
+        const totalCount = rows.reduce((sum, r) => sum + r.count, 0);
+        const topAgent = rows[0] ? rows[0].agent_id : null;
+        memberStats.push({
+          memberCode,
+          totalConversations: totalCount,
+          topAgent,
+          agentBreakdown: rows.slice(0, 5),
+        });
+      } catch {
+        memberStats.push({ memberCode, totalConversations: 0, topAgent: null, agentBreakdown: [] });
+      }
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      team: { planName: myTeam.planName, seats: myTeam.seats, usedSeats: myTeam.members.length, expireAt: myTeam.expireAt },
+      memberStats,
+    }));
+    return;
+  }
+
+  // ===== 团队计划 API 结束 =====
+
   // ===== 安全防护：屏蔽敏感目录的直接 HTTP 访问 =====
   const blockedPaths = ['/skills/', '/skills', '/assistants/', '/assistants', '/data/', '/data'];
   const reqPath = url.pathname.toLowerCase();
@@ -4210,411 +4427,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-
-
-// ============================================================
-// ===== 团队计划 API (Team Plan) - 新增模块，不影响现有功能 =====
-// ============================================================
-
-// 团队套餐定义
-const TEAM_PLANS = {
-  'team-starter':  { name: '团队入门版', seats: 5,  monthlyPrice: 999,  yearlyPrice: 8490  },
-  'team-standard': { name: '团队标准版', seats: 10, monthlyPrice: 1799, yearlyPrice: 15290 },
-  'team-pro':      { name: '团队专业版', seats: 20, monthlyPrice: 2999, yearlyPrice: 25490 },
-  'team-custom':   { name: '机构定制版', seats: 50, monthlyPrice: 0,    yearlyPrice: 0     },
-};
-
-// 团队数据文件路径
-const TEAMS_FILE = path.join(DATA_DIR, 'teams.json');
-
-// 加载/保存团队数据
-function loadTeams() {
-  try {
-    if (fs.existsSync(TEAMS_FILE)) return JSON.parse(fs.readFileSync(TEAMS_FILE, 'utf8'));
-  } catch (e) {}
-  return {};
-}
-function saveTeams(teams) {
-  fs.writeFileSync(TEAMS_FILE, JSON.stringify(teams, null, 2), 'utf8');
-}
-
-// 根据用户码查找其所属团队（作为成员）
-function getTeamByMember(userCode) {
-  const teams = loadTeams();
-  for (const [teamId, team] of Object.entries(teams)) {
-    if (team.ownerCode === userCode) return { teamId, team, role: 'owner' };
-    if (team.members && team.members.some(m => m.code === userCode)) return { teamId, team, role: 'member' };
-  }
-  return null;
-}
-
-// 检查用户是否为团队管理员
-function isTeamOwner(userCode) {
-  const teams = loadTeams();
-  return Object.values(teams).some(t => t.ownerCode === userCode);
-}
-
-// ── 获取当前用户的团队信息 ──
-if (url.pathname === '/api/team/info' && req.method === 'GET') {
-  if (!isAuthenticated(req)) {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Unauthorized' }));
-    return;
-  }
-  const userCode = getUserCode(req);
-  const teamInfo = getTeamByMember(userCode);
-  if (!teamInfo) {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ hasTeam: false }));
-    return;
-  }
-  const { teamId, team, role } = teamInfo;
-  const planDef = TEAM_PLANS[team.planId] || {};
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    hasTeam: true,
-    teamId,
-    teamName: team.name,
-    planId: team.planId,
-    planName: planDef.name || team.planId,
-    seats: planDef.seats || team.seats,
-    memberCount: (team.members || []).length + 1, // +1 for owner
-    role,
-    ownerCode: team.ownerCode,
-    ownerName: team.ownerName,
-    expiresAt: team.expiresAt,
-    members: role === 'owner' ? team.members : undefined,
-  }));
-  return;
-}
-
-// ── 管理员创建团队（手动开通，支付后由 admin 操作）──
-if (url.pathname === '/api/admin/team/create' && req.method === 'POST') {
-  if (!isAdmin(req)) {
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Forbidden' }));
-    return;
-  }
-  try {
-    const { ownerCode, planId, months } = await parseRequestBody(req);
-    if (!ownerCode || !planId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '请填写 ownerCode 和 planId' }));
-      return;
-    }
-    const planDef = TEAM_PLANS[planId];
-    if (!planDef) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '无效的团队套餐 ID' }));
-      return;
-    }
-    const codes = loadCodes();
-    if (!codes[ownerCode]) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '用户码不存在' }));
-      return;
-    }
-    // 检查是否已有团队
-    const existing = getTeamByMember(ownerCode);
-    if (existing) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '该用户已属于一个团队' }));
-      return;
-    }
-    const teamId = 'team_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-    const durationMonths = parseInt(months) || 1;
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
-    const teams = loadTeams();
-    teams[teamId] = {
-      id: teamId,
-      name: codes[ownerCode] + '的团队',
-      planId,
-      seats: planDef.seats,
-      ownerCode,
-      ownerName: codes[ownerCode],
-      members: [],
-      createdAt: new Date().toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      durationMonths,
-    };
-    saveTeams(teams);
-    // 同时将 owner 升级为 Pro+（团队计划包含所有权益）
-    const subs = fs.existsSync(path.join(DATA_DIR, 'user-subscriptions.json'))
-      ? JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'user-subscriptions.json'), 'utf8')) : {};
-    subs[ownerCode] = { planId: 'pro_plus', expiresAt: expiresAt.toISOString(), teamId, teamPlan: planId };
-    fs.writeFileSync(path.join(DATA_DIR, 'user-subscriptions.json'), JSON.stringify(subs, null, 2), 'utf8');
-    console.log(`✅ [团队] 创建团队 ${teamId}，owner: ${ownerCode}，套餐: ${planId}，到期: ${expiresAt.toISOString().slice(0,10)}`);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, teamId, team: teams[teamId] }));
-  } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
-  }
-  return;
-}
-
-// ── 团队管理员：邀请成员 ──
-if (url.pathname === '/api/team/invite' && req.method === 'POST') {
-  if (!isAuthenticated(req)) {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Unauthorized' }));
-    return;
-  }
-  try {
-    const ownerCode = getUserCode(req);
-    const { memberCode } = await parseRequestBody(req);
-    if (!memberCode) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '请填写成员邀请码' }));
-      return;
-    }
-    const teams = loadTeams();
-    const teamEntry = Object.entries(teams).find(([, t]) => t.ownerCode === ownerCode);
-    if (!teamEntry) {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '你没有团队管理权限' }));
-      return;
-    }
-    const [teamId, team] = teamEntry;
-    const planDef = TEAM_PLANS[team.planId] || {};
-    const maxSeats = planDef.seats || team.seats || 5;
-    const currentCount = (team.members || []).length + 1; // +1 for owner
-    if (currentCount >= maxSeats) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: `席位已满（${maxSeats} 席），请升级套餐` }));
-      return;
-    }
-    const codes = loadCodes();
-    if (!codes[memberCode]) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '邀请码不存在，请确认成员已注册' }));
-      return;
-    }
-    if (memberCode === ownerCode) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '不能邀请自己' }));
-      return;
-    }
-    if (team.members && team.members.some(m => m.code === memberCode)) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '该成员已在团队中' }));
-      return;
-    }
-    // 检查成员是否已属于其他团队
-    const existingTeam = getTeamByMember(memberCode);
-    if (existingTeam) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '该成员已属于其他团队' }));
-      return;
-    }
-    if (!team.members) team.members = [];
-    team.members.push({ code: memberCode, name: codes[memberCode], joinedAt: new Date().toISOString() });
-    saveTeams(teams);
-    // 给成员升级为 Pro+（继承团队权益）
-    const subsPath = path.join(DATA_DIR, 'user-subscriptions.json');
-    const subs = fs.existsSync(subsPath) ? JSON.parse(fs.readFileSync(subsPath, 'utf8')) : {};
-    subs[memberCode] = { planId: 'pro_plus', expiresAt: team.expiresAt, teamId, teamPlan: team.planId, isTeamMember: true };
-    fs.writeFileSync(subsPath, JSON.stringify(subs, null, 2), 'utf8');
-    console.log(`✅ [团队] ${ownerCode} 邀请 ${memberCode} 加入团队 ${teamId}`);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, memberName: codes[memberCode], memberCount: team.members.length + 1, maxSeats }));
-  } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
-  }
-  return;
-}
-
-// ── 团队管理员：移除成员 ──
-if (url.pathname === '/api/team/remove-member' && req.method === 'POST') {
-  if (!isAuthenticated(req)) {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Unauthorized' }));
-    return;
-  }
-  try {
-    const ownerCode = getUserCode(req);
-    const { memberCode } = await parseRequestBody(req);
-    const teams = loadTeams();
-    const teamEntry = Object.entries(teams).find(([, t]) => t.ownerCode === ownerCode);
-    if (!teamEntry) {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '你没有团队管理权限' }));
-      return;
-    }
-    const [teamId, team] = teamEntry;
-    const before = (team.members || []).length;
-    team.members = (team.members || []).filter(m => m.code !== memberCode);
-    if (team.members.length === before) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '成员不存在' }));
-      return;
-    }
-    saveTeams(teams);
-    // 降级成员的订阅（移除团队权益）
-    const subsPath = path.join(DATA_DIR, 'user-subscriptions.json');
-    const subs = fs.existsSync(subsPath) ? JSON.parse(fs.readFileSync(subsPath, 'utf8')) : {};
-    if (subs[memberCode] && subs[memberCode].isTeamMember) {
-      delete subs[memberCode];
-      fs.writeFileSync(subsPath, JSON.stringify(subs, null, 2), 'utf8');
-    }
-    console.log(`✅ [团队] ${ownerCode} 移除成员 ${memberCode}`);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, memberCount: team.members.length + 1 }));
-  } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
-  }
-  return;
-}
-
-// ── 团队管理员：查看成员使用统计 ──
-if (url.pathname === '/api/team/stats' && req.method === 'GET') {
-  if (!isAuthenticated(req)) {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Unauthorized' }));
-    return;
-  }
-  try {
-    const ownerCode = getUserCode(req);
-    const teams = loadTeams();
-    const teamEntry = Object.entries(teams).find(([, t]) => t.ownerCode === ownerCode);
-    if (!teamEntry) {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '你没有团队管理权限' }));
-      return;
-    }
-    const [teamId, team] = teamEntry;
-    const allCodes = [ownerCode, ...(team.members || []).map(m => m.code)];
-    const codes = loadCodes();
-    // 从 conversations.jsonl 统计每个成员的使用数据
-    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
-    const memberStats = {};
-    allCodes.forEach(c => { memberStats[c] = { name: codes[c] || c, totalMessages: 0, agentCounts: {}, lastActive: null }; });
-    if (fs.existsSync(logPath)) {
-      const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
-      lines.forEach(line => {
-        try {
-          const entry = JSON.parse(line);
-          if (entry.type === 'feedback') return;
-          // 匹配用户码（user_name 字段存的是邀请码）
-          const code = entry.user_name;
-          if (memberStats[code]) {
-            memberStats[code].totalMessages++;
-            if (entry.agent) memberStats[code].agentCounts[entry.agent] = (memberStats[code].agentCounts[entry.agent] || 0) + 1;
-            if (!memberStats[code].lastActive || entry.ts > memberStats[code].lastActive) memberStats[code].lastActive = entry.ts;
-          }
-        } catch {}
-      });
-    }
-    // 格式化输出
-    const memberList = allCodes.map(code => {
-      const s = memberStats[code];
-      const topAgents = Object.entries(s.agentCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([agent, count]) => ({ agent, count }));
-      return {
-        code,
-        name: s.name,
-        role: code === ownerCode ? 'owner' : 'member',
-        totalMessages: s.totalMessages,
-        topAgents,
-        lastActive: s.lastActive ? s.lastActive.slice(0, 10) : '从未',
-      };
-    });
-    const planDef = TEAM_PLANS[team.planId] || {};
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      teamId,
-      teamName: team.name,
-      planId: team.planId,
-      planName: planDef.name || team.planId,
-      seats: planDef.seats || team.seats,
-      memberCount: allCodes.length,
-      expiresAt: team.expiresAt,
-      totalMessages: memberList.reduce((s, m) => s + m.totalMessages, 0),
-      members: memberList,
-    }));
-  } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
-  }
-  return;
-}
-
-// ── Admin：查看所有团队 ──
-if (url.pathname === '/api/admin/teams' && req.method === 'GET') {
-  if (!isAdmin(req)) {
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Forbidden' }));
-    return;
-  }
-  const teams = loadTeams();
-  const teamList = Object.entries(teams).map(([id, t]) => ({
-    id,
-    name: t.name,
-    planId: t.planId,
-    planName: (TEAM_PLANS[t.planId] || {}).name || t.planId,
-    seats: (TEAM_PLANS[t.planId] || {}).seats || t.seats,
-    ownerCode: t.ownerCode,
-    ownerName: t.ownerName,
-    memberCount: (t.members || []).length + 1,
-    createdAt: t.createdAt,
-    expiresAt: t.expiresAt,
-  }));
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ total: teamList.length, teams: teamList }));
-  return;
-}
-
-// ── Admin：删除/解散团队 ──
-if (url.pathname.startsWith('/api/admin/teams/') && req.method === 'DELETE') {
-  if (!isAdmin(req)) {
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Forbidden' }));
-    return;
-  }
-  try {
-    const teamId = decodeURIComponent(url.pathname.replace('/api/admin/teams/', ''));
-    const teams = loadTeams();
-    if (!teams[teamId]) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '团队不存在' }));
-      return;
-    }
-    const team = teams[teamId];
-    // 降级所有成员订阅
-    const subsPath = path.join(DATA_DIR, 'user-subscriptions.json');
-    const subs = fs.existsSync(subsPath) ? JSON.parse(fs.readFileSync(subsPath, 'utf8')) : {};
-    (team.members || []).forEach(m => {
-      if (subs[m.code] && subs[m.code].isTeamMember) delete subs[m.code];
-    });
-    if (subs[team.ownerCode] && subs[team.ownerCode].teamId === teamId) delete subs[team.ownerCode];
-    fs.writeFileSync(subsPath, JSON.stringify(subs, null, 2), 'utf8');
-    delete teams[teamId];
-    saveTeams(teams);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true }));
-  } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
-  }
-  return;
-}
-// ============================================================
-// ===== 团队计划 API 结束 =====
-// ============================================================
-
-
-  // team.html 团队管理页面
-  if (url.pathname === '/team.html' || url.pathname === '/team') {
-    const p = path.join(__dirname, 'team.html');
-    const fs2 = require('fs');
-    if (fs2.existsSync(p)) {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      fs2.createReadStream(p).pipe(res);
-    } else { res.writeHead(404); res.end('Not found'); }
-    return;
-  }
 server.listen(PORT, () => {
   console.log(`🎯 MedAgent API Server running on http://localhost:${PORT}`);
   console.log(`🤖 AI Provider: ${AI_PROVIDER.toUpperCase()}`);
