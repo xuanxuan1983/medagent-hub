@@ -173,6 +173,9 @@ const CONTENT_AGENTS = new Set([
   'social-media-creator',   // 社交媒体运营顾问
   'hrbp',                   // 战略HRBP
   'procurement-manager',    // 采购经理
+  'super-writer',           // 超级写作助手
+  'personal-ip-builder',    // 个人IP打造指南
+  'personal-brand-cinematic', // 电影感品牌视觉顾问
 ]);
 
 // 专业版 Pro 可用的 Agent（全部21个医美Agent + 内容创作）
@@ -188,6 +191,9 @@ const PRO_AGENTS = new Set([
   'social-media-creator',
   'hrbp',
   'procurement-manager',
+  'super-writer',
+  'personal-ip-builder',
+  'personal-brand-cinematic',
 ]);
 
 // 仅管理员可用的 Agent（任何非管理员访问均返回403，且不在前端列表中显示）
@@ -1144,13 +1150,13 @@ const agentSkillMap = {
   'marketing-director': 'marketing-director',
   'sales-director': 'sales-director',
   'operations-director': 'sfe-director',
-  'training-director': 'medaesthetic-hub',
+  'training-director': 'training-director',
   'aesthetic-design': 'aesthetic-designer',
   'senior-consultant': 'senior-consultant',
   'sparring-robot': 'sparring-partner',
   'post-op-guardian': 'postop-specialist',
   'trend-setter': 'new-media-director',
-  'anatomy-architect': 'medaesthetic-hub',
+  'anatomy-architect': 'anatomy-architect',
   'materials-mentor': 'product-strategist',
   'visual-translator': 'creative-director',
   'material-architect': 'material-architect',
@@ -1171,7 +1177,10 @@ const agentSkillMap = {
   'comic-creator': 'comic-creator',
   'article-illustrator': 'article-illustrator',
   'cover-image-creator': 'cover-image-creator',
-  'social-media-creator': 'social-media-creator'
+  'social-media-creator': 'social-media-creator',
+  'personal-ip-builder': 'personal-ip-builder',
+  'personal-brand-cinematic': 'personal-brand-cinematic',
+  'super-writer': 'super-writer'
 };
 
 const agentNames = {
@@ -1208,7 +1217,10 @@ const agentNames = {
   'comic-creator': '知识漫画创作顾问',
   'article-illustrator': '文章配图顾问',
   'cover-image-creator': '封面图创作顾问',
-  'social-media-creator': '社交媒体运营顾问'
+  'social-media-creator': '社交媒体运营顾问',
+  'personal-ip-builder': '个人IP打造指南',
+  'personal-brand-cinematic': '电影感品牌视觉顾问',
+  'super-writer': '超级写作助手'
 };
 
 // 微信支付初始化
