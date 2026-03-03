@@ -1656,6 +1656,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         { id: 'social-media-creator',   icon: '🌐', name: '社交媒体运营顾问',     desc: '多平台内容策略，小红书/抖音/微博/X差异化内容创作与运营规划', category: '内容创作' },
         { id: 'personal-ip-builder',    icon: '🚀', name: '个人IP打造指南',         desc: '从IP定位、内容策略、视觉系统到变现路径，帮助创始人和独立顾问构建高价值个人品牌', category: '内容创作' },
         { id: 'personal-brand-cinematic', icon: '🎬', name: '电影感品牌视觉顾问',   desc: '结合电影摄影技术与个人品牌定位，为医美创始人打造高识别度的视觉形象和拍摄方案', category: '内容创作' },
+        { id: 'super-writer',             icon: '✍️', name: '超级写作助手',         desc: '集选题、写稿、验收、发布于一体的知识类视频内容工厂，内置10个专业写作模块，实现工业化内容生产', category: '内容创作' },
       ]
     },
     {
@@ -1708,7 +1709,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     'xhs-content-creator','ppt-creator','wechat-content-creator',
     'comic-creator','article-illustrator','cover-image-creator','social-media-creator',
     'personal-ip-builder','personal-brand-cinematic',
-    'hrbp','procurement-manager'
+    'hrbp','procurement-manager',
+    'super-writer'
   ]);
   // 全部可用Agent（Pro+）
   const PRO_AGENTS = new Set([...TRIAL_AGENTS, ...CONTENT_AGENTS]);
@@ -1809,7 +1811,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.getElementById('desktopGreeting').textContent = greeting;
   }
 
-    async function loadGuidedQuestions(agentId) {
+  async function loadGuidedQuestions(agentId) {
     const container = document.getElementById('guidedQuestions');
     container.innerHTML = ''; // Clear previous questions
     if (!agentId || agentId === 'meiling') return;
