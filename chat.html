@@ -1015,6 +1015,30 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       .welcome-wrap { padding: 1.5rem 1rem; }
       .welcome-mascot { width: 70px; height: 70px; }
     }
+    /* Agent 跳转按钮（豆豆分流用） */
+    .agent-link-btn {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.65rem;
+      border-radius: 20px;
+      border: 1.5px solid var(--coral);
+      background: var(--coral-light);
+      color: var(--coral);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      vertical-align: middle;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+    .agent-link-btn:hover {
+      background: var(--coral);
+      color: white;
+    }
+    .agent-link-btn::after {
+      content: ' →';
+      font-size: 0.75rem;
+    }
   </style>
 </head>
 <body>
@@ -1509,6 +1533,19 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       }
     });
   }
+  function injectAgentLinks(bubble) {
+    // 兜底处理：对未被 marked 扩展渲染的 agent-link 标签做替换
+    bubble.querySelectorAll('agent-link').forEach(el => {
+      const agentId = el.getAttribute('id');
+      const text = el.textContent;
+      const btn = document.createElement('button');
+      btn.className = 'agent-link-btn';
+      btn.textContent = text;
+      btn.onclick = () => startChat(agentId);
+      el.replaceWith(btn);
+    });
+  }
+
 
   if (typeof marked !== 'undefined') {
     marked.use({
@@ -1519,6 +1556,40 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       headerIds: false
     });
   }
+  // 扩展 marked：1) 禁用删除线渲染  2) 解析 <agent-link> 标签为跳转按钮
+  if (typeof marked !== 'undefined') {
+    marked.use({
+      renderer: {
+        // 禁用删除线：~~text~~ 直接输出文本，不加删除线样式
+        del(token) {
+          return token.text;
+        }
+      },
+      extensions: [
+        {
+          name: 'agentLink',
+          level: 'inline',
+          start(src) { return src.indexOf('<agent-link'); },
+          tokenizer(src) {
+            const rule = /^<agent-link\s+id="([^"]+)">([^<]+)<\/agent-link>/;
+            const match = rule.exec(src);
+            if (match) {
+              return {
+                type: 'agentLink',
+                raw: match[0],
+                agentId: match[1],
+                text: match[2]
+              };
+            }
+          },
+          renderer(token) {
+            return `<button class="agent-link-btn" onclick="startChat('${token.agentId}')">${token.text}</button>`;
+          }
+        }
+      ]
+    });
+  }
+
 
   const API_BASE = '';
   let sessionId = null;
@@ -2435,6 +2506,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                   // Count unmatched ` for inline code
                   const backticks = (renderText.match(/`/g) || []).length;
                   if (backticks % 2 !== 0) renderText += '`';
+                  // Count unmatched ~~ for strikethrough (prevent mid-stream del rendering)
+                  const tildes = (renderText.match(/~~/g) || []).length;
+                  if (tildes % 2 !== 0) renderText += '~~';
                   bubble.innerHTML = marked.parse(renderText);
                   wrapTables(bubble);
                 } else {
@@ -2514,6 +2588,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
+      injectAgentLinks(bubble);
     } else {
       bubble.textContent = mainContent;
     }
@@ -2626,6 +2701,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
+      injectAgentLinks(bubble);
     } else {
       // For user messages: render text + optional image thumbnail
       if (fileAttachment && fileAttachment.isImage) {
