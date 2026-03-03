@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>团队管理 - MedAgent Hub</title>
+  <style>
+    :root {
+      --coral: #E8604C;
+      --coral-light: #FFF0EE;
+      --coral-hover: #d44f3c;
+      --text: #2C2C2C;
+      --text-muted: #888;
+      --border: #E8E5E0;
+      --bg: #FAF9F7;
+      --card-bg: #FFFFFF;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Header */
+    .header { background: #fff; border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .logo { font-size: 18px; font-weight: 700; color: var(--coral); text-decoration: none; }
+    .page-title { font-size: 15px; color: var(--text-muted); }
+    .back-btn { font-size: 14px; color: var(--coral); text-decoration: none; display: flex; align-items: center; gap: 4px; }
+    .back-btn:hover { opacity: 0.8; }
+
+    /* Main */
+    .main { max-width: 760px; margin: 0 auto; padding: 32px 16px; }
+
+    /* Cards */
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .card-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .card-title .icon { font-size: 18px; }
+
+    /* Plan badge */
+    .plan-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--coral-light); color: var(--coral); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat-item { background: var(--bg); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-num { font-size: 28px; font-weight: 700; color: var(--coral); }
+    .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Member list */
+    .member-list { display: flex; flex-direction: column; gap: 10px; }
+    .member-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg); border-radius: 10px; }
+    .member-info { display: flex; align-items: center; gap: 10px; }
+    .member-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--coral-light); color: var(--coral); font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+    .member-name { font-size: 14px; font-weight: 500; }
+    .member-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .member-role { font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+    .role-owner { background: #FFF3CD; color: #856404; }
+    .role-member { background: #E8F5E9; color: #2E7D32; }
+    .remove-btn { font-size: 13px; color: #dc3545; background: none; border: 1px solid #dc3545; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+    .remove-btn:hover { background: #dc3545; color: #fff; }
+
+    /* Invite form */
+    .invite-form { display: flex; gap: 10px; margin-top: 16px; }
+    .invite-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.15s; }
+    .invite-input:focus { border-color: var(--coral); }
+    .invite-btn { background: var(--coral); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+    .invite-btn:hover { background: var(--coral-hover); }
+    .invite-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Agent usage table */
+    .usage-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .usage-table th { text-align: left; padding: 8px 12px; background: var(--bg); color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+    .usage-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .usage-table tr:last-child td { border-bottom: none; }
+    .usage-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .usage-bar { height: 6px; background: var(--coral-light); border-radius: 3px; flex: 1; overflow: hidden; }
+    .usage-bar-fill { height: 100%; background: var(--coral); border-radius: 3px; transition: width 0.3s; }
+    .usage-num { font-size: 12px; color: var(--text-muted); min-width: 30px; text-align: right; }
+
+    /* Alert */
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
+    .alert-success { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+    .alert-error { background: #FFEBEE; color: #C62828; border: 1px solid #EF9A9A; }
+    .alert-info { background: var(--coral-light); color: var(--coral); border: 1px solid #FFCCBC; }
+
+    /* Expiry warning */
+    .expiry-info { font-size: 13px; color: var(--text-muted); }
+    .expiry-warning { color: #E65100; font-weight: 500; }
+
+    /* No team state */
+    .no-team { text-align: center; padding: 60px 20px; }
+    .no-team-icon { font-size: 48px; margin-bottom: 16px; }
+    .no-team-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .no-team-desc { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
+    .contact-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--coral); color: #fff; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 500; }
+    .contact-btn:hover { background: var(--coral-hover); }
+
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
+
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat-num { font-size: 22px; }
+      .invite-form { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <a href="/" class="logo">MedAgent</a>
+    <span class="page-title">/ 团队管理</span>
+  </div>
+  <a href="/chat.html" class="back-btn">← 返回 Hub</a>
+</div>
+
+<div class="main">
+  <div id="loading" class="loading">加载中...</div>
+  <div id="no-team" style="display:none">
+    <div class="no-team">
+      <div class="no-team-icon">👥</div>
+      <div class="no-team-title">你还没有团队计划</div>
+      <div class="no-team-desc">
+        团队计划支持多人共享 MedAgent Hub 的全部功能。<br>
+        一人购买，全团队共用，管理员可查看成员使用情况。
+      </div>
+      <a href="/pricing.html" class="contact-btn">查看团队计划定价 →</a>
+    </div>
+  </div>
+  <div id="team-content" style="display:none">
+
+    <!-- 团队概览 -->
+    <div class="card" id="overview-card">
+      <div class="card-title"><span class="icon">🏢</span><span id="team-name">团队名称</span></div>
+      <div id="alert-area"></div>
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-num" id="stat-members">-</div>
+          <div class="stat-label">当前成员</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="stat-seats">-</div>
+          <div class="stat-label">总席位</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" id="stat-messages">-</div>
+          <div class="stat-label">本月对话</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <span id="plan-badge" class="plan-badge">团队标准版</span>
+        <span class="expiry-info">到期时间：<span id="expiry-date" class="expiry-warning">-</span></span>
+      </div>
+    </div>
+
+    <!-- 成员管理 -->
+    <div class="card" id="members-card" style="display:none">
+      <div class="card-title"><span class="icon">👤</span>成员管理</div>
+
+      <div class="member-list" id="member-list">
+        <!-- 动态渲染 -->
+      </div>
+
+      <div class="invite-form">
+        <input type="text" class="invite-input" id="invite-input" placeholder="输入成员邀请码（如 ma1abc2def）">
+        <button class="invite-btn" id="invite-btn" onclick="inviteMember()">邀请成员</button>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:8px;">
+        成员需先注册 MedAgent Hub 获得邀请码，再由你填写邀请码加入团队。
+      </div>
+    </div>
+
+    <!-- 使用统计 -->
+    <div class="card" id="stats-card" style="display:none">
+      <div class="card-title"><span class="icon">📊</span>成员使用统计</div>
+      <table class="usage-table" id="stats-table">
+        <thead>
+          <tr>
+            <th>成员</th>
+            <th>总对话数</th>
+            <th>使用量</th>
+            <th>最近活跃</th>
+          </tr>
+        </thead>
+        <tbody id="stats-tbody">
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- end team-content -->
+</div>
+
+<script>
+let teamData = null;
+
+async function loadTeamInfo() {
+  try {
+    const res = await fetch('/api/team/info');
+    if (!res.ok) { showNoTeam(); return; }
+    const data = await res.json();
+    if (!data.hasTeam) { showNoTeam(); return; }
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('team-content').style.display = 'block';
+    // 填充概览
+    document.getElementById('team-name').textContent = data.teamName || '我的团队';
+    document.getElementById('stat-members').textContent = data.memberCount;
+    document.getElementById('stat-seats').textContent = data.seats;
+    document.getElementById('plan-badge').textContent = data.planName;
+    const expiry = data.expiresAt ? data.expiresAt.slice(0, 10) : '永久';
+    document.getElementById('expiry-date').textContent = expiry;
+    // 检查是否快到期（30天内）
+    if (data.expiresAt) {
+      const daysLeft = Math.ceil((new Date(data.expiresAt) - new Date()) / 86400000);
+      if (daysLeft <= 30) {
+        document.getElementById('expiry-date').style.color = '#C62828';
+        document.getElementById('expiry-date').textContent = expiry + `（${daysLeft}天后到期）`;
+      }
+    }
+    // 如果是管理员，显示成员管理和统计
+    if (data.role === 'owner') {
+      document.getElementById('members-card').style.display = 'block';
+      document.getElementById('stats-card').style.display = 'block';
+      loadStats();
+    }
+  } catch (e) {
+    showNoTeam();
+  }
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch('/api/team/stats');
+    if (!res.ok) return;
+    const data = await res.json();
+    teamData = data;
+    document.getElementById('stat-messages').textContent = data.totalMessages;
+    // 渲染成员列表
+    const memberList = document.getElementById('member-list');
+    memberList.innerHTML = '';
+    const maxMsg = Math.max(...data.members.map(m => m.totalMessages), 1);
+    data.members.forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'member-item';
+      const topAgent = m.topAgents && m.topAgents[0] ? m.topAgents[0].agent : '暂无';
+      item.innerHTML = `
+        <div class="member-info">
+          <div class="member-avatar">${m.name.slice(0, 1)}</div>
+          <div>
+            <div class="member-name">${m.name}</div>
+            <div class="member-meta">最近活跃：${m.lastActive}　常用：${topAgent}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="member-role ${m.role === 'owner' ? 'role-owner' : 'role-member'}">${m.role === 'owner' ? '管理员' : '成员'}</span>
+          ${m.role !== 'owner' ? `<button class="remove-btn" onclick="removeMember('${m.code}', '${m.name}')">移除</button>` : ''}
+        </div>
+      `;
+      memberList.appendChild(item);
+    });
+    // 渲染统计表格
+    const tbody = document.getElementById('stats-tbody');
+    tbody.innerHTML = '';
+    data.members.forEach(m => {
+      const pct = Math.round((m.totalMessages / maxMsg) * 100);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${m.name}</strong>${m.role === 'owner' ? ' <span style="font-size:11px;color:#856404">管理员</span>' : ''}</td>
+        <td>${m.totalMessages}</td>
+        <td>
+          <div class="usage-bar-wrap">
+            <div class="usage-bar"><div class="usage-bar-fill" style="width:${pct}%"></div></div>
+            <span class="usage-num">${pct}%</span>
+          </div>
+        </td>
+        <td>${m.lastActive}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (e) {
+    console.error('加载统计失败', e);
+  }
+}
+
+async function inviteMember() {
+  const input = document.getElementById('invite-input');
+  const btn = document.getElementById('invite-btn');
+  const code = input.value.trim();
+  if (!code) { showAlert('请输入成员邀请码', 'error'); return; }
+  btn.disabled = true;
+  btn.textContent = '邀请中...';
+  try {
+    const res = await fetch('/api/team/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberCode: code })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAlert(`✅ 已成功邀请 ${data.memberName} 加入团队（${data.memberCount}/${data.maxSeats} 席位）`, 'success');
+      input.value = '';
+      loadStats();
+    } else {
+      showAlert(data.error || '邀请失败', 'error');
+    }
+  } catch (e) {
+    showAlert('网络错误，请重试', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '邀请成员';
+}
+
+async function removeMember(code, name) {
+  if (!confirm(`确定要移除成员「${name}」吗？移除后该成员将失去团队权益。`)) return;
+  try {
+    const res = await fetch('/api/team/remove-member', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberCode: code })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showAlert(`已移除成员 ${name}`, 'success');
+      loadStats();
+    } else {
+      showAlert(data.error || '移除失败', 'error');
+    }
+  } catch (e) {
+    showAlert('网络错误，请重试', 'error');
+  }
+}
+
+function showAlert(msg, type) {
+  const area = document.getElementById('alert-area');
+  area.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => { area.innerHTML = ''; }, 4000);
+}
+
+function showNoTeam() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('no-team').style.display = 'block';
+}
+
+loadTeamInfo();
+</script>
+</body>
+</html>
