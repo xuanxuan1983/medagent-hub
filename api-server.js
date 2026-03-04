@@ -3964,6 +3964,8 @@ const server = http.createServer(async (req, res) => {
     if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const appDir = __dirname;
+      // 先 stash 本地修改，避免冲突
+      try { execSync('git stash', { cwd: appDir, timeout: 10000 }); } catch(se) { /* ignore */ }
       const pullOut = execSync('git pull origin master', { cwd: appDir, timeout: 30000 }).toString();
       const restartOut = execSync('pm2 restart api-server', { timeout: 15000 }).toString();
       res.writeHead(200, { 'Content-Type': 'application/json' });
