@@ -1144,7 +1144,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   <div class="desktop-view active" id="desktopView">
     <div class="desktop-welcome">
       <div class="desktop-mascot">
-        <img src="/mascot-elf.png" alt="豆豆">
+        <img src="/mascot-default.png" alt="豆豆" id="desktopMascotImg">
       </div>
       <div class="desktop-greeting" id="desktopGreeting">你好！我叫小豆豆</div>
       <div class="desktop-sub" id="desktopSub">一颗正在努力学习医美知识的小种子。有什么可以帮到你的吗？<br>也许你的问题，就是我长出第一片新叶的开始。</div>
@@ -1204,7 +1204,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     </div>
     <div class="chat-messages" id="chatMessages">
       <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="/mascot-elf.png" alt="豆豆"></div>
+        <div class="welcome-mascot"><img src="/mascot-default.png" alt="豆豆" id="welcomeMascotImg"></div>
         <div class="welcome-title" id="welcomeTitle">你好！</div>
         <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
       </div>
@@ -2129,7 +2129,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     // Reset chat
     document.getElementById('chatMessages').innerHTML = `
       <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="/mascot-elf.png" alt="豆豆"></div>
+        <div class="welcome-mascot"><img src="/mascot-default.png" alt="豆豆" id="welcomeMascotImg"></div>
         <div class="welcome-title" id="welcomeTitle">${agent.name}</div>
         <div class="welcome-sub" id="welcomeSub">${agent.desc}</div>
       </div>`;
@@ -2138,7 +2138,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
     document.title = agent.name + ' - MedAgent Hub';
     const topbarAvatarEl = document.getElementById('topbarAvatar');
-    topbarAvatarEl.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+    // 豆豆使用专属表情图而非 SVG
+    if (agentId === 'doudou') {
+      topbarAvatarEl.innerHTML = `<img src="/mascot-default.png" alt="豆豆">`;
+    } else {
+      topbarAvatarEl.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+    }
     document.getElementById('topbarName').textContent = agent.name;
     document.getElementById('topbarDesc').textContent = agent.desc;
     document.getElementById('chatStatus').style.display = 'none';
@@ -2439,6 +2444,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
     const searching = willSearch(msg);
     if (searching) showSearchIndicator();
+    setDoudouEmotion('thinking');
     showTyping();
 
     input.disabled = true;
@@ -2476,6 +2482,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         // === STREAMING MODE ===
         hideTyping();
         hideSearchIndicator();
+        setDoudouEmotion('talking');
 
         // Create empty assistant bubble for streaming
         const { bubble, row, container } = createStreamBubble();
@@ -2527,6 +2534,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
               } else if (evt.type === 'done') {
                 // Finalize: add search sources + feedback buttons
                 finalizeStreamBubble(bubble, row, container, fullText, searchResults);
+                setDoudouEmotion('happy');
+                setTimeout(() => setDoudouEmotion('default'), 3000);
               } else if (evt.type === 'error') {
                 bubble.textContent = '抱歉，遇到了问题：' + (evt.message || '请稍后再试');
               }
@@ -2539,12 +2548,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const data = await res.json();
         hideTyping();
         hideSearchIndicator();
+        setDoudouEmotion('happy');
+        setTimeout(() => setDoudouEmotion('default'), 3000);
         addMessage('assistant', data.message, data.searchResults);
         setTimeout(() => loadSidebarHistory(), 500);
       }
     } catch(e) {
       hideTyping();
       hideSearchIndicator();
+      setDoudouEmotion('confused');
+      setTimeout(() => setDoudouEmotion('default'), 4000);
       addMessage('assistant', '抱歉，遇到了问题，请稍后再试。');
     } finally {
       input.disabled = false;
@@ -2772,6 +2785,25 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
 
     container.scrollTop = container.scrollHeight;
+  }
+
+  // ===== 豆豆表情切换系统 =====
+  const DOUDOU_EMOTIONS = {
+    default:  '/mascot-default.png',
+    thinking: '/mascot-thinking.png',
+    happy:    '/mascot-happy.png',
+    confused: '/mascot-confused.png',
+    talking:  '/mascot-talking.png'
+  };
+  function setDoudouEmotion(emotion) {
+    if (currentAgentId !== 'doudou') return;
+    const src = DOUDOU_EMOTIONS[emotion] || DOUDOU_EMOTIONS.default;
+    const welcomeImg = document.getElementById('welcomeMascotImg');
+    if (welcomeImg) welcomeImg.src = src;
+    const topbarAvatar = document.getElementById('topbarAvatar');
+    if (topbarAvatar) { const img = topbarAvatar.querySelector('img'); if (img) img.src = src; }
+    const desktopImg = document.getElementById('desktopMascotImg');
+    if (desktopImg) desktopImg.src = src;
   }
 
   function showTyping() {
