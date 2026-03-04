@@ -1015,6 +1015,30 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       .welcome-wrap { padding: 1.5rem 1rem; }
       .welcome-mascot { width: 70px; height: 70px; }
     }
+    /* Agent 跳转按钮（豆豆分流用） */
+    .agent-link-btn {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.65rem;
+      border-radius: 20px;
+      border: 1.5px solid var(--coral);
+      background: var(--coral-light);
+      color: var(--coral);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      vertical-align: middle;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+    .agent-link-btn:hover {
+      background: var(--coral);
+      color: white;
+    }
+    .agent-link-btn::after {
+      content: ' →';
+      font-size: 0.75rem;
+    }
   </style>
 </head>
 <body>
@@ -1098,6 +1122,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <div class="user-menu-item" onclick="openSettings('invite')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
           邀请好友
+        </div>
+        <div class="user-menu-item" onclick="window.location.href='/team.html'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M19 8v6M22 11h-6"/></svg>
+          团队管理
         </div>
         <div class="user-menu-divider"></div>
         <div class="user-menu-item danger" onclick="doLogout()">
@@ -1290,8 +1318,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <select class="modal-select" id="settingsModel">
           <option value="">使用服务器默认</option>
         </select>
+        <label class="modal-label" style="margin-top:0.75rem">自定义 Base URL <span style="font-size:0.7rem;color:var(--text-3);font-weight:400">（第三方中转，可选）</span></label>
+        <input class="modal-input" id="settingsBaseUrl" type="text" placeholder="例：https://your-proxy.com/v1">
         <div class="modal-actions">
-          <button class="btn-cancel" onclick="closeSettings()">取消</button>
+          <button class="btn-cancel" onclick="closeSettings( )">取消</button>
           <button class="btn-save" onclick="saveSettings()">保存</button>
         </div>
       </div>
@@ -1507,6 +1537,19 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       }
     });
   }
+  function injectAgentLinks(bubble) {
+    // 兜底处理：对未被 marked 扩展渲染的 agent-link 标签做替换
+    bubble.querySelectorAll('agent-link').forEach(el => {
+      const agentId = el.getAttribute('id');
+      const text = el.textContent;
+      const btn = document.createElement('button');
+      btn.className = 'agent-link-btn';
+      btn.textContent = text;
+      btn.onclick = () => startChat(agentId);
+      el.replaceWith(btn);
+    });
+  }
+
 
   if (typeof marked !== 'undefined') {
     marked.use({
@@ -1517,6 +1560,40 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       headerIds: false
     });
   }
+  // 扩展 marked：1) 禁用删除线渲染  2) 解析 <agent-link> 标签为跳转按钮
+  if (typeof marked !== 'undefined') {
+    marked.use({
+      renderer: {
+        // 禁用删除线：~~text~~ 直接输出文本，不加删除线样式
+        del(token) {
+          return token.text;
+        }
+      },
+      extensions: [
+        {
+          name: 'agentLink',
+          level: 'inline',
+          start(src) { return src.indexOf('<agent-link'); },
+          tokenizer(src) {
+            const rule = /^<agent-link\s+id="([^"]+)">([^<]+)<\/agent-link>/;
+            const match = rule.exec(src);
+            if (match) {
+              return {
+                type: 'agentLink',
+                raw: match[0],
+                agentId: match[1],
+                text: match[2]
+              };
+            }
+          },
+          renderer(token) {
+            return `<button class="agent-link-btn" onclick="startChat('${token.agentId}')">${token.text}</button>`;
+          }
+        }
+      ]
+    });
+  }
+
 
   const API_BASE = '';
   let sessionId = null;
@@ -1533,8 +1610,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         { id: 'academic-liaison',    icon: '🎓', name: '学术推广专家',         desc: '首席医学联络官，擅长KOL征服与学术叙事', category: '上游厂商' },
         { id: 'marketing-director',  icon: '✨', name: '市场创意总监',         desc: '整合新媒体、视觉创意、种草运营、科学视觉', category: '上游厂商' },
         { id: 'sales-director',      icon: '⚔️', name: '销售作战总监',         desc: '整合销售总监、大区经理、商务经理的超级销售Agent', category: '上游厂商' },
-        { id: 'operations-director', icon: '⚙️', name: '运营效能总监',         desc: '整合SFE、财务、采购的综合运营Agent', category: '上游厂商' },
         { id: 'training-director',   icon: '📚', name: '培训赋能总监',         desc: 'ASK模型、反差教学、通关护照的培训专家', category: '上游厂商' },
+        { id: 'operations-director', icon: '⚙️', name: '运营效能总监',         desc: '整合SFE、财务、采购的综合运营Agent', category: '上游厂商' },
         { id: 'area-manager',        icon: '🗺️', name: '大区经理',             desc: 'Forecast分级测谎、进销存逻辑闭环、情境模拟辅导', category: '上游厂商' },
         { id: 'channel-manager',     icon: '🤝', name: '商务经理',             desc: 'ROI利润精算、反向背调、窜货雷霆管控、库存博弈', category: '上游厂商' },
         { id: 'finance-bp',          icon: '💰', name: '财务BP',               desc: '税务合规与交易结构优化，货折替代票折保护利润', category: '上游厂商', hidden: true },
@@ -1577,6 +1654,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         { id: 'article-illustrator',    icon: '🖼️', name: '文章配图顾问',         desc: '智能分析文章结构，识别配图位置，生成8种风格的AI绘图提示词', category: '内容创作' },
         { id: 'cover-image-creator',    icon: '🎨', name: '封面图创作顾问',       desc: '8种封面风格，为医美文章和推文生成精美封面图方案和AI绘图提示词', category: '内容创作' },
         { id: 'social-media-creator',   icon: '🌐', name: '社交媒体运营顾问',     desc: '多平台内容策略，小红书/抖音/微博/X差异化内容创作与运营规划', category: '内容创作' },
+        { id: 'personal-ip-builder',    icon: '🚀', name: '个人IP打造指南',         desc: '从IP定位、内容策略、视觉系统到变现路径，帮助创始人和独立顾问构建高价值个人品牌', category: '内容创作' },
+        { id: 'personal-brand-cinematic', icon: '🎬', name: '电影感品牌视觉顾问',   desc: '结合电影摄影技术与个人品牌定位，为医美创始人打造高识别度的视觉形象和拍摄方案', category: '内容创作' },
+        { id: 'super-writer',             icon: '✍️', name: '超级写作助手',         desc: '集选题、写稿、验收、发布于一体的知识类视频内容工厂，内置10个专业写作模块，实现工业化内容生产', category: '内容创作' },
       ]
     },
     {
@@ -1628,7 +1708,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   const CONTENT_AGENTS = new Set([
     'xhs-content-creator','ppt-creator','wechat-content-creator',
     'comic-creator','article-illustrator','cover-image-creator','social-media-creator',
-    'hrbp','procurement-manager'
+    'personal-ip-builder','personal-brand-cinematic',
+    'hrbp','procurement-manager',
+    'super-writer'
   ]);
   // 全部可用Agent（Pro+）
   const PRO_AGENTS = new Set([...TRIAL_AGENTS, ...CONTENT_AGENTS]);
@@ -1729,7 +1811,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.getElementById('desktopGreeting').textContent = greeting;
   }
 
-    async function loadGuidedQuestions(agentId) {
+  async function loadGuidedQuestions(agentId) {
     const container = document.getElementById('guidedQuestions');
     container.innerHTML = ''; // Clear previous questions
     if (!agentId || agentId === 'meiling') return;
@@ -2433,6 +2515,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                   // Count unmatched ` for inline code
                   const backticks = (renderText.match(/`/g) || []).length;
                   if (backticks % 2 !== 0) renderText += '`';
+                  // Count unmatched ~~ for strikethrough (prevent mid-stream del rendering)
+                  const tildes = (renderText.match(/~~/g) || []).length;
+                  if (tildes % 2 !== 0) renderText += '~~';
                   bubble.innerHTML = marked.parse(renderText);
                   wrapTables(bubble);
                 } else {
@@ -2512,6 +2597,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
+      injectAgentLinks(bubble);
     } else {
       bubble.textContent = mainContent;
     }
@@ -2624,6 +2710,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
+      injectAgentLinks(bubble);
     } else {
       // For user messages: render text + optional image thumbnail
       if (fileAttachment && fileAttachment.isImage) {
@@ -2731,22 +2818,27 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   // ===== SETTINGS =====
-  function loadSettings() {
-    return {
-      provider: localStorage.getItem('ma_provider') || '',
-      apiKey: localStorage.getItem('ma_apikey') || '',
-      model: localStorage.getItem('ma_model') || ''
-    };
+  // ===== API CONFIG (server-side synced) =====
+  let _cachedApiConfig = null;
+  async function loadSettings() {
+    if (_cachedApiConfig) return _cachedApiConfig;
+    try {
+      const data = await fetch('/api/user/api-config', { credentials: 'include' }).then(r => r.json());
+      _cachedApiConfig = { provider: data.provider || '', apiKey: data.apiKey || '', model: data.model || '', baseUrl: data.baseUrl || '' };
+    } catch {
+      _cachedApiConfig = { provider: localStorage.getItem('ma_provider') || '', apiKey: localStorage.getItem('ma_apikey') || '', model: localStorage.getItem('ma_model') || '', baseUrl: '' };
+    }
+    return _cachedApiConfig;
   }
-  function openSettings(tab) {
-    const s = loadSettings();
+  async function openSettings(tab) {
+    const s = await loadSettings();
     document.getElementById('settingsProvider').value = s.provider;
     document.getElementById('settingsApiKey').value = s.apiKey;
+    document.getElementById('settingsBaseUrl').value = s.baseUrl || '';
     onProviderChange();
     document.getElementById('settingsModel').value = s.model;
     document.getElementById('settingsModal').classList.add('open');
     if (tab) switchTab(tab);
-    // Close user menu
     document.getElementById('userMenu').classList.remove('open');
   }
   function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
@@ -2756,10 +2848,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.getElementById('tab-' + tab).classList.add('active');
     document.getElementById('pane-' + tab).classList.add('active');
   }
-  function saveSettings() {
-    localStorage.setItem('ma_provider', document.getElementById('settingsProvider').value);
-    localStorage.setItem('ma_apikey', document.getElementById('settingsApiKey').value.trim());
-    localStorage.setItem('ma_model', document.getElementById('settingsModel').value);
+  async function saveSettings() {
+    const provider = document.getElementById('settingsProvider').value;
+    const apiKey = document.getElementById('settingsApiKey').value.trim();
+    const model = document.getElementById('settingsModel').value;
+    const baseUrl = document.getElementById('settingsBaseUrl').value.trim();
+    _cachedApiConfig = { provider, apiKey, model, baseUrl };
+    try {
+      await fetch('/api/user/api-config', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider, apiKey, model, baseUrl }) });
+    } catch {}
+    localStorage.setItem('ma_provider', provider);
+    localStorage.setItem('ma_apikey', apiKey);
+    localStorage.setItem('ma_model', model);
     updateModelLabel();
     closeSettings();
   }
@@ -2776,8 +2876,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
   }
   function updateModelLabel() {
-    const m = localStorage.getItem('ma_model');
-    const p = localStorage.getItem('ma_provider');
+    const m = (_cachedApiConfig && _cachedApiConfig.model) || localStorage.getItem('ma_model');
+    const p = (_cachedApiConfig && _cachedApiConfig.provider) || localStorage.getItem('ma_provider');
     const label = m ? m.split('/').pop() : (p ? p : '默认模型');
     document.getElementById('modelLabel').textContent = label;
   }

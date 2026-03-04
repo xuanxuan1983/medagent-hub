@@ -183,7 +183,7 @@
     /* ── 摘要统计 ── */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 0.75rem;
       margin-bottom: 1.5rem;
     }
@@ -843,7 +843,7 @@ let _briefData = null;
 
 // ── 摘要数据（fallback，由 Manus 定时任务写入 /api/daily-brief 接口） ──
 const BRIEF_DATA = {
-  date: "2026年3月2日",
+  date: "2026年3月4日",
   sources: ["21世纪经济报道", "医美部落", "每日经济新闻", "东方财富", "万联证券"],
   priorities: [
     { level: "high", event: "干细胞监管新规（5月1日实施）", action: "更新平台合规知识库，提醒机构客户及时下架违规项目" },
@@ -897,8 +897,12 @@ function renderBrief(data) {
 
   const sectionCounts = data.sections.map(s => s.news.length);
   const totalNews = sectionCounts.reduce((a, b) => a + b, 0);
-  const sectionIcons = ['⚖️', '📈', '💊', '🤖', '🌏'];
-  const sectionLabels = ['政策监管', '市场趋势', '产品动态', 'AI赋能', '国际市场'];
+  // 动态从 API 数据中读取，支持任意数量的板块
+  const sectionIcons = data.sections.map(s => s.icon || '📰');
+  const sectionLabels = data.sections.map(s => {
+    const t = s.title || '';
+    return t.replace(/动态$|趋势$|洞察$/, '').replace(/与.*/, '').trim().substring(0, 6);
+  });
 
   main.innerHTML = `
     <div class="hero">
@@ -1138,6 +1142,10 @@ init();
         <input class="invite-input" id="invitePhone" type="tel" placeholder="方便我们联系您" maxlength="11" />
       </div>
       <div class="invite-field">
+        <label class="invite-label">微信号（选填，方便直接发送邀请码）</label>
+        <input class="invite-input" id="inviteWechat" type="text" placeholder="例如：wxid_xxxxxx" maxlength="50" />
+      </div>
+      <div class="invite-field">
         <label class="invite-label">一句话介绍您的需求（选填）</label>
         <input class="invite-input" id="inviteNote" type="text" placeholder="例如：希望用 AI 提升门店私域运营效率" maxlength="100" />
       </div>
@@ -1178,6 +1186,7 @@ async function submitInviteRequest() {
   const org = document.getElementById('inviteOrg').value.trim();
   const phone = document.getElementById('invitePhone').value.trim();
   const note = document.getElementById('inviteNote').value.trim();
+  const wechat = document.getElementById('inviteWechat').value.trim();
 
   if (!name) { alert('请填写您的姓名'); document.getElementById('inviteName').focus(); return; }
   if (!org)  { alert('请填写所在机构'); document.getElementById('inviteOrg').focus(); return; }
@@ -1191,7 +1200,7 @@ async function submitInviteRequest() {
     const resp = await fetch('/api/invite-request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, org, phone, note, source: 'daily-brief' })
+      body: JSON.stringify({ name, org, phone, wechat, note, source: 'daily-brief' })
     });
     const result = await resp.json();
     if (resp.ok && result.ok) {

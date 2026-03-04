@@ -115,6 +115,10 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       用户反馈
     </div>
+    <div class="nav-item" onclick="showPage('invites')" id="nav-invites">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8l10 7 10-7"/></svg>
+      内测申请
+    </div>
     <div class="nav-item" onclick="showPage('tokens')" id="nav-tokens">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Token 统计
@@ -218,6 +222,24 @@
         <table id="feedbackTable">
           <thead><tr><th>时间</th><th>用户</th><th>类型</th><th>内容</th><th>联系方式</th></tr></thead>
           <tbody id="feedbackBody"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Invite Requests -->
+    <div class="page" id="page-invites">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8l10 7 10-7"/></svg>
+        内测申请管理
+      </div>
+      <div class="section-actions">
+        <span id="inviteCount" style="font-size:0.85rem;color:#888"></span>
+        <button class="btn btn-ghost btn-sm" onclick="loadInviteRequests()">刷新</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table id="inviteTable">
+          <thead><tr><th>申请时间</th><th>姓名</th><th>机构</th><th>手机号</th><th>微信号</th><th>需求说明</th><th>邀请码</th><th>操作</th></tr></thead>
+          <tbody id="inviteBody"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -328,6 +350,7 @@ function showPage(name) {
   else if (name === 'users') loadUsers();
   else if (name === 'codes') loadCodes();
   else if (name === 'feedback') loadFeedback();
+  else if (name === 'invites') loadInviteRequests();
   else if (name === 'tokens') loadTokenStats();
   else if (name === 'channel') loadChannels();
   else if (name === 'referral') loadReferral();
@@ -531,6 +554,77 @@ async function loadFeedback() {
       <td style="font-size:0.8rem">${f.contact || '—'}</td>
     </tr>
   `).join('');
+}
+
+// ===== Invite Requests =====
+async function loadInviteRequests() {
+  const data = await api('/api/admin/invite-requests');
+  if (!data) return;
+  const list = data.requests || [];
+  const tbody = document.getElementById('inviteBody');
+  const countEl = document.getElementById('inviteCount');
+  if (countEl) countEl.textContent = `共 ${data.total || list.length} 条申请`;
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无申请</td></tr>'; return; }
+  tbody.innerHTML = list.map(r => `
+    <tr>
+      <td style="font-size:0.75rem;color:#aaa;white-space:nowrap">${r.ts ? new Date(r.ts).toLocaleString('zh-CN') : '—'}</td>
+      <td><strong>${r.name || '—'}</strong></td>
+      <td>${r.org || '—'}</td>
+      <td>
+        <span style="font-family:monospace">${r.phone || '—'}</span>
+        <button class="btn btn-ghost btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:0.3rem" onclick="copyText('${r.phone || ''}')">复制</button>
+      </td>
+      <td>
+        ${r.wechat
+          ? `<span style="font-family:monospace">${r.wechat}</span>
+             <button class="btn btn-ghost btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:0.3rem" onclick="copyText('${r.wechat}')">复制</button>`
+          : '<span style="color:#ccc;font-size:0.75rem">未填写</span>'
+        }
+      </td>
+      <td style="max-width:200px;font-size:0.8rem;color:#666">${r.note || '<span style="color:#ccc">未填写</span>'}</td>
+      <td>
+        ${r.inviteCode
+          ? `<span class="code-chip" style="font-size:0.8rem;cursor:pointer" onclick="copyText('${r.inviteCode}')" title="点击复制">${r.inviteCode}</span>`
+          : '<span style="color:#ccc;font-size:0.75rem">未生成</span>'
+        }
+      </td>
+      <td>
+        ${r.status === 'done'
+          ? `<button class="btn btn-ghost btn-sm" style="font-size:0.7rem" onclick="copyInviteCode('${r.inviteCode || ''}','${r.phone || ''}')">📋 复制发送</button>`
+          : r.status === 'rejected'
+          ? '<span style="color:#aaa;font-size:0.75rem">已拒绝</span>'
+          : `<button class="btn btn-success btn-sm" style="font-size:0.75rem" onclick="approveInvite('${r.id || r.ts}','${r.name || ''}','${r.phone || ''}','${r.wechat || ''}')">✅ 通过并发码</button>
+             <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;color:#dc3545;margin-left:0.2rem" onclick="rejectInvite('${r.id || r.ts}')">✗ 拒绝</button>`
+        }
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ===== Invite Approve / Reject =====
+async function approveInvite(id, name, phone, wechat) {
+  const res = await api('/api/admin/invite-approve', 'POST', { id, name });
+  if (res && res.inviteCode) {
+    const wechatHint = wechat ? `\n微信号：${wechat}` : '';
+    const msg = `已为 ${name} 生成邀请码\n\n邀请码：${res.inviteCode}\n手机号：${phone}${wechatHint}\n\n已自动复制到剪贴板，可直接发送给用户`;
+    try { await navigator.clipboard.writeText(`您好！您申请的 MedAgent Hub 内测邀请码为：${res.inviteCode}\n请登录 medagent.filldmy.com 使用，欢迎加入！`); } catch(e) {}
+    showToast('✅ ' + msg);
+    setTimeout(() => loadInviteRequests(), 800);
+  } else {
+    showToast('❌ 操作失败，请重试');
+  }
+}
+
+async function rejectInvite(id) {
+  if (!confirm('确认拒绝该申请？')) return;
+  const res = await api('/api/admin/invite-reject', 'POST', { id });
+  if (res && !res.error) { showToast('已拒绝'); loadInviteRequests(); }
+  else showToast('❌ 操作失败');
+}
+
+function copyInviteCode(code, phone) {
+  const text = `您好！您申请的 MedAgent Hub 内测邀请码为：${code}\n请登录 medagent.filldmy.com 使用，欢迎加入！`;
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制发送文案，可直接发给用户')).catch(() => showToast('复制失败，请手动复制：' + code));
 }
 
 // ===== Token Stats =====

@@ -19,6 +19,9 @@ module.exports = {
         SILICONFLOW_API_KEY: 'sk-ofsefwdlyhehonvqdeyupmctskzurehbfasdiflhapyvguem',
         SILICONFLOW_MODEL: 'deepseek-ai/DeepSeek-V3',
 
+        // ✅ 日报自动生成：Serper 搜索 API（每月免费2500次）
+        SERPER_API_KEY: 'b8476a179ea83fac1b572dffee9a0e3b7a877ef9',
+
         // ✅ Notion 知识库（如服务器无法访问 notion.so，留空即可，不影响对话）
         NOTION_API_KEY: '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',
         NOTION_DATABASE_IDS: '26b8295e0f328142ad3df8349adb7fae,26b8295e0f32815f9a5edac728b16d16,cae52537069f42a1a281bd4c649efc98,ec5f5b1b1d5b42e98cdfc2a18f84d06f,f7f7dd1c309b4c66a144229e64ce60e1',
