@@ -238,8 +238,8 @@
       </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table id="inviteTable">
-          <thead><tr><th>申请时间</th><th>姓名</th><th>机构</th><th>手机号</th><th>需求说明</th><th>邀请码</th><th>操作</th></tr></thead>
-          <tbody id="inviteBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+          <thead><tr><th>申请时间</th><th>姓名</th><th>机构</th><th>手机号</th><th>微信号</th><th>需求说明</th><th>邀请码</th><th>操作</th></tr></thead>
+          <tbody id="inviteBody"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -564,7 +564,7 @@ async function loadInviteRequests() {
   const tbody = document.getElementById('inviteBody');
   const countEl = document.getElementById('inviteCount');
   if (countEl) countEl.textContent = `共 ${data.total || list.length} 条申请`;
-  if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无申请</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无申请</td></tr>'; return; }
   tbody.innerHTML = list.map(r => `
     <tr>
       <td style="font-size:0.75rem;color:#aaa;white-space:nowrap">${r.ts ? new Date(r.ts).toLocaleString('zh-CN') : '—'}</td>
@@ -573,6 +573,13 @@ async function loadInviteRequests() {
       <td>
         <span style="font-family:monospace">${r.phone || '—'}</span>
         <button class="btn btn-ghost btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:0.3rem" onclick="copyText('${r.phone || ''}')">复制</button>
+      </td>
+      <td>
+        ${r.wechat
+          ? `<span style="font-family:monospace">${r.wechat}</span>
+             <button class="btn btn-ghost btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:0.3rem" onclick="copyText('${r.wechat}')">复制</button>`
+          : '<span style="color:#ccc;font-size:0.75rem">未填写</span>'
+        }
       </td>
       <td style="max-width:200px;font-size:0.8rem;color:#666">${r.note || '<span style="color:#ccc">未填写</span>'}</td>
       <td>
@@ -586,7 +593,7 @@ async function loadInviteRequests() {
           ? `<button class="btn btn-ghost btn-sm" style="font-size:0.7rem" onclick="copyInviteCode('${r.inviteCode || ''}','${r.phone || ''}')">📋 复制发送</button>`
           : r.status === 'rejected'
           ? '<span style="color:#aaa;font-size:0.75rem">已拒绝</span>'
-          : `<button class="btn btn-success btn-sm" style="font-size:0.75rem" onclick="approveInvite('${r.id || r.ts}','${r.name || ''}','${r.phone || ''}')">✅ 通过并发码</button>
+          : `<button class="btn btn-success btn-sm" style="font-size:0.75rem" onclick="approveInvite('${r.id || r.ts}','${r.name || ''}','${r.phone || ''}','${r.wechat || ''}')">✅ 通过并发码</button>
              <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;color:#dc3545;margin-left:0.2rem" onclick="rejectInvite('${r.id || r.ts}')">✗ 拒绝</button>`
         }
       </td>
@@ -595,10 +602,11 @@ async function loadInviteRequests() {
 }
 
 // ===== Invite Approve / Reject =====
-async function approveInvite(id, name, phone) {
+async function approveInvite(id, name, phone, wechat) {
   const res = await api('/api/admin/invite-approve', 'POST', { id, name });
   if (res && res.inviteCode) {
-    const msg = `已为 ${name} 生成邀请码\n\n邀请码：${res.inviteCode}\n手机号：${phone}\n\n已自动复制到剪贴板，可直接发送给用户`;
+    const wechatHint = wechat ? `\n微信号：${wechat}` : '';
+    const msg = `已为 ${name} 生成邀请码\n\n邀请码：${res.inviteCode}\n手机号：${phone}${wechatHint}\n\n已自动复制到剪贴板，可直接发送给用户`;
     try { await navigator.clipboard.writeText(`您好！您申请的 MedAgent Hub 内测邀请码为：${res.inviteCode}\n请登录 medagent.filldmy.com 使用，欢迎加入！`); } catch(e) {}
     showToast('✅ ' + msg);
     setTimeout(() => loadInviteRequests(), 800);
