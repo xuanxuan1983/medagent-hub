@@ -183,7 +183,7 @@
     /* ── 摘要统计 ── */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 0.75rem;
       margin-bottom: 1.5rem;
     }
@@ -897,8 +897,13 @@ function renderBrief(data) {
 
   const sectionCounts = data.sections.map(s => s.news.length);
   const totalNews = sectionCounts.reduce((a, b) => a + b, 0);
-  const sectionIcons = ['⚖️', '📈', '💊', '🤖', '🌏'];
-  const sectionLabels = ['政策监管', '市场趋势', '产品动态', 'AI赋能', '国际市场'];
+  // 动态从 API 数据中读取，支持任意数量的板块
+  const sectionIcons = data.sections.map(s => s.icon || '📰');
+  const sectionLabels = data.sections.map(s => {
+    const t = s.title || '';
+    // 取标题前两个词，最多6个字
+    return t.replace(/动态$|趋势$|洞察$/, '').replace(/与.*/, '').trim().substring(0, 6);
+  });
 
   main.innerHTML = `
     <div class="hero">
