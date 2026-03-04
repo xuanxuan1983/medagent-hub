@@ -4057,7 +4057,15 @@ const server = http.createServer(async (req, res) => {
       // 先 stash 本地修改，避免冲突
       try { execSync('git stash', { cwd: appDir, timeout: 10000 }); } catch(se) { /* ignore */ }
       const pullOut = execSync('git pull origin master', { cwd: appDir, timeout: 30000 }).toString();
-      const restartOut = execSync('pm2 restart 0 || pm2 restart api-server || pm2 reload all', { timeout: 15000 }).toString();
+      // 尝试多种方式重启 pm2
+      let restartOut = '';
+      const pm2Candidates = ['/usr/local/bin/pm2', '/usr/bin/pm2', `${process.env.HOME || '/root'}/.npm-global/bin/pm2`, `${process.env.HOME || '/root'}/.nvm/versions/node/v18.20.7/bin/pm2`];
+      let pm2Bin = 'pm2';
+      for (const p of pm2Candidates) { try { if (require('fs').existsSync(p)) { pm2Bin = p; break; } } catch(e) {} }
+      try { restartOut = execSync(`${pm2Bin} restart 0`, { timeout: 15000 }).toString(); }
+      catch(e1) { try { restartOut = execSync(`${pm2Bin} restart api-server`, { timeout: 15000 }).toString(); }
+      catch(e2) { try { restartOut = execSync(`${pm2Bin} reload all`, { timeout: 15000 }).toString(); }
+      catch(e3) { restartOut = 'pm2重启跳过: ' + e3.message; } } }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, pull: pullOut, restart: restartOut }));
     } catch (e) {
