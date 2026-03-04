@@ -3959,6 +3959,22 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 强制重置接口：丢弃本地修改并拉取最新代码
+  if (url.pathname === '/api/admin/git-force-reset' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const appDir = __dirname;
+      const stashOut = execSync('git stash', { cwd: appDir, timeout: 10000 }).toString();
+      const pullOut = execSync('git pull origin master', { cwd: appDir, timeout: 30000 }).toString();
+      const restartOut = execSync('pm2 restart api-server', { timeout: 15000 }).toString();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, stash: stashOut, pull: pullOut, restart: restartOut }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: e.message }));
+    }
+    return;
+  }
   // 远程部署接口：git pull + pm2 restart
   if (url.pathname === '/api/admin/deploy' && req.method === 'POST') {
     if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
