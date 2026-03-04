@@ -4040,7 +4040,7 @@ const server = http.createServer(async (req, res) => {
       const appDir = __dirname;
       const stashOut = execSync('git stash', { cwd: appDir, timeout: 10000 }).toString();
       const pullOut = execSync('git pull origin master', { cwd: appDir, timeout: 30000 }).toString();
-      const restartOut = execSync('pm2 restart api-server', { timeout: 15000 }).toString();
+      const restartOut = execSync('pm2 restart 0 || pm2 restart api-server || pm2 reload all', { timeout: 15000 }).toString();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, stash: stashOut, pull: pullOut, restart: restartOut }));
     } catch (e) {
@@ -4057,7 +4057,7 @@ const server = http.createServer(async (req, res) => {
       // 先 stash 本地修改，避免冲突
       try { execSync('git stash', { cwd: appDir, timeout: 10000 }); } catch(se) { /* ignore */ }
       const pullOut = execSync('git pull origin master', { cwd: appDir, timeout: 30000 }).toString();
-      const restartOut = execSync('pm2 restart api-server', { timeout: 15000 }).toString();
+      const restartOut = execSync('pm2 restart 0 || pm2 restart api-server || pm2 reload all', { timeout: 15000 }).toString();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, pull: pullOut, restart: restartOut }));
     } catch (e) {
