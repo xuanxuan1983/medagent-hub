@@ -3259,6 +3259,80 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Admin: approve invite request (generate code and mark as done)
+  if (url.pathname === '/api/admin/invite-approve' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const { id, name } = await parseRequestBody(req);
+      // Generate a unique invite code
+      const inviteCode = 'MA' + Math.random().toString(36).slice(2, 6).toUpperCase() + Date.now().toString(36).slice(-3).toUpperCase();
+      // Register the code in the system (single-use)
+      const codes = loadCodes();
+      codes[inviteCode] = (name || '\u65e5\u62a5\u7533\u8bf7\u7528\u6237').trim();
+      saveCodes(codes);
+      const usageLimits = loadUsageLimits();
+      usageLimits[inviteCode] = 1;
+      saveUsageLimits(usageLimits);
+      // Update the invite request record
+      const inviteFile = path.join(DATA_DIR, 'invite-requests.jsonl');
+      try {
+        const lines = fs.readFileSync(inviteFile, 'utf8').trim().split('\n').filter(Boolean);
+        const updated = lines.map(l => {
+          try {
+            const r = JSON.parse(l);
+            if (String(r.id || r.ts) === String(id)) {
+              return JSON.stringify({ ...r, status: 'done', inviteCode, approvedAt: Date.now() });
+            }
+            return l;
+          } catch(e) { return l; }
+        });
+        fs.writeFileSync(inviteFile, updated.join('\n') + '\n');
+      } catch(e) {}
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, inviteCode }));
+    } catch(error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: reject invite request
+  if (url.pathname === '/api/admin/invite-reject' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const { id } = await parseRequestBody(req);
+      const inviteFile = path.join(DATA_DIR, 'invite-requests.jsonl');
+      try {
+        const lines = fs.readFileSync(inviteFile, 'utf8').trim().split('\n').filter(Boolean);
+        const updated = lines.map(l => {
+          try {
+            const r = JSON.parse(l);
+            if (String(r.id || r.ts) === String(id)) {
+              return JSON.stringify({ ...r, status: 'rejected', rejectedAt: Date.now() });
+            }
+            return l;
+          } catch(e) { return l; }
+        });
+        fs.writeFileSync(inviteFile, updated.join('\n') + '\n');
+      } catch(e) {}
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true }));
+    } catch(error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
   // Admin: create invite code
   if (url.pathname === '/api/admin/codes' && req.method === 'POST') {
     if (!isAdmin(req)) {

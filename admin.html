@@ -238,7 +238,7 @@
       </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table id="inviteTable">
-          <thead><tr><th>申请时间</th><th>姓名</th><th>机构</th><th>手机号</th><th>需求说明</th><th>状态</th></tr></thead>
+          <thead><tr><th>申请时间</th><th>姓名</th><th>机构</th><th>手机号</th><th>需求说明</th><th>邀请码</th><th>操作</th></tr></thead>
           <tbody id="inviteBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
         </table>
       </div>
@@ -575,9 +575,48 @@ async function loadInviteRequests() {
         <button class="btn btn-ghost btn-sm" style="padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:0.3rem" onclick="copyText('${r.phone || ''}')">复制</button>
       </td>
       <td style="max-width:200px;font-size:0.8rem;color:#666">${r.note || '<span style="color:#ccc">未填写</span>'}</td>
-      <td><span class="tag" style="background:${r.status==='done'?'#d4edda':r.status==='rejected'?'#f8d7da':'#fff3cd'};color:${r.status==='done'?'#155724':r.status==='rejected'?'#721c24':'#856404'}">${r.status==='done'?'已发码':r.status==='rejected'?'已拒绝':'待处理'}</span></td>
+      <td>
+        ${r.inviteCode
+          ? `<span class="code-chip" style="font-size:0.8rem;cursor:pointer" onclick="copyText('${r.inviteCode}')" title="点击复制">${r.inviteCode}</span>`
+          : '<span style="color:#ccc;font-size:0.75rem">未生成</span>'
+        }
+      </td>
+      <td>
+        ${r.status === 'done'
+          ? `<button class="btn btn-ghost btn-sm" style="font-size:0.7rem" onclick="copyInviteCode('${r.inviteCode || ''}','${r.phone || ''}')">📋 复制发送</button>`
+          : r.status === 'rejected'
+          ? '<span style="color:#aaa;font-size:0.75rem">已拒绝</span>'
+          : `<button class="btn btn-success btn-sm" style="font-size:0.75rem" onclick="approveInvite('${r.id || r.ts}','${r.name || ''}','${r.phone || ''}')">✅ 通过并发码</button>
+             <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;color:#dc3545;margin-left:0.2rem" onclick="rejectInvite('${r.id || r.ts}')">✗ 拒绝</button>`
+        }
+      </td>
     </tr>
   `).join('');
+}
+
+// ===== Invite Approve / Reject =====
+async function approveInvite(id, name, phone) {
+  const res = await api('/api/admin/invite-approve', 'POST', { id, name });
+  if (res && res.inviteCode) {
+    const msg = `已为 ${name} 生成邀请码\n\n邀请码：${res.inviteCode}\n手机号：${phone}\n\n已自动复制到剪贴板，可直接发送给用户`;
+    try { await navigator.clipboard.writeText(`您好！您申请的 MedAgent Hub 内测邀请码为：${res.inviteCode}\n请登录 medagent.filldmy.com 使用，欢迎加入！`); } catch(e) {}
+    showToast('✅ ' + msg);
+    setTimeout(() => loadInviteRequests(), 800);
+  } else {
+    showToast('❌ 操作失败，请重试');
+  }
+}
+
+async function rejectInvite(id) {
+  if (!confirm('确认拒绝该申请？')) return;
+  const res = await api('/api/admin/invite-reject', 'POST', { id });
+  if (res && !res.error) { showToast('已拒绝'); loadInviteRequests(); }
+  else showToast('❌ 操作失败');
+}
+
+function copyInviteCode(code, phone) {
+  const text = `您好！您申请的 MedAgent Hub 内测邀请码为：${code}\n请登录 medagent.filldmy.com 使用，欢迎加入！`;
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制发送文案，可直接发给用户')).catch(() => showToast('复制失败，请手动复制：' + code));
 }
 
 // ===== Token Stats =====
