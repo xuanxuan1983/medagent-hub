@@ -4043,17 +4043,22 @@ const server = http.createServer(async (req, res) => {
       const pullOut = execSync('git pull origin master', { cwd: appDir, timeout: 30000 }).toString();
       // 尝试多种方式重启 pm2
       let restartOut = 'pm2重启跳过';
+      // 先获取 pm2 进程列表
+      let pm2List = '';
       const pm2Paths = ['/usr/local/bin/pm2', '/usr/bin/pm2', '/root/.npm-global/bin/pm2', '/root/.nvm/versions/node/v18.20.7/bin/pm2', '/root/.nvm/versions/node/v20.0.0/bin/pm2'];
       for (const p of pm2Paths) {
         try {
           if (require('fs').existsSync(p)) {
-            restartOut = execSync(`${p} restart 0`, { timeout: 15000 }).toString();
-            break;
+            try { pm2List = execSync(`${p} list --no-color`, { timeout: 10000 }).toString(); } catch(le) {}
+            // 尝试重启所有进程
+            try { restartOut = execSync(`${p} restart all`, { timeout: 15000 }).toString(); break; }
+            catch(e1) { try { restartOut = execSync(`${p} reload all`, { timeout: 15000 }).toString(); break; }
+            catch(e2) { restartOut = `${p} 失败: ` + e2.message; } }
           }
         } catch(e) { restartOut = `${p} 失败: ` + e.message; }
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, pull: pullOut, restart: restartOut }));
+      res.end(JSON.stringify({ success: true, pull: pullOut, restart: restartOut, pm2List }));
     } catch (e) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: e.message }));
