@@ -4050,10 +4050,11 @@ const server = http.createServer(async (req, res) => {
         try {
           if (require('fs').existsSync(p)) {
             try { pm2List = execSync(`${p} list --no-color`, { timeout: 10000 }).toString(); } catch(le) {}
-            // 尝试重启所有进程
-            try { restartOut = execSync(`${p} restart all`, { timeout: 15000 }).toString(); break; }
-            catch(e1) { try { restartOut = execSync(`${p} reload all`, { timeout: 15000 }).toString(); break; }
-            catch(e2) { restartOut = `${p} 失败: ` + e2.message; } }
+            // 尝试重启进程（按名称或ID）
+            try { restartOut = execSync(`${p} restart api-server`, { timeout: 15000 }).toString(); break; }
+            catch(e1) { try { restartOut = execSync(`${p} restart 0`, { timeout: 15000 }).toString(); break; }
+            catch(e2) { try { restartOut = execSync(`${p} reload api-server`, { timeout: 15000 }).toString(); break; }
+            catch(e3) { restartOut = `${p} 失败: ` + e3.message; } } }
           }
         } catch(e) { restartOut = `${p} 失败: ` + e.message; }
       }
