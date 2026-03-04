@@ -843,7 +843,7 @@ let _briefData = null;
 
 // ── 摘要数据（fallback，由 Manus 定时任务写入 /api/daily-brief 接口） ──
 const BRIEF_DATA = {
-  date: "2026年3月2日",
+  date: "2026年3月4日",
   sources: ["21世纪经济报道", "医美部落", "每日经济新闻", "东方财富", "万联证券"],
   priorities: [
     { level: "high", event: "干细胞监管新规（5月1日实施）", action: "更新平台合规知识库，提醒机构客户及时下架违规项目" },
@@ -901,7 +901,6 @@ function renderBrief(data) {
   const sectionIcons = data.sections.map(s => s.icon || '📰');
   const sectionLabels = data.sections.map(s => {
     const t = s.title || '';
-    // 取标题前两个词，最多6个字
     return t.replace(/动态$|趋势$|洞察$/, '').replace(/与.*/, '').trim().substring(0, 6);
   });
 
