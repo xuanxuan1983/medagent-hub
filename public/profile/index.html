@@ -10,19 +10,18 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
     :root {
-      --text: #191919;
-      --text-2: #5a5a5a;
-      --text-3: #767676;
-      --bg: #FFFFFF;
-      --bg-warm: #FAF8F5;
-      --bg-sidebar: #F5F3EF;
-      --border: #E8E5E0;
-      --border-light: #F0EDEA;
-      --coral: #E8715A;
+      --text:        #191919;
+      --text-2:      #5a5a5a;
+      --text-3:      #888888;
+      --bg:          #FFFFFF;
+      --bg-warm:     #FAF8F5;
+      --bg-section:  #F5F3EF;
+      --border:      #E8E5E0;
+      --border-light:#F0EDEA;
+      --coral:       #E8715A;
+      --coral-hover: #d45f48;
       --coral-light: #FFF0EC;
-      --coral-dark: #C85A44;
-      --gold: #B8860B;
-      --gold-light: #FFF8E7;
+      --coral-mid:   #FDDDD7;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,108 +34,129 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── HERO ── */
-    .hero {
-      background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      padding: 48px 24px 40px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
+    /* ── TOP NAV BAR ── */
+    .topbar {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-light);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -60px; right: -60px;
-      width: 240px; height: 240px;
-      background: radial-gradient(circle, rgba(232,113,90,0.25) 0%, transparent 70%);
-      border-radius: 50%;
+    .topbar-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--coral);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .hero::after {
-      content: '';
-      position: absolute;
-      bottom: -40px; left: -40px;
-      width: 180px; height: 180px;
-      background: radial-gradient(circle, rgba(232,113,90,0.15) 0%, transparent 70%);
-      border-radius: 50%;
+    .topbar-logo i { color: #fff; font-size: 13px; }
+    .topbar-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.3px;
+    }
+    .topbar-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-left: auto;
     }
 
+    /* ── HERO ── */
+    .hero {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-light);
+      padding: 36px 24px 32px;
+      text-align: center;
+    }
     .avatar-wrap {
       position: relative;
       display: inline-block;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
     .avatar {
-      width: 100px;
-      height: 100px;
+      width: 88px;
+      height: 88px;
       border-radius: 50%;
       object-fit: cover;
       object-position: center top;
-      border: 3px solid rgba(232,113,90,0.6);
-      box-shadow: 0 0 0 6px rgba(232,113,90,0.12), 0 8px 32px rgba(0,0,0,0.4);
-      position: relative;
-      z-index: 1;
+      border: 2px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
     }
-    .avatar-ring {
+    .avatar-badge {
       position: absolute;
-      inset: -8px;
+      bottom: 2px;
+      right: 2px;
+      width: 22px;
+      height: 22px;
+      background: var(--coral);
       border-radius: 50%;
-      border: 1px solid rgba(232,113,90,0.3);
-      animation: pulse-ring 3s ease-in-out infinite;
+      border: 2px solid var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    @keyframes pulse-ring {
-      0%, 100% { transform: scale(1); opacity: 0.5; }
-      50% { transform: scale(1.08); opacity: 0.2; }
-    }
+    .avatar-badge i { color: #fff; font-size: 9px; }
 
-    .hero-greeting {
-      font-size: 13px;
-      color: rgba(255,255,255,0.55);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
     .hero-name {
       font-family: 'Noto Serif SC', serif;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
-      color: #fff;
-      letter-spacing: 2px;
-      margin-bottom: 10px;
+      color: var(--text);
+      letter-spacing: 3px;
+      margin-bottom: 8px;
     }
-    .hero-title {
-      font-size: 13px;
-      color: var(--coral);
-      font-weight: 500;
-      letter-spacing: 0.5px;
+    .hero-title-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--coral-light);
+      border: 1px solid var(--coral-mid);
+      border-radius: 20px;
+      padding: 4px 14px;
       margin-bottom: 16px;
-      line-height: 1.6;
+    }
+    .hero-title-line i { color: var(--coral); font-size: 11px; }
+    .hero-title-line span {
+      font-size: 12px;
+      color: var(--coral);
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
     .hero-tagline {
-      font-size: 14px;
-      color: rgba(255,255,255,0.7);
-      max-width: 300px;
-      margin: 0 auto 24px;
-      line-height: 1.8;
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.9;
+      margin-bottom: 20px;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .hero-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
       justify-content: center;
     }
     .tag {
-      background: rgba(232,113,90,0.15);
-      border: 1px solid rgba(232,113,90,0.3);
-      color: rgba(255,255,255,0.85);
+      background: var(--bg-section);
+      border: 1px solid var(--border);
+      color: var(--text-2);
       font-size: 11px;
       padding: 4px 12px;
       border-radius: 20px;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
 
-    /* ── MAIN CONTENT ── */
+    /* ── MAIN ── */
     .main {
-      padding: 0 16px 40px;
+      padding: 20px 16px 48px;
       max-width: 480px;
       margin: 0 auto;
     }
@@ -144,113 +164,102 @@
     /* ── INTRO CARD ── */
     .intro-card {
       background: var(--bg);
-      border-radius: 16px;
-      padding: 24px;
-      margin: -20px 0 16px;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
       border: 1px solid var(--border-light);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-      position: relative;
-      z-index: 2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
-    .intro-label {
-      font-size: 11px;
-      color: var(--coral);
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
+    .intro-quote {
+      border-left: 3px solid var(--coral);
+      padding-left: 14px;
+      margin-bottom: 14px;
     }
-    .intro-text {
+    .intro-quote-text {
+      font-family: 'Noto Serif SC', serif;
       font-size: 14px;
+      color: var(--text);
+      line-height: 1.9;
+      font-weight: 600;
+    }
+    .intro-body {
+      font-size: 13px;
       color: var(--text-2);
       line-height: 1.9;
     }
-    .intro-text strong {
-      color: var(--text);
-      font-weight: 600;
-    }
+    .intro-body strong { color: var(--text); font-weight: 600; }
 
-    /* ── SECTION ── */
-    .section {
-      margin-bottom: 16px;
-    }
-    .section-title {
-      font-family: 'Noto Serif SC', serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 12px;
+    /* ── SECTION HEADER ── */
+    .sec-header {
       display: flex;
       align-items: center;
       gap: 8px;
+      margin-bottom: 12px;
+      margin-top: 4px;
     }
-    .section-title i {
-      color: var(--coral);
-      font-size: 14px;
-      width: 20px;
-      text-align: center;
-    }
-
-    /* ── CREDENTIAL CARDS ── */
-    .cred-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .cred-card {
-      background: var(--bg);
-      border-radius: 12px;
-      padding: 16px;
-      border: 1px solid var(--border-light);
-      display: flex;
-      gap: 14px;
-      align-items: flex-start;
-    }
-    .cred-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+    .sec-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       background: var(--coral-light);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
-    .cred-icon i {
-      color: var(--coral);
+    .sec-icon i { color: var(--coral); font-size: 12px; }
+    .sec-title {
+      font-family: 'Noto Serif SC', serif;
       font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
     }
-    .cred-title {
+
+    /* ── CREDENTIAL CARDS ── */
+    .card-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+    .card-title {
       font-size: 13px;
       font-weight: 600;
       color: var(--text);
-      margin-bottom: 4px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .cred-desc {
+    .card-title i { color: var(--coral); font-size: 12px; }
+    .card-desc {
       font-size: 12px;
       color: var(--text-3);
-      line-height: 1.7;
+      line-height: 1.8;
     }
 
     /* ── SERVICE CARDS ── */
-    .service-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
     .service-card {
       background: var(--bg);
       border-radius: 12px;
       padding: 16px;
       border: 1px solid var(--border-light);
       border-left: 3px solid var(--coral);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
     }
     .service-if {
       font-size: 11px;
       color: var(--coral);
       font-weight: 600;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
+      letter-spacing: 0.3px;
     }
     .service-title {
       font-size: 13px;
@@ -261,27 +270,22 @@
     .service-desc {
       font-size: 12px;
       color: var(--text-3);
-      line-height: 1.7;
+      line-height: 1.8;
     }
 
     /* ── PRODUCT CARDS ── */
-    .product-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
     .product-card {
       background: var(--bg);
       border-radius: 12px;
       padding: 16px;
       border: 1px solid var(--border-light);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
     }
     .product-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .product-name {
       font-size: 13px;
@@ -291,10 +295,7 @@
       align-items: center;
       gap: 6px;
     }
-    .product-name i {
-      color: var(--coral);
-      font-size: 12px;
-    }
+    .product-name i { color: var(--coral); font-size: 12px; }
     .product-badge {
       font-size: 10px;
       background: var(--coral-light);
@@ -302,56 +303,58 @@
       padding: 2px 8px;
       border-radius: 10px;
       font-weight: 600;
+      border: 1px solid var(--coral-mid);
     }
     .product-desc {
       font-size: 12px;
       color: var(--text-3);
-      line-height: 1.7;
+      line-height: 1.8;
       margin-bottom: 8px;
     }
     .product-link {
       font-size: 12px;
       color: var(--coral);
       font-weight: 500;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 4px;
       text-decoration: none;
     }
+    .product-link:hover { color: var(--coral-hover); }
     .product-link i { font-size: 10px; }
 
     /* ── CTA SECTION ── */
     .cta-section {
-      background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
-      border-radius: 16px;
-      padding: 24px;
+      background: var(--bg-section);
+      border-radius: 14px;
+      padding: 20px;
       margin-bottom: 16px;
-      text-align: center;
+      border: 1px solid var(--border);
     }
     .cta-title {
       font-family: 'Noto Serif SC', serif;
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 700;
-      color: #fff;
-      margin-bottom: 8px;
+      color: var(--text);
+      margin-bottom: 4px;
+      text-align: center;
     }
     .cta-sub {
       font-size: 12px;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 20px;
-      line-height: 1.7;
+      color: var(--text-3);
+      text-align: center;
+      margin-bottom: 16px;
     }
     .cta-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      text-align: left;
+      gap: 8px;
     }
     .cta-item {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: var(--bg);
+      border: 1px solid var(--border-light);
       border-radius: 10px;
-      padding: 12px 16px;
+      padding: 12px 14px;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -365,18 +368,19 @@
       border-radius: 6px;
       white-space: nowrap;
       letter-spacing: 0.5px;
+      flex-shrink: 0;
     }
     .cta-action {
       font-size: 12px;
-      color: rgba(255,255,255,0.8);
+      color: var(--text-2);
       line-height: 1.5;
     }
 
     /* ── FOOTER ── */
     .footer {
       text-align: center;
-      padding: 20px 24px;
-      border-top: 1px solid var(--border);
+      padding: 20px 24px 8px;
+      border-top: 1px solid var(--border-light);
     }
     .footer-name {
       font-size: 13px;
@@ -387,47 +391,48 @@
     .footer-sub {
       font-size: 11px;
       color: var(--text-3);
-      line-height: 1.7;
+      line-height: 1.8;
     }
     .footer-disclaimer {
       font-size: 10px;
       color: var(--text-3);
       margin-top: 12px;
-      opacity: 0.7;
+      opacity: 0.65;
     }
 
     /* ── DIVIDER ── */
-    .divider {
-      height: 1px;
-      background: var(--border-light);
-      margin: 4px 0 16px;
-    }
+    .divider { height: 1px; background: var(--border-light); margin: 4px 0 20px; }
 
-    /* ── SCROLL FADE IN ── */
+    /* ── FADE IN ── */
     .fade-in {
       opacity: 0;
-      transform: translateY(16px);
-      transition: opacity 0.5s ease, transform 0.5s ease;
+      transform: translateY(14px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
     }
-    .fade-in.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
   </style>
 </head>
 <body>
 
+  <!-- TOP NAV -->
+  <div class="topbar">
+    <div class="topbar-logo"><i class="fa-solid fa-seedling"></i></div>
+    <div class="topbar-name">萱宜</div>
+    <div class="topbar-sub">医美增长架构师</div>
+  </div>
+
   <!-- HERO -->
   <div class="hero">
     <div class="avatar-wrap">
-      <div class="avatar-ring"></div>
-      <img class="avatar" src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/BeSxKcadQIiJncwk.jpg" alt="萱宜" />
+      <img class="avatar"
+        src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/BeSxKcadQIiJncwk.jpg"
+        alt="萱宜" />
+      <div class="avatar-badge"><i class="fa-solid fa-check"></i></div>
     </div>
-    <div class="hero-greeting">Hello, I'm</div>
     <div class="hero-name">萱 宜</div>
-    <div class="hero-title">
-      医美增长架构师<br/>
-      中国医美验证打法 × AI升级版操盘手
+    <div class="hero-title-line">
+      <i class="fa-solid fa-star"></i>
+      <span>医美增长架构师 · 中国医美验证打法 × AI升级版操盘手</span>
     </div>
     <div class="hero-tagline">
       把被市场验证的底层逻辑，升级进AI时代<br/>
@@ -443,44 +448,37 @@
   <!-- MAIN -->
   <div class="main">
 
-    <!-- INTRO CARD -->
+    <!-- INTRO -->
     <div class="intro-card fade-in">
-      <div class="intro-label">About</div>
-      <div class="intro-text">
-        你好，我是萱宜 👋<br/><br/>
-        中国医美市场跑通的增长打法，我<strong>深度实践过</strong>。<br/>
-        我做的事，是把这套已被市场验证的底层逻辑——<strong>升级进AI时代</strong>。<br/><br/>
+      <div class="intro-quote">
+        <div class="intro-quote-text">
+          中国医美市场跑通的增长打法，我深度实践过。<br/>
+          我做的事，是把这套已被市场验证的底层逻辑——升级进AI时代。
+        </div>
+      </div>
+      <div class="intro-body">
         帮医美创始人和一人公司，<strong>30天跑通属于你的增长闭环</strong>。
       </div>
     </div>
 
     <!-- WHO AM I -->
-    <div class="section fade-in">
-      <div class="section-title">
-        <i class="fa-solid fa-user-tie"></i>
-        我是谁
+    <div class="fade-in">
+      <div class="sec-header">
+        <div class="sec-icon"><i class="fa-solid fa-user-tie"></i></div>
+        <div class="sec-title">我是谁</div>
       </div>
-      <div class="cred-list">
-        <div class="cred-card">
-          <div class="cred-icon"><i class="fa-solid fa-trophy"></i></div>
-          <div>
-            <div class="cred-title">市场验证打法的深度实践者</div>
-            <div class="cred-desc">在中国医美市场被充分验证的增长体系内完整实践，深度研究底层逻辑，结合AI工具做系统性升级——不是照搬，是进化版。</div>
-          </div>
+      <div class="card-group">
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-trophy"></i>市场验证打法的深度实践者</div>
+          <div class="card-desc">在中国医美市场被充分验证的增长体系内完整实践，深度研究底层逻辑，结合AI工具做系统性升级——不是照搬，是进化版。</div>
         </div>
-        <div class="cred-card">
-          <div class="cred-icon"><i class="fa-solid fa-hospital"></i></div>
-          <div>
-            <div class="cred-title">16年医美全产业链老兵</div>
-            <div class="cred-desc">曾任职艾尔建、国药中生等世界500强，曾任斐缦董事长兼总经理，完整搭建品牌全体系营销组织，深度参与6项胶原蛋白专利研发。</div>
-          </div>
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-hospital"></i>16年医美全产业链老兵</div>
+          <div class="card-desc">曾任职艾尔建、国药中生等世界500强，曾任斐缦董事长兼总经理，完整搭建品牌全体系营销组织，深度参与6项胶原蛋白专利研发。</div>
         </div>
-        <div class="cred-card">
-          <div class="cred-icon"><i class="fa-solid fa-robot"></i></div>
-          <div>
-            <div class="cred-title">AI科班实践者</div>
-            <div class="cred-desc">IBM生成式AI、范德比尔特大学提示词工程等多项国际认证。持证上岗，不做二道贩子。</div>
-          </div>
+        <div class="card">
+          <div class="card-title"><i class="fa-solid fa-robot"></i>AI科班实践者</div>
+          <div class="card-desc">IBM生成式AI、范德比尔特大学提示词工程等多项国际认证。持证上岗，不做二道贩子。</div>
         </div>
       </div>
     </div>
@@ -488,12 +486,12 @@
     <div class="divider"></div>
 
     <!-- WHAT I DO -->
-    <div class="section fade-in">
-      <div class="section-title">
-        <i class="fa-solid fa-bullseye"></i>
-        我能帮你做什么
+    <div class="fade-in">
+      <div class="sec-header">
+        <div class="sec-icon"><i class="fa-solid fa-bullseye"></i></div>
+        <div class="sec-title">我能帮你做什么</div>
       </div>
-      <div class="service-list">
+      <div class="card-group">
         <div class="service-card">
           <div class="service-if">如果你想在医美市场建立可复制的增长系统</div>
           <div class="service-title">验证打法 × AI自动化，30天交付MVP</div>
@@ -515,12 +513,12 @@
     <div class="divider"></div>
 
     <!-- WHAT I'M BUILDING -->
-    <div class="section fade-in">
-      <div class="section-title">
-        <i class="fa-solid fa-rocket"></i>
-        我现在在做什么
+    <div class="fade-in">
+      <div class="sec-header">
+        <div class="sec-icon"><i class="fa-solid fa-rocket"></i></div>
+        <div class="sec-title">我现在在做什么</div>
       </div>
-      <div class="product-list">
+      <div class="card-group">
         <div class="product-card">
           <div class="product-header">
             <div class="product-name">
@@ -591,15 +589,11 @@
   </div>
 
   <script>
-    // Scroll fade-in animation
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(el => {
-        if (el.isIntersecting) {
-          el.target.classList.add('visible');
-        }
+        if (el.isIntersecting) el.target.classList.add('visible');
       });
-    }, { threshold: 0.1 });
-
+    }, { threshold: 0.08 });
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
   </script>
 </body>
