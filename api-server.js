@@ -760,6 +760,23 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_convlog_agent ON conversation_logs(agent);
   CREATE INDEX IF NOT EXISTS idx_convlog_user ON conversation_logs(user_code);
   CREATE INDEX IF NOT EXISTS idx_convlog_type ON conversation_logs(type);
+  CREATE TABLE IF NOT EXISTS improvement_queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    agent TEXT,
+    agent_name TEXT,
+    user_code TEXT,
+    user_name TEXT,
+    user_msg TEXT NOT NULL,
+    assistant_msg TEXT,
+    reason TEXT DEFAULT '',
+    status TEXT DEFAULT 'pending',
+    admin_note TEXT DEFAULT '',
+    resolved_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_impqueue_status ON improvement_queue(status);
+  CREATE INDEX IF NOT EXISTS idx_impqueue_agent ON improvement_queue(agent);
 `);
 console.log('\u2705 SQLite \u6570\u636e\u5e93\u521d\u59cb\u5316\u6210\u529f:', DB_PATH);
 
@@ -775,6 +792,13 @@ const stmtGetSessionMessages = db.prepare('SELECT role, content, created_at FROM
 const stmtGetSessionById = db.prepare('SELECT * FROM chat_sessions WHERE id = ?');
 const stmtGetSessionPreview = db.prepare('SELECT content FROM chat_messages WHERE session_id = ? AND role = ? ORDER BY id ASC LIMIT 1');
 const stmtInsertTokenUsage = db.prepare('INSERT INTO token_usage (user_code, user_name, agent_id, provider, model, api_type, input_tokens, output_tokens, estimated_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+
+// ===== Improvement Queue SQLite Statements =====
+const stmtInsertImpQueue = db.prepare('INSERT INTO improvement_queue (ts, agent, agent_name, user_code, user_name, user_msg, assistant_msg, reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+const stmtGetImpQueuePending = db.prepare("SELECT * FROM improvement_queue WHERE status = 'pending' ORDER BY id DESC");
+const stmtGetImpQueueAll = db.prepare('SELECT * FROM improvement_queue ORDER BY id DESC LIMIT 100');
+const stmtUpdateImpQueueStatus = db.prepare("UPDATE improvement_queue SET status = ?, admin_note = ?, resolved_at = datetime('now') WHERE id = ?");
+const stmtCountImpQueuePending = db.prepare("SELECT COUNT(*) as cnt FROM improvement_queue WHERE status = 'pending'");
 
 // ===== Conversation Logs SQLite Statements =====
 const stmtInsertConvLog = db.prepare('INSERT INTO conversation_logs (ts, type, agent, agent_name, user_code, user_name, user_msg, assistant_msg, feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
@@ -2529,7 +2553,7 @@ const server = http.createServer(async (req, res) => {
         const profiles = loadProfiles();
         const memUpdated = userMemModule.updateUserMemory(profiles, userCode, message);
         if (memUpdated) saveProfiles(profiles);
-        const memContext = userMemModule.getUserMemoryContext(profiles, userCode);
+        const memContext = userMemModule.getUserMemoryContext(profiles, userCode, session.messages);
         if (memContext) {
           session._memoryContext = memContext;  // 缓存到session，避免重复读取
         }
@@ -2816,7 +2840,7 @@ const server = http.createServer(async (req, res) => {
         const profiles2 = loadProfiles();
         const memUpdated2 = userMemModule2.updateUserMemory(profiles2, userCode2, message);
         if (memUpdated2) saveProfiles(profiles2);
-        const memContext2 = userMemModule2.getUserMemoryContext(profiles2, userCode2);
+        const memContext2 = userMemModule2.getUserMemoryContext(profiles2, userCode2, session.messages);
         if (memContext2) session2._memoryContext = memContext2;
       } catch (e) {
         console.warn('[用户记忆] 提取跳过:', e.message);
@@ -3276,7 +3300,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'Unauthorized' }));
         return;
       }
-      const { sessionId, messageIndex, feedback } = await parseRequestBody(req);
+      const { sessionId, messageIndex, feedback, userMsg, assistantMsg, reason } = await parseRequestBody(req);
       if (!['up', 'down'].includes(feedback)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid feedback value' }));
@@ -3284,7 +3308,9 @@ const server = http.createServer(async (req, res) => {
       }
       const session = sessions.get(sessionId);
       const agentId = session ? session.agentId : 'unknown';
+      const agentName = session ? session.agentName : '';
       const userName = session ? session.userName : getUserName(req);
+      const userCode = session ? session.userCode : null;
       const feedbackEntry = JSON.stringify({
         ts: new Date().toISOString(),
         type: 'feedback',
@@ -3296,6 +3322,18 @@ const server = http.createServer(async (req, res) => {
       fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), feedbackEntry + '\n', () => {});
       // 同时写入 SQLite
       try { stmtInsertConvLog.run(new Date().toISOString(), 'feedback', agentId, null, null, userName, null, null, feedback); } catch (e) { /* non-fatal */ }
+      // 👎 不准 → 自动加入待优化队列
+      if (feedback === 'down') {
+        try {
+          stmtInsertImpQueue.run(
+            new Date().toISOString(),
+            agentId, agentName, userCode, userName,
+            userMsg || '（未记录问题）',
+            assistantMsg || '（未记录回答）',
+            reason || ''
+          );
+        } catch (e) { /* non-fatal */ }
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     } catch (error) {
@@ -4281,6 +4319,35 @@ const server = http.createServer(async (req, res) => {
         });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ memories }));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
+  // ===== Admin: 待优化队列（反馈学习）=====
+  if (url.pathname === '/api/admin/improvement-queue' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const status = url.searchParams ? url.searchParams.get('status') : null;
+      const items = status === 'pending' ? stmtGetImpQueuePending.all() : stmtGetImpQueueAll.all();
+      const pendingCount = stmtCountImpQueuePending.get().cnt;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ items, pendingCount }));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
+  if (url.pathname === '/api/admin/improvement-queue/resolve' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const { id, status, adminNote } = await parseRequestBody(req);
+      if (!id || !['resolved', 'dismissed'].includes(status)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid params' }));
+        return;
+      }
+      stmtUpdateImpQueueStatus.run(status, adminNote || '', id);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
     } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
     return;
   }

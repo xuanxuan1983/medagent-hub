@@ -160,11 +160,65 @@ function buildMemoryContext(memory) {
 }
 
 // ============================================================
+// 专业程度评估（根据用户历史对话判断）
+// ============================================================
+const EXPERT_SIGNALS = [
+  /透明质酸|玻璃酸钠|肉毒杆菌素|A型肉毒毒素|聚左旋乳酸|聚己内酯|羟基磷灰石/,
+  /国械注准|CFDA|NMPA|注册证|备案号|临床试验|适应症|禁忌症/,
+  /射频|超声刀|热玛吉|皮秒|点阵激光|IPL|强脉冲光|光子嫩肤/,
+  /成纤维细胞|胶原蛋白|弹性蛋白|透皮吸收|真皮层|皮下组织/,
+  /LD50|半衰期|代谢周期|交联度|分子量|浓度单位/,
+];
+
+const BEGINNER_SIGNALS = [
+  /玻尿酸是什么|肉毒素是什么|什么是.*针|.*有什么用/,
+  /第一次|从来没有|不太了解|不懂|小白|新手/,
+  /会不会痛|疼不疼|安不安全|有没有副作用|会不会有问题/,
+  /多少钱|贵不贵|值不值|要花多少/,
+];
+
+function assessExpertLevel(messages) {
+  if (!messages || messages.length === 0) return 'unknown';
+  let expertScore = 0;
+  let beginnerScore = 0;
+  const userMessages = messages.filter(m => m.role === 'user').map(m => m.content || '').join(' ');
+  for (const pattern of EXPERT_SIGNALS) {
+    if (pattern.test(userMessages)) expertScore++;
+  }
+  for (const pattern of BEGINNER_SIGNALS) {
+    if (pattern.test(userMessages)) beginnerScore++;
+  }
+  if (expertScore >= 2) return 'expert';
+  if (beginnerScore >= 2) return 'beginner';
+  if (expertScore >= 1) return 'intermediate';
+  return 'unknown';
+}
+
+const STYLE_PROMPTS = {
+  expert: '用户是医美行业专业人士，请使用专业术语，直接给出核心结论，省略基础科普，可以引用数据和文献。',
+  intermediate: '用户有一定医美知识背景，可以使用行业术语但需简要解释，回答要有深度但不要过于学术化。',
+  beginner: '用户是医美新手，请用通俗易懂的语言，避免专业术语或用括号注解，多用类比和例子，语气亲切耐心。',
+  unknown: null,
+};
+
+// ============================================================
 // 获取用户记忆上下文（供api-server.js调用）
 // ============================================================
-function getUserMemoryContext(profiles, userCode) {
+function getUserMemoryContext(profiles, userCode, recentMessages) {
   const mem = profiles[userCode]?.memory;
-  return buildMemoryContext(mem);
+  const baseContext = buildMemoryContext(mem);
+
+  // 评估专业程度并注入风格指令
+  const expertLevel = assessExpertLevel(recentMessages);
+  const stylePrompt = STYLE_PROMPTS[expertLevel];
+
+  if (!baseContext && !stylePrompt) return null;
+
+  const parts = [];
+  if (baseContext) parts.push(baseContext);
+  if (stylePrompt) parts.push(`\n===== 回答风格指令 =====\n${stylePrompt}`);
+
+  return parts.join('\n');
 }
 
 // ============================================================
