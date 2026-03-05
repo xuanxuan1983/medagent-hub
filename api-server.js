@@ -2427,9 +2427,27 @@ const server = http.createServer(async (req, res) => {
       session.messages.push({ role: 'user', content: userContent });
       console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
 
+      // ===== 用户记忆系统：提取属性并注入上下文 =====
+      try {
+        const userMemModule = require('./user-memory');
+        const profiles = loadProfiles();
+        const memUpdated = userMemModule.updateUserMemory(profiles, userCode, message);
+        if (memUpdated) saveProfiles(profiles);
+        const memContext = userMemModule.getUserMemoryContext(profiles, userCode);
+        if (memContext) {
+          session._memoryContext = memContext;  // 缓存到session，避免重复读取
+        }
+      } catch (e) {
+        console.warn('[用户记忆] 提取跳过:', e.message);
+      }
+
       // ===== 意图感知的多路检索系统 =====
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
+      // 注入用户记忆上下文
+      if (session._memoryContext) {
+        enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + session._memoryContext;
+      }
       const agentId = session.agentId;
 
       // 0️⃣ 查询意图分类（毫秒级，无需LLM）
@@ -2690,12 +2708,22 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'Invalid session ID' }));
         return;
       }
+      const session2 = sessions.get(sessionId2);
+      const userCode2 = session2.userCode || getUserCode(req);
 
-      const session = sessions.get(sessionId);
-      const userCode2 = session.userCode || getUserCode(req);
+      // ===== 用户记忆系统：提取属性并注入上下文 =====
+      try {
+        const userMemModule2 = require('./user-memory');
+        const profiles2 = loadProfiles();
+        const memUpdated2 = userMemModule2.updateUserMemory(profiles2, userCode2, message);
+        if (memUpdated2) saveProfiles(profiles2);
+        const memContext2 = userMemModule2.getUserMemoryContext(profiles2, userCode2);
+        if (memContext2) session2._memoryContext = memContext2;
+      } catch (e) {
+        console.warn('[用户记忆] 提取跳过:', e.message);
+      }
 
-      // ===== 权限检查 =====
-      const planStatus2 = getUserPlanStatus(userCode2);
+      // ===== 权限检查 =====     const planStatus2 = getUserPlanStatus(userCode2);
       if (planStatus2.isTrialExpired) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'trial_expired', message: '免费试用期已结束，请升级为 Pro 会员继续使用', planStatus: planStatus2 }));
@@ -2737,6 +2765,10 @@ const server = http.createServer(async (req, res) => {
       // ===== 意图感知的多路检索系统 =====
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
+      // 注入用户记忆上下文
+      if (session2._memoryContext) {
+        enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + session2._memoryContext;
+      }
       const agentId2 = session.agentId;
 
       // 0️⃣ 查询意图分类
@@ -4049,6 +4081,53 @@ const server = http.createServer(async (req, res) => {
   // Admin: 自动检测用户是否通过渠道码注册（set-pro 时联动）
   // 当用户通过渠道码（ch_xxx）登录时，记录渠道关系到 user-profiles
   // 这部分在登录逻辑中已通过 invited_by_channel 字段记录
+
+  // Admin: 医美数据库查看
+  if (url.pathname === '/api/admin/meddb' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const meddb = require('./medaesthetics-db');
+      const allPrices = [];
+      for (const [category, items] of Object.entries(meddb.PRICE_DATABASE)) {
+        for (const [id, item] of Object.entries(items)) {
+          allPrices.push({ id, category, ...item });
+        }
+      }
+      const allCompliance = [];
+      for (const [category, items] of Object.entries(meddb.COMPLIANCE_DATABASE)) {
+        for (const [id, item] of Object.entries(items)) {
+          allCompliance.push({ id, category, ...item });
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ prices: allPrices, compliance: allCompliance }));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
+  // Admin: 用户记忆查看
+  if (url.pathname === '/api/admin/user-memory' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const profiles = loadProfiles();
+      const codes = loadCodes();
+      const memories = Object.entries(profiles)
+        .filter(([code, p]) => p.memory && Object.keys(p.memory).length > 0)
+        .map(([code, p]) => ({
+          userCode: code,
+          userName: codes[code] || code,
+          memory: p.memory
+        }))
+        .sort((a, b) => {
+          const ta = a.memory?.lastUpdated || '';
+          const tb = b.memory?.lastUpdated || '';
+          return tb.localeCompare(ta);
+        });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ memories }));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
 
   // Admin: download conversations.jsonl
   if (url.pathname === '/api/admin/export' && req.method === 'GET') {

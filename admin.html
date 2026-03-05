@@ -132,6 +132,15 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       行业日报 ↗
     </div>
+    <div class="nav-section">数据管理</div>
+    <div class="nav-item" onclick="showPage('meddb')" id="nav-meddb">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      医美数据库
+    </div>
+    <div class="nav-item" onclick="showPage('usermemory')" id="nav-usermemory">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      用户记忆
+    </div>
     <div class="nav-section">渠道管理</div>
     <div class="nav-item" onclick="showPage('channel')" id="nav-channel">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -289,6 +298,56 @@
       </div>
     </div>
 
+    <!-- MedDB 医美数据库管理 -->
+    <div class="page" id="page-meddb">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        医美数据库管理
+      </div>
+      <div class="section-actions">
+        <button class="btn btn-primary btn-sm" onclick="loadMedDB()">&#x21bb; 刷新数据</button>
+        <span style="font-size:0.8rem;color:#888">价格数据每月更新，产品合规数据每季度更新</span>
+      </div>
+      <!-- 价格行情 -->
+      <div class="card">
+        <div class="card-title">💰 价格行情库 <span id="priceCount" style="font-size:0.75rem;color:#888;font-weight:400"></span></div>
+        <div id="priceTableWrap" style="overflow-x:auto">
+          <table id="priceTable">
+            <thead><tr><th>项目名称</th><th>分类</th><th>最低价</th><th>最高价</th><th>平均价</th><th>单位</th><th>操作</th></tr></thead>
+            <tbody id="priceBody"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- 产品合规 -->
+      <div class="card" style="margin-top:1rem">
+        <div class="card-title">📄 产品合规库 <span id="complianceCount" style="font-size:0.75rem;color:#888;font-weight:400"></span></div>
+        <div id="complianceTableWrap" style="overflow-x:auto">
+          <table id="complianceTable">
+            <thead><tr><th>产品名称</th><th>品牌</th><th>注册证号</th><th>分类</th><th>适应症</th><th>操作</th></tr></thead>
+            <tbody id="complianceBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- UserMemory 用户记忆查看 -->
+    <div class="page" id="page-usermemory">
+      <div class="page-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        用户记忆档案
+      </div>
+      <div class="section-actions">
+        <button class="btn btn-primary btn-sm" onclick="loadUserMemory()">&#x21bb; 刷新</button>
+        <span style="font-size:0.8rem;color:#888">系统自动从对话中提取用户属性，帮助个性化回答</span>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table id="memoryTable">
+          <thead><tr><th>用户</th><th>身份</th><th>预算</th><th>皮肤类型</th><th>关注方向</th><th>最近更新</th></tr></thead>
+          <tbody id="memoryBody"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Referral -->
     <div class="page" id="page-referral">
       <div class="page-title">
@@ -354,6 +413,91 @@ function showPage(name) {
   else if (name === 'tokens') loadTokenStats();
   else if (name === 'channel') loadChannels();
   else if (name === 'referral') loadReferral();
+  else if (name === 'meddb') loadMedDB();
+  else if (name === 'usermemory') loadUserMemory();
+}
+
+// ===== 医美数据库管理 =====
+async function loadMedDB() {
+  try {
+    const r = await fetch('/api/admin/meddb', { credentials: 'include' });
+    const data = await r.json();
+
+    // 价格行情
+    const prices = data.prices || [];
+    document.getElementById('priceCount').textContent = `（${prices.length} 条记录）`;
+    const pb = document.getElementById('priceBody');
+    if (prices.length === 0) {
+      pb.innerHTML = '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
+    } else {
+      pb.innerHTML = prices.map(p => `
+        <tr>
+          <td><strong>${p.name}</strong></td>
+          <td>${p.category || '-'}</td>
+          <td style="color:#e8715a">￥${(p.minPrice||0).toLocaleString()}</td>
+          <td style="color:#e8715a">￥${(p.maxPrice||0).toLocaleString()}</td>
+          <td><strong>￥${(p.avgPrice||0).toLocaleString()}</strong></td>
+          <td>${p.unit || '-'}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="editPrice('${p.id}')">&#x270E; 编辑</button></td>
+        </tr>
+      `).join('');
+    }
+
+    // 产品合规
+    const compliance = data.compliance || [];
+    document.getElementById('complianceCount').textContent = `（${compliance.length} 个产品）`;
+    const cb = document.getElementById('complianceBody');
+    if (compliance.length === 0) {
+      cb.innerHTML = '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+    } else {
+      cb.innerHTML = compliance.map(c => `
+        <tr>
+          <td><strong>${c.name}</strong></td>
+          <td>${c.brand || '-'}</td>
+          <td style="font-family:monospace;font-size:0.75rem">${c.registrationNo || '-'}</td>
+          <td>${c.category || '-'}</td>
+          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${(c.indications||[]).join('、')}">${(c.indications||[]).slice(0,2).join('、')}${c.indications&&c.indications.length>2?'...':''}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="viewCompliance('${c.id}')">&#x1F441; 详情</button></td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) {
+    showToast('加载失败: ' + e.message, 3000);
+  }
+}
+
+function editPrice(id) {
+  showToast('价格编辑功能开发中，请直接修改 medaesthetics-db.js 文件', 3000);
+}
+
+function viewCompliance(id) {
+  showToast('详情查看功能开发中', 2000);
+}
+
+// ===== 用户记忆查看 =====
+async function loadUserMemory() {
+  try {
+    const r = await fetch('/api/admin/user-memory', { credentials: 'include' });
+    const data = await r.json();
+    const memories = data.memories || [];
+    const mb = document.getElementById('memoryBody');
+    if (memories.length === 0) {
+      mb.innerHTML = '<tr><td colspan="6" class="empty">暂无用户记忆数据</td></tr>';
+      return;
+    }
+    mb.innerHTML = memories.map(m => `
+      <tr>
+        <td><strong>${m.userName || m.userCode}</strong><br><span style="font-size:0.7rem;color:#888">${m.userCode}</span></td>
+        <td>${m.memory?.role || '<span style="color:#ccc">未识别</span>'}</td>
+        <td>${m.memory?.budget ? '￥' + (m.memory.budget >= 10000 ? (m.memory.budget/10000).toFixed(1)+'万' : m.memory.budget) : '<span style="color:#ccc">-</span>'}</td>
+        <td>${m.memory?.skinType || '<span style="color:#ccc">-</span>'}</td>
+        <td>${(m.memory?.concerns||[]).join('、') || '<span style="color:#ccc">-</span>'}</td>
+        <td style="font-size:0.75rem;color:#888">${m.memory?.lastUpdated ? new Date(m.memory.lastUpdated).toLocaleDateString('zh-CN') : '-'}</td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    showToast('加载失败: ' + e.message, 3000);
+  }
 }
 
 // ===== Toast =====
