@@ -407,7 +407,8 @@ async function bochaSearch(query, count = 5) {
 const AGENTS_NEED_NMPA = new Set([
   'product-expert', 'academic-liaison', 'senior-consultant', 'sparring-robot',
   'materials-mentor', 'material-architect', 'anatomy-architect', 'trend-setter',
-  'aesthetic-design', 'post-op-guardian', 'neuro-aesthetic-architect'
+  'aesthetic-design', 'post-op-guardian', 'neuro-aesthetic-architect',
+  'doudou'  // 豆豆作为入口 Agent，需要实时药监局数据支撑合规回答
 ]);
 
 // 常见医美产品关键词（用于触发药监局查询）
@@ -2577,7 +2578,8 @@ const server = http.createServer(async (req, res) => {
 
       // 1️⃣ 药监局自动查询（合规/产品/对比意图 OR 检测到产品关键词）
       const shouldQueryNmpa = (strategy.useNmpa && AGENTS_NEED_NMPA.has(agentId)) || 
-                               (intentResult.intent === 'compliance');
+                               (intentResult.intent === 'compliance') ||
+                               (agentId === 'doudou' && detectNmpaProduct(message) !== null);
       if (shouldQueryNmpa) {
         const detectedProducts = detectNmpaProduct(message);
         if (detectedProducts) {
@@ -3810,6 +3812,40 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true }));
     } catch(error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
+  // Admin: list invite codes (GET)
+  if (url.pathname === '/api/admin/codes' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const codes = loadCodes();
+      const usageLimits = loadUsageLimits();
+      const usageData = loadUsage();
+      const codeList = Object.entries(codes).map(([code, name]) => {
+        const maxUses = usageLimits[code] || 1;
+        const usage = usageData[code] || 0;
+        return {
+          code,
+          name,
+          maxUses,
+          usage,
+          remaining: Math.max(0, maxUses - usage),
+          status: usage >= maxUses ? 'used' : 'active'
+        };
+      });
+      // 按 code 倒序（code 中含时间戳 base36，越新越大）
+      codeList.sort((a, b) => b.code.localeCompare(a.code));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ codes: codeList }));
+    } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
     }
