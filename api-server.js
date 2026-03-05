@@ -742,6 +742,24 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_token_user ON token_usage(user_code);
   CREATE INDEX IF NOT EXISTS idx_token_date ON token_usage(created_at);
+
+  CREATE TABLE IF NOT EXISTS conversation_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    type TEXT DEFAULT 'chat',
+    agent TEXT,
+    agent_name TEXT,
+    user_code TEXT,
+    user_name TEXT,
+    user_msg TEXT,
+    assistant_msg TEXT,
+    feedback TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_convlog_ts ON conversation_logs(ts);
+  CREATE INDEX IF NOT EXISTS idx_convlog_agent ON conversation_logs(agent);
+  CREATE INDEX IF NOT EXISTS idx_convlog_user ON conversation_logs(user_code);
+  CREATE INDEX IF NOT EXISTS idx_convlog_type ON conversation_logs(type);
 `);
 console.log('\u2705 SQLite \u6570\u636e\u5e93\u521d\u59cb\u5316\u6210\u529f:', DB_PATH);
 
@@ -757,6 +775,84 @@ const stmtGetSessionMessages = db.prepare('SELECT role, content, created_at FROM
 const stmtGetSessionById = db.prepare('SELECT * FROM chat_sessions WHERE id = ?');
 const stmtGetSessionPreview = db.prepare('SELECT content FROM chat_messages WHERE session_id = ? AND role = ? ORDER BY id ASC LIMIT 1');
 const stmtInsertTokenUsage = db.prepare('INSERT INTO token_usage (user_code, user_name, agent_id, provider, model, api_type, input_tokens, output_tokens, estimated_cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+
+// ===== Conversation Logs SQLite Statements =====
+const stmtInsertConvLog = db.prepare('INSERT INTO conversation_logs (ts, type, agent, agent_name, user_code, user_name, user_msg, assistant_msg, feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+const stmtConvLogStats = db.prepare(`
+  SELECT
+    COUNT(*) as total,
+    SUM(CASE WHEN type != 'feedback' THEN 1 ELSE 0 END) as totalMessages,
+    SUM(CASE WHEN type = 'feedback' AND feedback = 'up' THEN 1 ELSE 0 END) as feedbackUp,
+    SUM(CASE WHEN type = 'feedback' AND feedback = 'down' THEN 1 ELSE 0 END) as feedbackDown
+  FROM conversation_logs
+`);
+const stmtConvLogToday = db.prepare(`
+  SELECT COUNT(*) as cnt, COUNT(DISTINCT user_name) as users
+  FROM conversation_logs
+  WHERE ts >= ? AND type != 'feedback'
+`);
+const stmtConvLogAgentCounts = db.prepare(`
+  SELECT agent, COUNT(*) as cnt FROM conversation_logs
+  WHERE type != 'feedback' AND agent IS NOT NULL
+  GROUP BY agent ORDER BY cnt DESC
+`);
+const stmtConvLogUserCounts = db.prepare(`
+  SELECT user_name, COUNT(*) as cnt FROM conversation_logs
+  WHERE type != 'feedback'
+  GROUP BY user_name ORDER BY cnt DESC
+`);
+const stmtConvLogRecent = db.prepare(`
+  SELECT * FROM conversation_logs
+  WHERE type != 'feedback'
+  ORDER BY id DESC LIMIT 50
+`);
+const stmtConvLogPaged = db.prepare(`
+  SELECT * FROM conversation_logs
+  WHERE type != 'feedback' AND (? = '' OR agent = ?)
+  ORDER BY id DESC LIMIT ? OFFSET ?
+`);
+const stmtConvLogPagedCount = db.prepare(`
+  SELECT COUNT(*) as cnt FROM conversation_logs
+  WHERE type != 'feedback' AND (? = '' OR agent = ?)
+`);
+const stmtConvLogTodayUser = db.prepare(`
+  SELECT user_code, COUNT(*) as cnt FROM conversation_logs
+  WHERE ts >= ? AND type != 'feedback' AND user_code IS NOT NULL
+  GROUP BY user_code
+`);
+
+// 启动时从 JSONL 迁移历史数据到 SQLite（仅执行一次）
+function migrateConvLogsFromJsonl() {
+  try {
+    const existing = db.prepare('SELECT COUNT(*) as cnt FROM conversation_logs').get();
+    if (existing.cnt > 0) return; // 已有数据，跳过迁移
+    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+    if (!fs.existsSync(logPath)) return;
+    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean);
+    if (lines.length === 0) return;
+    const insertMany = db.transaction((entries) => {
+      for (const e of entries) {
+        stmtInsertConvLog.run(
+          e.ts || new Date().toISOString(),
+          e.type || 'chat',
+          e.agent || e.agentId || null,
+          e.agent_name || e.agentName || null,
+          e.user_code || null,
+          e.user_name || e.userName || null,
+          e.user || e.user_msg || null,
+          e.assistant || e.assistant_msg || null,
+          e.feedback || null
+        );
+      }
+    });
+    const entries = lines.map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
+    insertMany(entries);
+    console.log(`✅ [ConvLog] 已从 JSONL 迁移 ${entries.length} 条历史对话到 SQLite`);
+  } catch (e) {
+    console.error('[ConvLog] 迁移失败（非致命）:', e.message);
+  }
+}
+migrateConvLogsFromJsonl();
 
 // Bocha search cost per call (CNY)
 const BOCHA_COST_PER_CALL = 0.008; // ¥0.008 per search call (approx)
@@ -2655,8 +2751,11 @@ const server = http.createServer(async (req, res) => {
       } catch (dbErr) { console.error('DB error:', dbErr.message); }
 
       // Log
-      const logEntry = JSON.stringify({ ts: new Date().toISOString(), agent: session.agentId, agent_name: session.agentName, user_name: session.userName, user: message, assistant: fullMessage, feedback: null });
+      const logTs = new Date().toISOString();
+      const logEntry = JSON.stringify({ ts: logTs, agent: session.agentId, agent_name: session.agentName, user_code: userCode, user_name: session.userName, user: message, assistant: fullMessage, feedback: null });
       fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logEntry + '\n', () => {});
+      // 同时写入 SQLite内存索引
+      try { stmtInsertConvLog.run(logTs, 'chat', session.agentId, session.agentName, userCode, session.userName, message, fullMessage, null); } catch (e) { /* non-fatal */ }
       console.log(`\ud83e\udd16 [${session.agentName}] Stream complete: ${fullMessage.substring(0, 50)}...`);
 
       // Record token usage (estimate for streaming: ~4 chars per token)
@@ -2893,10 +2992,12 @@ const server = http.createServer(async (req, res) => {
       });
 
       // Log conversation turn for future fine-tuning
+      const logTs2 = new Date().toISOString();
       const logEntry = JSON.stringify({
-        ts: new Date().toISOString(),
+        ts: logTs2,
         agent: session.agentId,
         agent_name: session.agentName,
+        user_code: userCode,
         user_name: session.userName,
         user: message,
         assistant: response.message,
@@ -2904,6 +3005,8 @@ const server = http.createServer(async (req, res) => {
       });
       const logLine = logEntry + '\n';
       fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logLine, () => {});
+      // 同时写入 SQLite内存索引
+      try { stmtInsertConvLog.run(logTs2, 'chat', session.agentId, session.agentName, userCode, session.userName, message, response.message, null); } catch (e) { /* non-fatal */ }
 
       // Save messages to SQLite
       try {
@@ -3191,6 +3294,8 @@ const server = http.createServer(async (req, res) => {
         feedback
       });
       fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), feedbackEntry + '\n', () => {});
+      // 同时写入 SQLite
+      try { stmtInsertConvLog.run(new Date().toISOString(), 'feedback', agentId, null, null, userName, null, null, feedback); } catch (e) { /* non-fatal */ }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     } catch (error) {
@@ -3289,20 +3394,26 @@ const server = http.createServer(async (req, res) => {
     const profilesPath = path.join(DATA_DIR, 'user-profiles.json');
     const subs = fs.existsSync(subsPath) ? JSON.parse(fs.readFileSync(subsPath, 'utf8')) : {};
     const profiles = fs.existsSync(profilesPath) ? JSON.parse(fs.readFileSync(profilesPath, 'utf8')) : {};
-    // 今日对话数（按用户码统计）
-    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+    // 今日对话数（按用户码统计）—— 使用 SQLite 索引查询，O(1) 速度
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayMsgMap = {};
-    if (fs.existsSync(logPath)) {
-      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean);
-      lines.forEach(line => {
-        try {
-          const e = JSON.parse(line);
-          if (e.ts && e.ts.startsWith(todayStr) && e.user_code) {
-            todayMsgMap[e.user_code] = (todayMsgMap[e.user_code] || 0) + 1;
-          }
-        } catch {}
-      });
+    try {
+      const todayRows = stmtConvLogTodayUser.all(todayStr + 'T00:00:00.000Z');
+      todayRows.forEach(r => { todayMsgMap[r.user_code] = r.cnt; });
+    } catch (e) {
+      // 降级：全文件扫描（兼容旧数据）
+      const logPath = path.join(DATA_DIR, 'conversations.jsonl');
+      if (fs.existsSync(logPath)) {
+        const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean);
+        lines.forEach(line => {
+          try {
+            const e = JSON.parse(line);
+            if (e.ts && e.ts.startsWith(todayStr) && e.user_code) {
+              todayMsgMap[e.user_code] = (todayMsgMap[e.user_code] || 0) + 1;
+            }
+          } catch {}
+        });
+      }
     }
     const users = Object.entries(codes).map(([code, name]) => {
       const maxUses = getCodeMaxUses(code);
@@ -3729,43 +3840,34 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     try {
-      const logPath = path.join(DATA_DIR, 'conversations.jsonl');
-      const lines = fs.existsSync(logPath)
-        ? fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean)
-        : [];
+      // 使用 SQLite 索引查询，替代全文件扫描
+      const globalStats = stmtConvLogStats.get();
+      const todayStr2 = new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z';
+      const todayStats2 = stmtConvLogToday.get(todayStr2);
+      const agentRows = stmtConvLogAgentCounts.all();
+      const userRows = stmtConvLogUserCounts.all();
+      const recentRows = stmtConvLogRecent.all();
+
       const agentCounts = {};
+      agentRows.forEach(r => { agentCounts[r.agent] = r.cnt; });
       const userCounts = {};
-      const feedbackCounts = { up: 0, down: 0 };
-      const allConvs = [];
-      lines.forEach(line => {
-        try {
-          const entry = JSON.parse(line);
-          if (entry.type === 'feedback') {
-            feedbackCounts[entry.feedback] = (feedbackCounts[entry.feedback] || 0) + 1;
-          } else {
-            agentCounts[entry.agent] = (agentCounts[entry.agent] || 0) + 1;
-            userCounts[entry.user_name || '未知'] = (userCounts[entry.user_name || '未知'] || 0) + 1;
-            allConvs.push(entry);
-          }
-        } catch {}
-      });
-      // 取最后50条，倒序排列（最新的在最前）
-      const recentConvs = allConvs.slice(-50).reverse();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      // 计算前端所需的统计字段
+      userRows.forEach(r => { userCounts[r.user_name || '未知'] = r.cnt; });
+      const feedbackCounts = { up: globalStats.feedbackUp || 0, down: globalStats.feedbackDown || 0 };
+      const recentConvs = recentRows.map(r => ({
+        ts: r.ts, agent: r.agent, agent_name: r.agent_name,
+        user_name: r.user_name, user: r.user_msg, assistant: r.assistant_msg
+      }));
+
       const codesPath = path.join(DATA_DIR, 'invite-codes.json');
       const codes = fs.existsSync(codesPath) ? JSON.parse(fs.readFileSync(codesPath, 'utf8')) : {};
       const totalCodes = Object.keys(codes).length;
-      // 活跃用户数（有对话记录的不重复用户）
-      const totalUsers = Object.keys(userCounts).length;
-      // 总对话数（非 feedback 的条目）
-      const totalMessages = allConvs.length;
-      // 今日对话数
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const todayMessages = allConvs.filter(c => c.ts && c.ts.startsWith(todayStr)).length;
-      // 今日活跃用户数
-      const todayUsers = new Set(allConvs.filter(c => c.ts && c.ts.startsWith(todayStr)).map(c => c.user_name || '未知')).size;
-      res.end(JSON.stringify({ agentCounts, userCounts, feedbackCounts, totalTurns: lines.length, recentConvs, totalUsers, totalMessages, todayMessages, todayActive: todayUsers, totalCodes, proUsers: 0 }));
+      const totalUsers = userRows.length;
+      const totalMessages = globalStats.totalMessages || 0;
+      const todayMessages = todayStats2.cnt || 0;
+      const todayActive = todayStats2.users || 0;
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ agentCounts, userCounts, feedbackCounts, totalTurns: globalStats.total || 0, recentConvs, totalUsers, totalMessages, todayMessages, todayActive, totalCodes, proUsers: 0 }));
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
@@ -4310,23 +4412,18 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Forbidden' }));
       return;
     }
-    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
-    let total = 0, labeled = 0, needsReview = 0, agentCounts = {};
-    if (fs.existsSync(logPath)) {
-      const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
-      total = lines.length;
-      lines.forEach(line => {
-        try {
-          const entry = JSON.parse(line);
-          const agentId = entry.agentId || 'unknown';
-          agentCounts[agentId] = (agentCounts[agentId] || 0) + 1;
-          if (entry.feedback === 'up') labeled++;
-          if (entry.feedback === 'down') needsReview++;
-        } catch {}
-      });
-    }
+    // 使用 SQLite 索引查询
+    const corpusStats = stmtConvLogStats.get();
+    const corpusAgentRows = stmtConvLogAgentCounts.all();
+    const corpusAgentCounts = {};
+    corpusAgentRows.forEach(r => { corpusAgentCounts[r.agent || 'unknown'] = r.cnt; });
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ total, labeled, needsReview, agentCounts }));
+    res.end(JSON.stringify({
+      total: corpusStats.total || 0,
+      labeled: corpusStats.feedbackUp || 0,
+      needsReview: corpusStats.feedbackDown || 0,
+      agentCounts: corpusAgentCounts
+    }));
     return;
   }
 
@@ -4340,22 +4437,16 @@ const server = http.createServer(async (req, res) => {
     const page = parseInt(url.searchParams.get('page') || '1');
     const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
     const agentFilter = url.searchParams.get('agent') || '';
-    const logPath = path.join(DATA_DIR, 'conversations.jsonl');
-    let items = [];
-    if (fs.existsSync(logPath)) {
-      const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
-      lines.forEach((line, idx) => {
-        try {
-          const entry = JSON.parse(line);
-          if (!agentFilter || entry.agentId === agentFilter) {
-            items.push({ ...entry, _idx: idx });
-          }
-        } catch {}
-      });
-    }
-    const total = items.length;
-    const start = (page - 1) * pageSize;
-    const data = items.slice(start, start + pageSize);
+    // 使用 SQLite 分页查询
+    const offset = (page - 1) * pageSize;
+    const countRow = stmtConvLogPagedCount.get(agentFilter, agentFilter);
+    const total = countRow.cnt;
+    const rows = stmtConvLogPaged.all(agentFilter, agentFilter, pageSize, offset);
+    const data = rows.map(r => ({
+      ts: r.ts, agent: r.agent, agentId: r.agent, agent_name: r.agent_name,
+      user_name: r.user_name, user: r.user_msg, assistant: r.assistant_msg,
+      feedback: r.feedback, _idx: r.id
+    }));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ total, page, pageSize, data }));
     return;
@@ -4374,23 +4465,9 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(data);
     } else {
-      // Generate basic needs analysis from conversations
-      const logPath = path.join(DATA_DIR, 'conversations.jsonl');
-      const agentFreq = {};
-      if (fs.existsSync(logPath)) {
-        const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
-        lines.forEach(line => {
-          try {
-            const entry = JSON.parse(line);
-            const a = entry.agentId || 'unknown';
-            agentFreq[a] = (agentFreq[a] || 0) + 1;
-          } catch {}
-        });
-      }
-      const topAgents = Object.entries(agentFreq)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([agentId, count]) => ({ agentId, count }));
+      // 使用 SQLite 索引查询生成需求分析
+      const needsAgentRows = stmtConvLogAgentCounts.all();
+      const topAgents = needsAgentRows.slice(0, 10).map(r => ({ agentId: r.agent, count: r.cnt }));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ topAgents, generatedAt: new Date().toISOString() }));
     }
