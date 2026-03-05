@@ -411,6 +411,7 @@ module.exports = {
   loadMeta,
   parseDocument,
   chunkText,
+  loadVectorIndex,
   GLOBAL_DIR,
   AGENTS_DIR,
   KB_ROOT

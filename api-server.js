@@ -499,6 +499,205 @@ function extractSearchQuery(message) {
   return query.length > 80 ? query.substring(0, 80) : query;
 }
 
+// ===== 查询意图分类（医美行业专属）=====
+// 意图类型定义
+const INTENT_TYPES = {
+  COMPLIANCE: 'compliance',       // 合规查询：注册证、批准文号、适应症
+  PRICE_QUERY: 'price_query',     // 价格查询：多少钱、报价、费用
+  TREND_QUERY: 'trend_query',     // 趋势查询：最新、流行、热门
+  PRODUCT_INFO: 'product_info',   // 产品信息：品牌、成分、规格
+  CLINICAL_QA: 'clinical_qa',     // 临床问答：效果、副作用、恢复期
+  COMPARISON: 'comparison',       // 对比分析：哪个好、区别、对比
+  GENERAL: 'general'              // 通用问答
+};
+
+// 基于规则的快速意图分类（无需LLM，毫秒级响应）
+function classifyIntentFast(message) {
+  const msg = message.toLowerCase();
+  
+  // 合规查询（最高优先级）
+  if (/注册证|批准文号|备案号|注册号|适应症|说明书|获证|合规|违规|监管|法规|审批|备案/.test(msg)) {
+    return { intent: INTENT_TYPES.COMPLIANCE, confidence: 0.95, source: 'rule' };
+  }
+  
+  // 价格查询
+  if (/多少钱|价格|费用|报价|收费|售价|优惠|打折|团购|套餐|性价比/.test(msg)) {
+    return { intent: INTENT_TYPES.PRICE_QUERY, confidence: 0.9, source: 'rule' };
+  }
+  
+  // 趋势查询
+  if (/最新|最火|流行|热门|趋势|新出|刚上市|今年|2025|2026|行情|市场|动态/.test(msg)) {
+    return { intent: INTENT_TYPES.TREND_QUERY, confidence: 0.85, source: 'rule' };
+  }
+  
+  // 对比分析
+  if (/哪个好|区别|对比|比较|vs|还是|选哪|推荐哪|优缺点/.test(msg)) {
+    return { intent: INTENT_TYPES.COMPARISON, confidence: 0.85, source: 'rule' };
+  }
+  
+  // 产品信息
+  if (/成分|规格|型号|产地|厂家|品牌|原料|配方|含量/.test(msg)) {
+    return { intent: INTENT_TYPES.PRODUCT_INFO, confidence: 0.8, source: 'rule' };
+  }
+  
+  // 临床问答
+  if (/效果|副作用|风险|恢复|疼不疼|安全|禁忌|注意事项|术后|并发症|过敏/.test(msg)) {
+    return { intent: INTENT_TYPES.CLINICAL_QA, confidence: 0.8, source: 'rule' };
+  }
+  
+  return { intent: INTENT_TYPES.GENERAL, confidence: 0.6, source: 'rule' };
+}
+
+// 根据意图调整检索策略
+function getRetrievalStrategy(intent) {
+  switch (intent) {
+    case INTENT_TYPES.COMPLIANCE:
+      return { useNmpa: true, useWebSearch: true, useKb: true, webSearchPriority: 'nmpa', topK: 5 };
+    case INTENT_TYPES.PRICE_QUERY:
+      return { useNmpa: false, useWebSearch: true, useKb: true, webSearchPriority: 'price', topK: 5 };
+    case INTENT_TYPES.TREND_QUERY:
+      return { useNmpa: false, useWebSearch: true, useKb: false, webSearchPriority: 'news', topK: 7 };
+    case INTENT_TYPES.PRODUCT_INFO:
+      return { useNmpa: true, useWebSearch: false, useKb: true, topK: 5 };
+    case INTENT_TYPES.CLINICAL_QA:
+      return { useNmpa: false, useWebSearch: false, useKb: true, topK: 7 };
+    case INTENT_TYPES.COMPARISON:
+      return { useNmpa: true, useWebSearch: true, useKb: true, topK: 8 };
+    default:
+      return { useNmpa: false, useWebSearch: false, useKb: true, topK: 5 };
+  }
+}
+
+// 根据意图优化搜索词
+function buildIntentAwareQuery(message, intent) {
+  const baseQuery = extractSearchQuery(message);
+  switch (intent) {
+    case INTENT_TYPES.COMPLIANCE:
+      return `国家药监局 ${baseQuery} 注册证 适应症`;
+    case INTENT_TYPES.PRICE_QUERY:
+      return `医美 ${baseQuery} 价格 收费标准`;
+    case INTENT_TYPES.TREND_QUERY:
+      return `医美行业 ${baseQuery} 最新动态 2025`;
+    default:
+      return baseQuery;
+  }
+}
+
+// ===== BM25 关键词检索（轻量级实现，无需外部库）=====
+// 使用 TF-IDF 近似 BM25，对知识库进行关键词检索
+function tokenize(text) {
+  // 中文分词（简单按字符和词组切分）
+  const words = [];
+  // 提取2-4字的中文词组
+  for (let len = 2; len <= 4; len++) {
+    for (let i = 0; i <= text.length - len; i++) {
+      const word = text.slice(i, i + len);
+      if (/^[\u4e00-\u9fa5a-zA-Z0-9]+$/.test(word)) {
+        words.push(word);
+      }
+    }
+  }
+  // 提取英文单词
+  const enWords = text.match(/[a-zA-Z0-9]+/g) || [];
+  return [...new Set([...words, ...enWords])];
+}
+
+function bm25Score(query, docText, k1 = 1.5, b = 0.75, avgDocLen = 500) {
+  const queryTokens = tokenize(query);
+  const docTokens = tokenize(docText);
+  const docLen = docTokens.length;
+  
+  let score = 0;
+  for (const term of queryTokens) {
+    const tf = docTokens.filter(t => t === term).length;
+    if (tf === 0) continue;
+    const idf = Math.log(1 + 1); // 简化IDF（单文档场景）
+    const tfNorm = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * docLen / avgDocLen));
+    score += idf * tfNorm;
+  }
+  return score;
+}
+
+// BM25 检索：从向量索引中进行关键词匹配
+function bm25Retrieve(query, vectorIndex, topK = 10) {
+  if (!vectorIndex || vectorIndex.length === 0) return [];
+  
+  const avgDocLen = vectorIndex.reduce((sum, e) => sum + (e.text?.length || 0), 0) / vectorIndex.length / 2;
+  
+  const scored = vectorIndex
+    .map(entry => ({
+      ...entry,
+      bm25Score: bm25Score(query, entry.text || '', 1.5, 0.75, avgDocLen)
+    }))
+    .filter(e => e.bm25Score > 0)
+    .sort((a, b) => b.bm25Score - a.bm25Score);
+  
+  return scored.slice(0, topK).map(({ vector, bm25Score: _s, ...rest }) => ({ ...rest, score: _s, source: 'bm25' }));
+}
+
+// ===== 轻量级 Rerank 重排序（无需外部 API）=====
+// 基于关键词覆盖率 + 位置权重 + 向量相似度综合打分
+function rerankChunks(query, chunks) {
+  if (!chunks || chunks.length <= 1) return chunks;
+  
+  const queryTokens = new Set(tokenize(query));
+  
+  const scored = chunks.map((chunk, idx) => {
+    const text = chunk.text || '';
+    const chunkTokens = new Set(tokenize(text));
+    
+    // 1. 关键词覆盖率：查询词中有多少在该chunk中出现
+    const overlap = [...queryTokens].filter(t => chunkTokens.has(t)).length;
+    const coverageScore = queryTokens.size > 0 ? overlap / queryTokens.size : 0;
+    
+    // 2. 密度分：关键词在chunk中的出现频率
+    let densityScore = 0;
+    for (const token of queryTokens) {
+      const count = (text.match(new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+      densityScore += Math.min(count, 3); // 单词最多计3次
+    }
+    densityScore = queryTokens.size > 0 ? densityScore / (queryTokens.size * 3) : 0;
+    
+    // 3. 向量相似度（如果有）
+    const vectorScore = typeof chunk.score === 'number' ? chunk.score : 0.5;
+    
+    // 4. 来源权重：向量检索结果稍微优先
+    const sourceBonus = chunk.retrievalSource === 'vector' ? 0.05 : 0;
+    
+    // 合并分：关键词覆盖率 40% + 密度 20% + 向量相似度 35% + 来源加成 5%
+    const finalScore = coverageScore * 0.4 + densityScore * 0.2 + vectorScore * 0.35 + sourceBonus;
+    
+    return { ...chunk, rerankScore: finalScore, originalIdx: idx };
+  });
+  
+  scored.sort((a, b) => b.rerankScore - a.rerankScore);
+  return scored.map(({ rerankScore, originalIdx, ...rest }) => rest);
+}
+
+// 混合检索：合并向量检索和BM25结果，去重
+function mergeRetrievalResults(vectorResults, bm25Results, topK = 8) {
+  const seen = new Set();
+  const merged = [];
+  
+  // 向量结果优先（语义相关性高）
+  for (const r of vectorResults) {
+    if (!seen.has(r.id)) {
+      seen.add(r.id);
+      merged.push({ ...r, retrievalSource: 'vector' });
+    }
+  }
+  
+  // BM25结果补充（精确关键词匹配）
+  for (const r of bm25Results) {
+    if (!seen.has(r.id)) {
+      seen.add(r.id);
+      merged.push({ ...r, retrievalSource: 'bm25' });
+    }
+  }
+  
+  return merged.slice(0, topK);
+}
+
 // ===== SQLite Database =====
 const DB_PATH = path.join(DATA_DIR, 'medagent.db');
 const db = new Database(DB_PATH);
@@ -2228,13 +2427,20 @@ const server = http.createServer(async (req, res) => {
       session.messages.push({ role: 'user', content: userContent });
       console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
 
-      // 药监局产品查询 + 联网搜索注入
+      // ===== 意图感知的多路检索系统 =====
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
-
-      // 1️⃣ 药监局自动查询（针对产品相关 Agent，无需用户手动开启）
       const agentId = session.agentId;
-      if (AGENTS_NEED_NMPA.has(agentId)) {
+
+      // 0️⃣ 查询意图分类（毫秒级，无需LLM）
+      const intentResult = classifyIntentFast(message);
+      const strategy = getRetrievalStrategy(intentResult.intent);
+      console.log(`🧠 [意图分类] ${intentResult.intent} (置信度: ${intentResult.confidence}) | 策略: NMPA=${strategy.useNmpa}, Web=${strategy.useWebSearch}, KB=${strategy.useKb}`);
+
+      // 1️⃣ 药监局自动查询（合规/产品/对比意图 OR 检测到产品关键词）
+      const shouldQueryNmpa = (strategy.useNmpa && AGENTS_NEED_NMPA.has(agentId)) || 
+                               (intentResult.intent === 'compliance');
+      if (shouldQueryNmpa) {
         const detectedProducts = detectNmpaProduct(message);
         if (detectedProducts) {
           const nmpaData = await nmpaSearch(message, detectedProducts);
@@ -2249,11 +2455,13 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 2️⃣ 联网搜索（用户手动开启 OR 自动检测时效性问题）
-      const autoSearch = !webSearch && needsWebSearch(message) && planStatus.canSearch;
-      if (webSearch || autoSearch) {
-        const searchQuery = extractSearchQuery(message);
-        console.log(`🔍 [联网搜索] 搜索: ${searchQuery.substring(0, 60)}`);
+      // 2️⃣ 联网搜索（用户手动开启 OR 意图策略要求 OR 自动检测时效性）
+      const autoSearchByIntent = !webSearch && strategy.useWebSearch && planStatus.canSearch;
+      const autoSearchByKeyword = !webSearch && needsWebSearch(message) && planStatus.canSearch;
+      if (webSearch || autoSearchByIntent || autoSearchByKeyword) {
+        // 根据意图优化搜索词
+        const searchQuery = buildIntentAwareQuery(message, intentResult.intent);
+        console.log(`🔍 [联网搜索] 意图=${intentResult.intent} | 搜索: ${searchQuery.substring(0, 60)}`);
         const searchData = await bochaSearch(searchQuery, 5);
         if (searchData.success && searchData.results.length > 0) {
           searchResults = (searchResults || []).concat(searchData.results);
@@ -2263,7 +2471,7 @@ const server = http.createServer(async (req, res) => {
           const searchDate1 = new Date().toLocaleDateString('zh-CN', {timeZone:'Asia/Shanghai'});
           enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果（实时，搜索于${searchDate1}） =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
           console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
-          if (autoSearch) incrementSearchCount(userCode);
+          if (autoSearchByIntent || autoSearchByKeyword) incrementSearchCount(userCode);
         }
       }
 
@@ -2286,23 +2494,47 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 4️⃣ RAG 知识库检索（自动触发）
-      try {
-        const kbStats = kb.getStats();
-        if (kbStats.totalFiles > 0) {
-          const sfKey = process.env.SILICONFLOW_API_KEY;
-          const kbChunks = await Promise.race([
-            kb.retrieve(message, session.agentId, sfKey, 5),
-            new Promise(resolve => setTimeout(() => resolve([]), 5000))
-          ]);
-          if (kbChunks && kbChunks.length > 0) {
-            const kbContext = kb.formatKnowledgeContext(kbChunks);
-            enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + kbContext;
-            console.log(`✅ [RAG知识库] 检索到 ${kbChunks.length} 个相关段落`);
+      // 4️⃣ 混合 RAG 知识库检索（向量检索 + BM25 关键词检索）
+      if (strategy.useKb !== false) {
+        try {
+          const kbStats = kb.getStats();
+          if (kbStats.totalFiles > 0) {
+            const sfKey = process.env.SILICONFLOW_API_KEY;
+            const topK = strategy.topK || 5;
+
+            // 并行执行向量检索和BM25检索
+            const [vectorChunks, bm25Chunks] = await Promise.all([
+              Promise.race([
+                kb.retrieve(message, session.agentId, sfKey, topK),
+                new Promise(resolve => setTimeout(() => resolve([]), 5000))
+              ]),
+              (async () => {
+                try {
+                  const globalIndex = kb.loadVectorIndex('global');
+                  const agentIndex = session.agentId ? kb.loadVectorIndex(`agent:${session.agentId}`) : [];
+                  const combined = [...globalIndex, ...agentIndex];
+                  return bm25Retrieve(message, combined, topK);
+                } catch (e) { return []; }
+              })()
+            ]);
+
+            // 混合去重
+            const mergedChunks = mergeRetrievalResults(vectorChunks || [], bm25Chunks || [], topK * 2);
+            
+            // Rerank 重排序，取前 topK 个
+            const rerankedChunks = rerankChunks(message, mergedChunks).slice(0, topK);
+
+            if (rerankedChunks.length > 0) {
+              const kbContext = kb.formatKnowledgeContext(rerankedChunks);
+              enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + kbContext;
+              const vectorCount = (vectorChunks || []).length;
+              const bm25Count = bm25Chunks.filter(b => !vectorChunks?.find(v => v.id === b.id)).length;
+              console.log(`✅ [混合RAG+Rerank] 向量=${vectorCount} BM25新增=${bm25Count} 合并=${mergedChunks.length} Rerank后=${rerankedChunks.length} 段落`);
+            }
           }
+        } catch (e) {
+          console.warn('[混合RAG] 知识库检索跳过:', e.message);
         }
-      } catch (e) {
-        console.warn('[RAG] 知识库检索跳过:', e.message);
       }
 
       // Determine provider
@@ -2469,13 +2701,20 @@ const server = http.createServer(async (req, res) => {
       session.messages.push({ role: 'user', content: userContent });
       console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
 
-      // 药监局产品查询 + 联网搜索注入
+      // ===== 意图感知的多路检索系统 =====
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
+      const agentId2 = session.agentId;
+
+      // 0️⃣ 查询意图分类
+      const intentResult2 = classifyIntentFast(message);
+      const strategy2 = getRetrievalStrategy(intentResult2.intent);
+      console.log(`🧠 [意图分类] ${intentResult2.intent} | 策略: NMPA=${strategy2.useNmpa}, Web=${strategy2.useWebSearch}, KB=${strategy2.useKb}`);
 
       // 1️⃣ 药监局自动查询
-      const agentId2 = session.agentId;
-      if (AGENTS_NEED_NMPA.has(agentId2)) {
+      const shouldQueryNmpa2 = (strategy2.useNmpa && AGENTS_NEED_NMPA.has(agentId2)) ||
+                                (intentResult2.intent === 'compliance');
+      if (shouldQueryNmpa2) {
         const detectedProducts2 = detectNmpaProduct(message);
         if (detectedProducts2) {
           const nmpaData2 = await nmpaSearch(message, detectedProducts2);
@@ -2490,11 +2729,12 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 2️⃣ 联网搜索（用户手动开启 OR 自动检测时效性问题）
-      const autoSearch2 = !webSearch && needsWebSearch(message) && planStatus2.canSearch;
-      if (webSearch || autoSearch2) {
-        const searchQuery = extractSearchQuery(message);
-        console.log(`🔍 [联网搜索] 搜索: ${searchQuery.substring(0, 60)}`);
+      // 2️⃣ 联网搜索（用户手动开启 OR 意图策略要求 OR 自动检测时效性）
+      const autoSearchByIntent2 = !webSearch && strategy2.useWebSearch && planStatus2.canSearch;
+      const autoSearchByKeyword2 = !webSearch && needsWebSearch(message) && planStatus2.canSearch;
+      if (webSearch || autoSearchByIntent2 || autoSearchByKeyword2) {
+        const searchQuery = buildIntentAwareQuery(message, intentResult2.intent);
+        console.log(`🔍 [联网搜索] 意图=${intentResult2.intent} | 搜索: ${searchQuery.substring(0, 60)}`);
         const searchData = await bochaSearch(searchQuery, 5);
         if (searchData.success && searchData.results.length > 0) {
           searchResults = (searchResults || []).concat(searchData.results);
@@ -2504,7 +2744,7 @@ const server = http.createServer(async (req, res) => {
           const searchDate2 = new Date().toLocaleDateString('zh-CN', {timeZone:'Asia/Shanghai'});
           enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果（实时，搜索于${searchDate2}） =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
           console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
-          if (autoSearch2) incrementSearchCount(userCode2);
+          if (autoSearchByIntent2 || autoSearchByKeyword2) incrementSearchCount(userCode2);
         }
       }
 
@@ -2527,23 +2767,36 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // 4️⃣ RAG 知识库检索（自动触发）
-      try {
-        const kbStats2 = kb.getStats();
-        if (kbStats2.totalFiles > 0) {
-          const sfKey2 = process.env.SILICONFLOW_API_KEY;
-          const kbChunks2 = await Promise.race([
-            kb.retrieve(message, session.agentId, sfKey2, 5),
-            new Promise(resolve => setTimeout(() => resolve([]), 5000))
-          ]);
-          if (kbChunks2 && kbChunks2.length > 0) {
-            const kbContext2 = kb.formatKnowledgeContext(kbChunks2);
-            enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + kbContext2;
-            console.log(`✅ [RAG知识库] 检索到 ${kbChunks2.length} 个相关段落`);
+      // 4️⃣ 混合 RAG 知识库检索（向量检索 + BM25 关键词检索）
+      if (strategy2.useKb !== false) {
+        try {
+          const kbStats2 = kb.getStats();
+          if (kbStats2.totalFiles > 0) {
+            const sfKey2 = process.env.SILICONFLOW_API_KEY;
+            const topK2 = strategy2.topK || 5;
+            const [vectorChunks2, bm25Chunks2] = await Promise.all([
+              Promise.race([
+                kb.retrieve(message, session.agentId, sfKey2, topK2),
+                new Promise(resolve => setTimeout(() => resolve([]), 5000))
+              ]),
+              (async () => {
+                try {
+                  const globalIndex2 = kb.loadVectorIndex('global');
+                  const agentIndex2 = session.agentId ? kb.loadVectorIndex(`agent:${session.agentId}`) : [];
+                  return bm25Retrieve(message, [...globalIndex2, ...agentIndex2], topK2);
+                } catch (e) { return []; }
+              })()
+            ]);
+            const mergedChunks2 = mergeRetrievalResults(vectorChunks2 || [], bm25Chunks2 || [], topK2 * 2);
+            const rerankedChunks2 = rerankChunks(message, mergedChunks2).slice(0, topK2);
+            if (rerankedChunks2.length > 0) {
+              enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + kb.formatKnowledgeContext(rerankedChunks2);
+              console.log(`✅ [混合RAG+Rerank] 合并=${mergedChunks2.length} Rerank后=${rerankedChunks2.length} 段落`);
+            }
           }
+        } catch (e) {
+          console.warn('[混合RAG] 知识库检索跳过:', e.message);
         }
-      } catch (e) {
-        console.warn('[RAG] 知识库检索跳过:', e.message);
       }
 
       // Use user-supplied provider if provided, otherwise fall back to server default
