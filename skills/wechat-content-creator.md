@@ -5,6 +5,9 @@ version: 1.0
 author: MedAgent Hub
 category: content
 tags: [微信公众号, 内容运营, 文章创作, 私域运营, 医美内容]
+access: pro
+nmpa: false
+material_level: none
 ---
 
 # 微信公众号内容运营顾问

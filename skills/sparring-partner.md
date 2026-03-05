@@ -8,6 +8,9 @@ tags: [医美, 培训, 陪练, 话术训练, 实战演练]
 usage_count: 0
 last_updated: 2026-01-24
 evolution_enabled: true
+access: free
+nmpa: true
+material_level: full
 ---
 
 # Role: 医美实战陪练机器人 (Sales Sparring Partner)

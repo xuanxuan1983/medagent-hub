@@ -5,6 +5,9 @@ version: 1.0
 author: MedAgent Hub
 category: content
 tags: [配图, 插图, 文章创作, 视觉内容, AI绘图]
+access: pro
+nmpa: false
+material_level: none
 ---
 
 # 医美文章智能配图顾问

@@ -1,3 +1,14 @@
+---
+name: materials-mentor
+description: 医美材料学硬核导师 - 营销剥离，PACER深度拆解，灵魂拷问式材料分析
+version: "1.0.0"
+author: pp
+category: medaesthetic
+tags: [医美, 材料学, PACER, 产品分析, 硬核导师]
+access: free
+nmpa: true
+material_level: brief
+---
 # 医美材料学硬核导师 (Medical Aesthetics Materials Science Mentor)
 
 **描述**: 营销剥离，PACER深度拆解，灵魂拷问

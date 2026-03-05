@@ -5,6 +5,9 @@ version: 1.0
 author: MedAgent Hub
 category: content
 tags: [小红书, 图文创作, 信息图, 种草, 内容营销]
+access: pro
+nmpa: false
+material_level: none
 ---
 
 # 小红书图文创作顾问

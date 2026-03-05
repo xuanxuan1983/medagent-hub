@@ -1,26 +1,58 @@
-# 敏感配置（含 API Key，不上传 GitHub）
-ecosystem.config.js
+# 环境变量
+.env
+.env.*
 
-# 数据库文件
+# 数据库
 *.db
-*.sqlite
-*.sqlite3
+*.db-shm
+*.db-wal
 
-# 日志
-*.log
-logs/
+# 微信支付证书
+apiclient_cert.pem
+apiclient_key.pem
+wechat_cert/
 
-# 依赖
-node_modules/
+# 用户数据
+user-profiles.json
+user-subscriptions.json
+user-phones.json
+invite-codes.json
+invite-usage.json
+invite-usage-limits.json
+invite-requests.jsonl
+payment-orders.json
+payment-log.json
+referral-codes.json
+conversations.jsonl
+needs-summary.json
+teams.json
 
-# 系统文件
-.DS_Store
-Thumbs.db
+# 运行时文件
+nohup.out
+wget-log
+FETCH_HEAD
+main
 
-# 知识库向量数据（大文件，直接部署到服务器）
-knowledge/vectors/
-knowledge/global/
-knowledge/agents/
+# 备份文件
+*.bak
+*.bak_team
+*.bak_team2
+*.backup.*.js
+*.backup.*.html
 
-# 视频文件
-*.mp4
+# 压缩包
+*.tar.gz
+*.zip
+
+# 上传文件
+uploads/
+generated-images/
+
+# 数据目录
+data/
+
+# 临时脚本
+add_new_agents.py
+deploy_team_plan.py
+fix_team_api.py
+team_api_addon.js

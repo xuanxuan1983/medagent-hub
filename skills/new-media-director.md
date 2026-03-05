@@ -5,6 +5,9 @@ version: 4.0
 author: pp
 category: medaesthetic
 tags: [医美, 合规, 三品一规, 小红书, 内容营销]
+access: free
+nmpa: false
+material_level: brief
 ---
 
 # Role: 医美合规内容专家 (Medical Aesthetics Compliant Content Expert)

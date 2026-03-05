@@ -5,6 +5,9 @@ version: 1.0
 author: MedAgent Hub
 category: content
 tags: [漫画, 知识漫画, 内容创作, 医美科普, 视觉叙事]
+access: pro
+nmpa: false
+material_level: none
 ---
 
 # 医美知识漫画创作顾问

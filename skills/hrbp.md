@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 人力资源, 猎聘, 背调, 组织管理]
+access: pro
+nmpa: false
+material_level: brief
 ---
 
 # Role: 医美上游 HRBP (Strategic HR Business Partner)

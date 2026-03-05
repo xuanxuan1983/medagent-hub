@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 美学设计, 高端定制, 光影分析, 全案规划]
+access: free
+nmpa: false
+material_level: full
 ---
 
 # Role: 高定美学设计总监 (High-End Aesthetic Design Director)

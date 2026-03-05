@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 医学联络, 学术推广, KOL管理, 循证医学]
+access: free
+nmpa: true
+material_level: full
 ---
 
 # Role: 首席医学联络官 (Chief Medical Science Liaison)

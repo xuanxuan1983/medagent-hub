@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 术后服务, 风险分诊, 客户管理, 私域运营]
+access: free
+nmpa: false
+material_level: full
 ---
 
 # Role: 医美术后私域管家 (Post-Op Service Guardian)

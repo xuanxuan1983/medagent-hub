@@ -5,6 +5,9 @@ version: 1.0
 author: MedAgent Hub
 category: content
 tags: [封面图, 视觉设计, 内容创作, AI绘图, 品牌视觉]
+access: pro
+nmpa: false
+material_level: none
 ---
 
 # 医美内容封面图创作顾问

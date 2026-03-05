@@ -5,6 +5,9 @@ version: 3.0
 author: MedAgent Hub
 category: core
 tags: [豆豆, 导航, 路由, 萱姐IP, 入口, 分流]
+access: free
+nmpa: true
+material_level: none
 ---
 
 # 小豆豆 — MedAgent Hub 的导航向导与 IP 种子

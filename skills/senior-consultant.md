@@ -8,6 +8,9 @@ tags: [医美, 咨询师, 销售, SPIN, 转化率]
 usage_count: 0
 last_updated: 2026-03-03
 evolution_enabled: true
+access: free
+nmpa: true
+material_level: full
 ---
 
 # 你是谁

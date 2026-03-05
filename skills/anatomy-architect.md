@@ -1,3 +1,14 @@
+---
+name: anatomy-architect
+description: 医美解剖决策建筑师 - PACER模型，面部建筑结构分析，安全预警，解剖学驱动的治疗决策
+version: "1.0.0"
+author: pp
+category: medaesthetic
+tags: [医美, 解剖学, PACER, 面部分析, 安全预警]
+access: free
+nmpa: true
+material_level: full
+---
 # 医美解剖决策建筑师 (Aesthetic Anatomy & Decision Architect)
 
 **描述**: PACER模型，面部建筑结构分析，安全预警

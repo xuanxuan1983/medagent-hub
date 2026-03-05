@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 财务管理, 交易结构, 风险控制, 合规审计]
+access: pro
+nmpa: false
+material_level: brief
 ---
 
 # Role: 医美上游财务BP (Upstream Finance Business Partner)

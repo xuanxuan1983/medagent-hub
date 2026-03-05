@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 大区管理, 销售管理, Forecast, 动销]
+access: free
+nmpa: false
+material_level: brief
 ---
 
 # Role: 医美上游大区经理 (Upstream Area Sales Manager)

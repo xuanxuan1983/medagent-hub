@@ -5,6 +5,9 @@ version: 1.1
 author: MedAgent Hub
 category: content
 tags: [PPT, 幻灯片, 演示文稿, 内容创作, 医美汇报]
+access: pro
+nmpa: false
+material_level: none
 ---
 
 # 医美PPT创作顾问

@@ -500,6 +500,30 @@ function extractSearchQuery(message) {
   return query.length > 80 ? query.substring(0, 80) : query;
 }
 
+// ===== Function Calling Tool 定义（阶段三改造）=====
+const NMPA_TOOL_DEFINITION = {
+  type: 'function',
+  function: {
+    name: 'nmpa_search',
+    description: '查询中国国家药品监督管理局（NMPA）官方数据库，获取医疗器械、药品、医美产品的注册证号、适应症范围、批准状态等官方合规信息。当用户询问产品注册证、适应症、合规状态、批准文号时调用此工具。',
+    parameters: {
+      type: 'object',
+      properties: {
+        products: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '需要查询的产品名称列表，例如 ["保妥适", "乔雅登"]'
+        },
+        query: {
+          type: 'string',
+          description: '用户的原始查询内容，用于优化搜索词'
+        }
+      },
+      required: ['products', 'query']
+    }
+  }
+};
+
 // ===== 查询意图分类（医美行业专属）=====
 // 意图类型定义
 const INTENT_TYPES = {
@@ -1419,6 +1443,64 @@ const FORMAT_RULES = `
 └── G'値要求
 `;
 
+
+// ============================================================
+// 元数据驱动的 Skill 配置系统（阶段一改造）
+// 替代原有硬编码白名单：AGENTS_NEED_NMPA / AGENTS_NEED_FULL_MATERIAL 等
+// ============================================================
+
+/**
+ * 解析 skill 文件的 YAML Frontmatter
+ * @param {string} skillName - skill 文件名（不含 .md）
+ * @returns {object} - 解析出的元数据对象
+ */
+function loadSkillMeta(skillName) {
+  const skillPath = path.join(skillsDir, `${skillName}.md`);
+  try {
+    const content = fs.readFileSync(skillPath, 'utf8');
+    if (!content.startsWith('---')) return {};
+    const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    if (!fmMatch) return {};
+    const fm = fmMatch[1];
+    const meta = {};
+    for (const line of fm.split('\n')) {
+      const colonIdx = line.indexOf(':');
+      if (colonIdx === -1) continue;
+      const key = line.slice(0, colonIdx).trim();
+      const val = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
+      if (val === 'true') meta[key] = true;
+      else if (val === 'false') meta[key] = false;
+      else meta[key] = val;
+    }
+    return meta;
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * 从 agentSkillMap 动态构建元数据驱动的白名单集合
+ * 替代原有硬编码的 AGENTS_NEED_NMPA / AGENTS_NEED_FULL_MATERIAL 等
+ */
+function buildMetaSets(agentSkillMap) {
+  const nmpaSet = new Set();
+  const fullMaterialSet = new Set();
+  const briefMaterialSet = new Set();
+  const contentAgentSet = new Set();
+  const adminAgentSet = new Set();
+
+  for (const [agentId, skillName] of Object.entries(agentSkillMap)) {
+    const meta = loadSkillMeta(skillName);
+    if (meta.nmpa === true) nmpaSet.add(agentId);
+    if (meta.material_level === 'full') fullMaterialSet.add(skillName);
+    if (meta.material_level === 'brief') briefMaterialSet.add(skillName);
+    if (meta.access === 'pro') contentAgentSet.add(agentId);
+    if (meta.access === 'admin') adminAgentSet.add(agentId);
+  }
+
+  return { nmpaSet, fullMaterialSet, briefMaterialSet, contentAgentSet, adminAgentSet };
+}
+
 function loadSkillPrompt(skillName) {
   let promptContent = null;
 
@@ -1448,9 +1530,9 @@ function loadSkillPrompt(skillName) {
   }
 
   // ③ 注入分层材料知识（不修改原始 skill 文件）
-  if (AGENTS_NEED_FULL_MATERIAL.has(skillName)) {
+  if (AGENTS_NEED_FULL_MATERIAL_META.has(skillName)) {
     promptContent += MATERIAL_RULES_FULL;
-  } else if (AGENTS_NEED_BRIEF_MATERIAL.has(skillName)) {
+  } else if (AGENTS_NEED_BRIEF_MATERIAL_META.has(skillName)) {
     promptContent += MATERIAL_RULES_BRIEF;
   }
 
@@ -1551,6 +1633,18 @@ const agentNames = {
   'personal-brand-cinematic': '电影感品牌视觉顾问',
   'super-writer': '超级写作助手'
 };
+
+// 动态构建元数据驱动的白名单（替代硬编码集合）
+// 注意：agentSkillMap 必须在此之前已定义
+const _metaSets = buildMetaSets(agentSkillMap);
+const AGENTS_NEED_NMPA_META = _metaSets.nmpaSet;
+const AGENTS_NEED_FULL_MATERIAL_META = _metaSets.fullMaterialSet;
+const AGENTS_NEED_BRIEF_MATERIAL_META = _metaSets.briefMaterialSet;
+const CONTENT_AGENTS_META = _metaSets.contentAgentSet;
+const ADMIN_ONLY_AGENTS_META = _metaSets.adminAgentSet;
+console.log('[MetaConfig] NMPA agents:', [...AGENTS_NEED_NMPA_META].join(', '));
+console.log('[MetaConfig] Admin-only agents:', [...ADMIN_ONLY_AGENTS_META].join(', '));
+
 
 // 微信支付初始化
 let wechatPay = null;
@@ -1787,6 +1881,38 @@ class SiliconFlowProvider {
       throw new Error(`SiliconFlow stream error: ${errData}`);
     }
 
+    return response.body;
+  }
+
+  // Function Calling 流式版本（阶段三改造）
+  async chatStreamWithTools(systemPrompt, messages, tools) {
+    const formattedMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages
+    ];
+    const body = {
+      model: this.model,
+      messages: formattedMessages,
+      temperature: 0.7,
+      max_tokens: 2048,
+      stream: true
+    };
+    if (tools && tools.length > 0) {
+      body.tools = tools;
+      body.tool_choice = 'auto';
+    }
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      const errData = await response.text();
+      throw new Error(`SiliconFlow tool stream error: ${errData}`);
+    }
     return response.body;
   }
 }
@@ -2404,7 +2530,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const { agentId } = await parseRequestBody(req);
+      const { agentId, doudouContext } = await parseRequestBody(req);
 
       if (!agentId || !agentSkillMap[agentId]) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -2413,14 +2539,19 @@ const server = http.createServer(async (req, res) => {
       }
 
       // 管理员专属Agent权限检查：非管理员访问直接拒绝
-      if (ADMIN_ONLY_AGENTS.has(agentId) && !isAdmin(req)) {
+      if (ADMIN_ONLY_AGENTS_META.has(agentId) && !isAdmin(req)) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Access denied' }));
         return;
       }
 
       const skillName = agentSkillMap[agentId];
-      const systemPrompt = loadSkillPrompt(skillName);
+      let systemPrompt = loadSkillPrompt(skillName);
+
+      if (doudouContext) {
+        systemPrompt += `\n\n---\n**[用户背景（来自豆豆对话）]**\n${doudouContext}\n请在回答时充分考虑以上背景，直接切入用户需求，无需重新介绍自己。`;
+        console.log(`[ContextPass] doudou→${agentId} | context: ${doudouContext.slice(0, 80)}...`);
+      }
 
       if (!systemPrompt) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -2499,7 +2630,7 @@ const server = http.createServer(async (req, res) => {
       // 检查 Agent 访问权限（内测期间分级控制）
       if (session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
         // 内容创作类Agent：需要Pro+或已解锁beta权益
-        if (CONTENT_AGENTS.has(session.agentId)) {
+        if (CONTENT_AGENTS_META.has(session.agentId)) {
           const userProfile = loadProfiles()[userCode] || {};
           const hasBetaUnlock = userProfile.beta_unlock === true;
           if (!planStatus.isPro && !hasBetaUnlock) {
@@ -2577,7 +2708,7 @@ const server = http.createServer(async (req, res) => {
       console.log(`🧠 [意图分类] ${intentResult.intent} (置信度: ${intentResult.confidence}) | 策略: NMPA=${strategy.useNmpa}, Web=${strategy.useWebSearch}, KB=${strategy.useKb}`);
 
       // 1️⃣ 药监局自动查询（合规/产品/对比意图 OR 检测到产品关键词）
-      const shouldQueryNmpa = (strategy.useNmpa && AGENTS_NEED_NMPA.has(agentId)) || 
+      const shouldQueryNmpa = (strategy.useNmpa && AGENTS_NEED_NMPA_META.has(agentId)) || 
                                (intentResult.intent === 'compliance') ||
                                (agentId === 'doudou' && detectNmpaProduct(message) !== null);
       if (shouldQueryNmpa) {
@@ -2743,28 +2874,126 @@ const server = http.createServer(async (req, res) => {
         res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
       }
 
-      // Stream from AI provider
-      const stream = await activeProvider.chatStream(enrichedSystemPrompt, session.messages);
+      // ===== 流式处理（支持 Function Calling，阶段三改造）=====
+      const useToolCalling = AGENTS_NEED_NMPA_META.has(agentId) &&
+                             typeof activeProvider.chatStreamWithTools === 'function';
+
+      async function* parseSSEStream(stream) {
+        let buf = '';
+        for await (const chunk of stream) {
+          buf += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const s = line.slice(6).trim();
+            if (s === '[DONE]') continue;
+            try { yield JSON.parse(s); } catch (e) { /* skip */ }
+          }
+        }
+      }
+
       let fullMessage = '';
-      let buffer = '';
 
-      for await (const chunk of stream) {
-        buffer += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+      if (useToolCalling) {
+        const tools = [NMPA_TOOL_DEFINITION];
+        const stream1 = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, session.messages, tools);
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const dataStr = line.slice(6).trim();
-          if (dataStr === '[DONE]') continue;
+        let toolCallId = null;
+        let toolCallName = null;
+        let toolCallArgsBuf = '';
+        let firstRoundContent = '';
+        let assistantMsg1 = null;
+
+        for await (const parsed of parseSSEStream(stream1)) {
+          const choice = parsed.choices?.[0];
+          if (!choice) continue;
+          const delta = choice.delta || {};
+          if (delta.content) {
+            firstRoundContent += delta.content;
+            res.write(`data: ${JSON.stringify({ type: 'delta', content: delta.content })}\n\n`);
+          }
+          if (delta.tool_calls) {
+            for (const tc of delta.tool_calls) {
+              if (tc.id) toolCallId = tc.id;
+              if (tc.function?.name) toolCallName = tc.function.name;
+              if (tc.function?.arguments) toolCallArgsBuf += tc.function.arguments;
+            }
+          }
+          if (choice.finish_reason === 'tool_calls') {
+            assistantMsg1 = {
+              role: 'assistant',
+              content: firstRoundContent || null,
+              tool_calls: [{ id: toolCallId, type: 'function', function: { name: toolCallName, arguments: toolCallArgsBuf } }]
+            };
+          }
+        }
+
+        if (assistantMsg1 && toolCallName === 'nmpa_search') {
+          let toolArgs = {};
+          try { toolArgs = JSON.parse(toolCallArgsBuf); } catch (e) {}
+          const products = toolArgs.products || detectNmpaProduct(message) || [];
+          const toolQuery = toolArgs.query || message;
+
+          console.log(`🔧 [FunctionCall] nmpa_search | products: ${products.join(', ')}`);
+          res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'nmpa_search', products })}\n\n`);
+
+          let toolResultText = '未找到相关药监局数据。';
           try {
-            const parsed = JSON.parse(dataStr);
+            const nmpaData = await nmpaSearch(toolQuery, products);
+            if (nmpaData.success && nmpaData.results.length > 0) {
+              searchResults = nmpaData.results;
+              toolResultText = nmpaData.results.map(r =>
+                `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
+              ).join('\n\n');
+              console.log(`✅ [FunctionCall] nmpa_search 返回 ${nmpaData.results.length} 条结果`);
+            }
+          } catch (e) {
+            console.warn('[FunctionCall] nmpa_search 执行失败:', e.message);
+          }
+
+          const messagesWithTool = [
+            ...session.messages,
+            assistantMsg1,
+            { role: 'tool', tool_call_id: toolCallId, content: toolResultText }
+          ];
+
+          if (searchResults) {
+            res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
+          }
+
+          const stream2 = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, messagesWithTool, []);
+          for await (const parsed of parseSSEStream(stream2)) {
             const delta = parsed.choices?.[0]?.delta?.content || '';
             if (delta) {
               fullMessage += delta;
               res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
             }
-          } catch (e) { /* skip parse errors */ }
+          }
+        } else {
+          fullMessage = firstRoundContent;
+        }
+      } else {
+        // 降级兜底：原有流式路径
+        const stream = await activeProvider.chatStream(enrichedSystemPrompt, session.messages);
+        let buffer = '';
+        for await (const chunk of stream) {
+          buffer += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(dataStr);
+              const delta = parsed.choices?.[0]?.delta?.content || '';
+              if (delta) {
+                fullMessage += delta;
+                res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+              }
+            } catch (e) { /* skip */ }
+          }
         }
       }
 
@@ -2857,7 +3086,7 @@ const server = http.createServer(async (req, res) => {
       }
       // 检查 Agent 访问权限（内测期间分级控制）
       if (session2.agentId && !TRIAL_AGENTS.includes(session2.agentId)) {
-        if (CONTENT_AGENTS.has(session2.agentId)) {
+        if (CONTENT_AGENTS_META.has(session2.agentId)) {
           const userProfile2 = loadProfiles()[userCode2] || {};
           const hasBetaUnlock2 = userProfile2.beta_unlock === true;
           if (!planStatus2.isPro && !hasBetaUnlock2) {
@@ -2903,7 +3132,7 @@ const server = http.createServer(async (req, res) => {
       console.log(`🧠 [意图分类] ${intentResult2.intent} | 策略: NMPA=${strategy2.useNmpa}, Web=${strategy2.useWebSearch}, KB=${strategy2.useKb}`);
 
       // 1️⃣ 药监局自动查询
-      const shouldQueryNmpa2 = (strategy2.useNmpa && AGENTS_NEED_NMPA.has(agentId2)) ||
+      const shouldQueryNmpa2 = (strategy2.useNmpa && AGENTS_NEED_NMPA_META.has(agentId2)) ||
                                 (intentResult2.intent === 'compliance');
       if (shouldQueryNmpa2) {
         const detectedProducts2 = detectNmpaProduct(message);
@@ -4271,7 +4500,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ ok: true, message: '同步任务已启动，请稍候查看日志' }));
       // 异步执行同步
       const nmpaSync = require('./nmpa-sync');
-      nmpaSync.runSync({ forceAll, productIds })
+      nmpaSync.syncAll({ forceAll, productIds })
         .then(r => console.log('[NMPA Sync] 完成:', JSON.stringify(r.stats)))
         .catch(e => console.error('[NMPA Sync] 失败:', e.message));
     } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
@@ -5221,7 +5450,7 @@ server.listen(PORT, () => {
       console.log('🔄 [NMPA Sync] 开始每月定时同步...');
       try {
         const nmpaSync = require('./nmpa-sync');
-        nmpaSync.runSync({ forceAll: true })
+        nmpaSync.syncAll({ forceAll: true })
           .then(r => {
             console.log('[NMPA Sync] 每月同步完成:', JSON.stringify(r.stats));
             scheduleNmpaSync(); // 安排下次

@@ -1,6 +1,9 @@
 ---
 name: material-architect
 description: 医美材料学架构师，6维评估模型，场景判别，合规底线，专业决策
+access: free
+nmpa: true
+material_level: full
 ---
 
 # 医美材料学架构师 (Medical Aesthetic Material Architect)

@@ -5,6 +5,9 @@ version: 1.0
 author: medagent
 category: medaesthetic
 tags: [视觉设计, KV海报, 电商, 提示词, AI绘图, 医美营销]
+access: free
+nmpa: false
+material_level: none
 ---
 
 # Role: 视觉KV设计总监（Visual KV Design Director）

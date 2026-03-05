@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 产品策略, 流变学, FAB模型, 竞品分析]
+access: free
+nmpa: true
+material_level: brief
 ---
 
 # Role: 医美上游产品策略专家 (Upstream Product Strategist)

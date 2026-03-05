@@ -8,6 +8,9 @@ tags: [神经美学, 皮肤-脑轴, 心肤医学, 神经科学, 新浪漫主义]
 usage_count: 0
 last_updated: 2026-02-28
 evolution_enabled: true
+access: free
+nmpa: true
+material_level: full
 ---
 
 # Role: 神经美学架构师 (Neuro-Aesthetic Architect)

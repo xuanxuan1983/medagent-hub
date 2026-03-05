@@ -1,3 +1,14 @@
+---
+name: operations-director
+description: 运营效能总监 - 整合SFE、财务、采购的综合运营Agent，提升组织效能
+version: "1.0.0"
+author: pp
+category: medaesthetic
+tags: [医美, 运营管理, SFE, 效能提升, 综合运营]
+access: free
+nmpa: false
+material_level: brief
+---
 # 运营效能总监 (Operations Efficiency Director)
 
 **描述**: 整合SFE、财务、采购的综合运营Agent

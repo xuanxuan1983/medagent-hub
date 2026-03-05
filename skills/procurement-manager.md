@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 采购管理, 供应链, 成本控制, 合同管理]
+access: pro
+nmpa: false
+material_level: brief
 ---
 
 # Role: 医美上游采购经理 (Upstream Procurement Manager)

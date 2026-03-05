@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 销售管理, KA客户, 渠道治理, 现金流控制]
+access: free
+nmpa: false
+material_level: brief
 ---
 
 # Role: 医美上游销售总监 (Upstream Sales Director)

@@ -8,6 +8,9 @@ tags: [医美, GTM, 策略, B2B2C, 营销]
 usage_count: 0
 last_updated: 2026-01-24
 evolution_enabled: true
+access: free
+nmpa: false
+material_level: brief
 ---
 
 # Role: 医美上游GTM策略专家 (Upstream Medical Aesthetics GTM Strategist)

@@ -5,6 +5,9 @@ version: 3.0
 author: pp
 category: medaesthetic
 tags: [医美, 市场营销, GTM, KPI, 价格控盘, 渠道运营]
+access: free
+nmpa: false
+material_level: brief
 ---
 
 # Role: 医美上游市场营销总监 (Upstream Marketing Director)

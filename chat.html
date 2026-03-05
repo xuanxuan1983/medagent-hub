@@ -788,6 +788,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       border-radius: 20px; padding: 0.2rem 0.6rem;
       margin-bottom: 0.4rem;
     }
+    .nmpa-indicator {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.75rem; color: #5a7f6a; background: #EEF8F2;
+      border-radius: 20px; padding: 0.2rem 0.6rem;
+      margin-bottom: 0.4rem;
+    }
+    .nmpa-indicator-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #5a7f6a; animation: bounce 0.8s infinite;
+    }
     .search-indicator-dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: #5a7fa8; animation: bounce 0.8s infinite;
@@ -1545,7 +1555,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const btn = document.createElement('button');
       btn.className = 'agent-link-btn';
       btn.textContent = text;
-      btn.onclick = () => startChat(agentId);
+      btn.onclick = () => startChatFromDoudou(agentId);
       el.replaceWith(btn);
     });
   }
@@ -1587,7 +1597,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             }
           },
           renderer(token) {
-            return `<button class="agent-link-btn" onclick="startChat('${token.agentId}')">${token.text}</button>`;
+            return `<button class="agent-link-btn" onclick="startChatFromDoudou('${token.agentId}')">${token.text}</button>`;
           }
         }
       ]
@@ -2112,7 +2122,27 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   // ===== CHAT =====
-    async function startChat(agentId, initialMsg) {
+    /**
+     * 从豆豆对话跳转到专家 Agent 时，自动提取用户意图作为上下文透传
+     * 仅当当前 Agent 是豆豆时才提取上下文，其他情况直接调用 startChat
+     */
+    function startChatFromDoudou(agentId) {
+      let doudouContext = null;
+      if (currentAgentId === 'doudou') {
+        // 提取豆豆对话中最近一条用户消息（最多200字）
+        const userBubbles = document.querySelectorAll('#chatMessages .msg-row.user .msg-bubble');
+        if (userBubbles.length > 0) {
+          const lastUserBubble = userBubbles[userBubbles.length - 1];
+          doudouContext = (lastUserBubble.textContent || '').trim().substring(0, 200);
+        }
+        // 如果没有用户消息，尝试用 lastUserMsg 变量
+        if (!doudouContext && lastUserMsg) {
+          doudouContext = lastUserMsg.trim().substring(0, 200);
+        }
+      }
+      startChat(agentId, null, doudouContext);
+    }
+        async function startChat(agentId, initialMsg, doudouContext) {
     loadGuidedQuestions(agentId);
     currentAgentId = agentId;
     switchView('chat');
@@ -2156,7 +2186,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const res = await fetch('/api/chat/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId })
+        body: JSON.stringify({ agentId, doudouContext: doudouContext || null })
       });
       if (!res.ok) throw new Error('init failed');
       const data = await res.json();
@@ -2508,9 +2538,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             if (!dataStr) continue;
             try {
               const evt = JSON.parse(dataStr);
-              if (evt.type === 'search') {
+              if (evt.type === 'tool_call') {
+                // Function Calling：模型触发了工具调用，显示查询提示
+                if (evt.tool === 'nmpa_search') {
+                  showNmpaIndicator(evt.products);
+                }
+              } else if (evt.type === 'search') {
                 searchResults = evt.results;
               } else if (evt.type === 'delta') {
+                hideNmpaIndicator(); // 开始输出回答，隐藏查询提示
                 fullText += evt.content;
                 // Re-render markdown on each delta with incomplete marker fix
                 if (typeof marked !== 'undefined') {
@@ -2666,6 +2702,26 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   // ===== SEARCH INDICATOR =====
+  function showNmpaIndicator(products) {
+    let el = document.getElementById('nmpaIndicator');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'nmpaIndicator';
+      el.className = 'nmpa-indicator';
+      const container = document.getElementById('chatMessages');
+      container.appendChild(el);
+    }
+    const label = products && products.length > 0
+      ? `正在查询药监局数据：${products.slice(0, 2).join('、')}...`
+      : '正在查询药监局数据...';
+    el.innerHTML = `<div class="nmpa-indicator-dot"></div> ${label}`;
+    const container = document.getElementById('chatMessages');
+    container.scrollTop = container.scrollHeight;
+  }
+  function hideNmpaIndicator() {
+    const el = document.getElementById('nmpaIndicator');
+    if (el) el.remove();
+  }
   function showSearchIndicator() {
     let el = document.getElementById('searchIndicator');
     if (!el) {

@@ -1,3 +1,14 @@
+---
+name: visual-translator
+description: 医美视觉通译官 - 机理转视觉画面，设计师Brief，3D渲染指导
+version: "1.0.0"
+author: pp
+category: medaesthetic
+tags: [医美, 视觉设计, 机理可视化, 3D渲染, 品牌视觉]
+access: free
+nmpa: false
+material_level: none
+---
 # 医美视觉通译官 (Medical Aesthetic Visual Translator)
 
 **描述**: 机理转视觉画面，设计师Brief，3D渲染指导
