@@ -4087,16 +4087,39 @@ const server = http.createServer(async (req, res) => {
     if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const meddb = require('./medaesthetics-db');
+      // PRICE_DB 结构: { injection: [{category, items:[{name,unit,price_low,price_high,price_avg}]}], ... }
       const allPrices = [];
-      for (const [category, items] of Object.entries(meddb.PRICE_DATABASE)) {
-        for (const [id, item] of Object.entries(items)) {
-          allPrices.push({ id, category, ...item });
+      let priceIdx = 0;
+      for (const [type, groups] of Object.entries(meddb.PRICE_DB || {})) {
+        for (const group of (Array.isArray(groups) ? groups : [])) {
+          for (const item of (group.items || [])) {
+            allPrices.push({
+              id: `price_${priceIdx++}`,
+              category: group.category || type,
+              name: item.name,
+              minPrice: item.price_low,
+              maxPrice: item.price_high,
+              avgPrice: item.price_avg,
+              unit: item.unit,
+              tier: item.tier
+            });
+          }
         }
       }
+      // COMPLIANCE_DB 结构: { hyaluronic_acid: [{name, brand, registrationNo, ...}], ... }
       const allCompliance = [];
-      for (const [category, items] of Object.entries(meddb.COMPLIANCE_DATABASE)) {
-        for (const [id, item] of Object.entries(items)) {
-          allCompliance.push({ id, category, ...item });
+      let compIdx = 0;
+      for (const [type, products] of Object.entries(meddb.COMPLIANCE_DB || {})) {
+        for (const product of (Array.isArray(products) ? products : [])) {
+          allCompliance.push({
+            id: `comp_${compIdx++}`,
+            category: type,
+            name: product.name,
+            brand: product.brand,
+            registrationNo: product.registrationNo,
+            indications: product.indications || [],
+            contraindications: product.contraindications || []
+          });
         }
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
