@@ -2455,6 +2455,24 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // 1.5️⃣ 行业资讯实时抓取（趋势查询时自动触发）
+      if (intentResult.intent === 'trend_query') {
+        try {
+          const newsModule = require('./medaesthetics-news');
+          const relevantNews = await Promise.race([
+            newsModule.searchNews(message, 5),
+            new Promise(resolve => setTimeout(() => resolve([]), 4000))
+          ]);
+          if (relevantNews && relevantNews.length > 0) {
+            const newsText = newsModule.formatNewsResult(relevantNews);
+            enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 医美行业最新资讯 =====\n以下是来自医美行业媒体的最新动态，请结合这些信息回答用户的趋势问题：\n\n${newsText}\n\n请在回答中引用具体资讯来源和日期。`;
+            console.log(`✅ [行业资讯] 找到 ${relevantNews.length} 条相关资讯`);
+          }
+        } catch (e) {
+          console.warn('[行业资讯] 抓取跳过:', e.message);
+        }
+      }
+
       // 2️⃣ 联网搜索（用户手动开启 OR 意图策略要求 OR 自动检测时效性）
       const autoSearchByIntent = !webSearch && strategy.useWebSearch && planStatus.canSearch;
       const autoSearchByKeyword = !webSearch && needsWebSearch(message) && planStatus.canSearch;
@@ -2492,6 +2510,21 @@ const server = http.createServer(async (req, res) => {
         } catch (e) {
           console.warn('[Notion] 查询跳过:', e.message);
         }
+      }
+
+      // 3.5️⃣ 医美专属数据库查询（价格行情 + 产品合规）
+      try {
+        const medDB = require('./medaesthetics-db');
+        const dbIntent = intentResult.intent === 'compliance' ? 'compliance'
+          : intentResult.intent === 'price_query' ? 'price'
+          : 'general';
+        const dbResult = medDB.queryMedAestheticsDB(message, dbIntent);
+        if (dbResult.summary && dbResult.summary.length > 50) {
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 医美行业专属数据库 =====\n以下是来自MedAgent医美行业数据库的结构化信息，数据准确性较高，请优先参考：\n\n${dbResult.summary}\n\n注意：价格数据为行业参考区间，实际价格以机构报价为准。`;
+          console.log(`✅ [医美数据库] 合规=${dbResult.compliance.length}条 价格=${dbResult.prices.length}条`);
+        }
+      } catch (e) {
+        console.warn('[医美数据库] 查询跳过:', e.message);
       }
 
       // 4️⃣ 混合 RAG 知识库检索（向量检索 + BM25 关键词检索）
@@ -2765,6 +2798,21 @@ const server = http.createServer(async (req, res) => {
         } catch (e) {
           console.warn('[Notion] 查询跳过:', e.message);
         }
+      }
+
+      // 3.5️⃣ 医美专属数据库查询（价格行情 + 产品合规）
+      try {
+        const medDB2 = require('./medaesthetics-db');
+        const dbIntent2 = intentResult2.intent === 'compliance' ? 'compliance'
+          : intentResult2.intent === 'price_query' ? 'price'
+          : 'general';
+        const dbResult2 = medDB2.queryMedAestheticsDB(message, dbIntent2);
+        if (dbResult2.summary && dbResult2.summary.length > 50) {
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 医美行业专属数据库 =====\n以下是来自MedAgent医美行业数据库的结构化信息，数据准确性较高，请优先参考：\n\n${dbResult2.summary}\n\n注意：价格数据为行业参考区间，实际价格以机构报价为准。`;
+          console.log(`✅ [医美数据库] 合规=${dbResult2.compliance.length}条 价格=${dbResult2.prices.length}条`);
+        }
+      } catch (e) {
+        console.warn('[医美数据库] 查询跳过:', e.message);
       }
 
       // 4️⃣ 混合 RAG 知识库检索（向量检索 + BM25 关键词检索）
