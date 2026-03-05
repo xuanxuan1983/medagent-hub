@@ -2831,7 +2831,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'Invalid session ID' }));
         return;
       }
-      const session2 = sessions.get(sessionId2);
+      const session2 = sessions.get(sessionId);
       const userCode2 = session2.userCode || getUserCode(req);
 
       // ===== 用户记忆系统：提取属性并注入上下文 =====
