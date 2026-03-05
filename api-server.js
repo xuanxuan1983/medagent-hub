@@ -4082,6 +4082,37 @@ const server = http.createServer(async (req, res) => {
   // 当用户通过渠道码（ch_xxx）登录时，记录渠道关系到 user-profiles
   // 这部分在登录逻辑中已通过 invited_by_channel 字段记录
 
+  // Admin: NMPA 药监局数据手动触发同步
+  if (url.pathname === '/api/admin/nmpa-sync' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const body = await parseRequestBody(req);
+      const forceAll = body.forceAll === true;
+      const productIds = Array.isArray(body.productIds) ? body.productIds : null;
+      // 异步执行，先返回接受响应
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, message: '同步任务已启动，请稍候查看日志' }));
+      // 异步执行同步
+      const nmpaSync = require('./nmpa-sync');
+      nmpaSync.runSync({ forceAll, productIds })
+        .then(r => console.log('[NMPA Sync] 完成:', JSON.stringify(r.stats)))
+        .catch(e => console.error('[NMPA Sync] 失败:', e.message));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
+  // Admin: NMPA 同步状态查看
+  if (url.pathname === '/api/admin/nmpa-status' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
+    try {
+      const nmpaSync = require('./nmpa-sync');
+      const summary = nmpaSync.getCacheSummary();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(summary));
+    } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
   // Admin: 医美数据库查看
   if (url.pathname === '/api/admin/meddb' && req.method === 'GET') {
     if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
@@ -5000,6 +5031,35 @@ server.listen(PORT, () => {
   console.log(`🎯 MedAgent API Server running on http://localhost:${PORT}`);
   console.log(`🤖 AI Provider: ${AI_PROVIDER.toUpperCase()}`);
   console.log(`📋 Available endpoints:`);
+
+  // ===== NMPA 药监局每月定时同步 =====
+  // 每月 1 日凌晨 2:00 自动执行
+  const scheduleNmpaSync = () => {
+    const now = new Date();
+    const nextRun = new Date(now.getFullYear(), now.getMonth() + 1, 1, 2, 0, 0, 0);
+    const msUntilNextRun = nextRun - now;
+    console.log(`📅 [NMPA Sync] 下次自动同步: ${nextRun.toLocaleString('zh-CN')} (还有 ${Math.round(msUntilNextRun / 1000 / 60 / 60)} 小时)`);
+    setTimeout(() => {
+      console.log('🔄 [NMPA Sync] 开始每月定时同步...');
+      try {
+        const nmpaSync = require('./nmpa-sync');
+        nmpaSync.runSync({ forceAll: true })
+          .then(r => {
+            console.log('[NMPA Sync] 每月同步完成:', JSON.stringify(r.stats));
+            scheduleNmpaSync(); // 安排下次
+          })
+          .catch(e => {
+            console.error('[NMPA Sync] 每月同步失败:', e.message);
+            scheduleNmpaSync(); // 即使失败也安排下次
+          });
+      } catch (e) {
+        console.error('[NMPA Sync] 模块加载失败:', e.message);
+        scheduleNmpaSync();
+      }
+    }, msUntilNextRun);
+  };
+  scheduleNmpaSync();
+  // ==============================================
   console.log(`   - POST /api/auth/login      - Login with invite code`);
   console.log(`   - GET  /api/auth/code-status - Check invite code usage`);
   console.log(`   - POST /api/chat/init       - Initialize chat session`);
