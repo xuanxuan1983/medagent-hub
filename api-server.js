@@ -2840,7 +2840,7 @@ const server = http.createServer(async (req, res) => {
         const profiles2 = loadProfiles();
         const memUpdated2 = userMemModule2.updateUserMemory(profiles2, userCode2, message);
         if (memUpdated2) saveProfiles(profiles2);
-        const memContext2 = userMemModule2.getUserMemoryContext(profiles2, userCode2, session.messages);
+        const memContext2 = userMemModule2.getUserMemoryContext(profiles2, userCode2, session2.messages);
         if (memContext2) session2._memoryContext = memContext2;
       } catch (e) {
         console.warn('[用户记忆] 提取跳过:', e.message);
