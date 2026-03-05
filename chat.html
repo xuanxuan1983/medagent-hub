@@ -1600,6 +1600,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   let currentAgentId = null;
   let messageIndex = 0;
   let currentView = 'desktop';
+  let lastUserMsg = '';  // 记录最近一次用户消息，用于反馈学习
 
   const AGENT_GROUPS = [
     {
@@ -2439,6 +2440,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const displayMsg = msg || ('分析文件《' + (pendingFile ? pendingFile.name : '') + '》');
     const filePreviewUrl = (pendingFile && pendingFile.isImage) ? pendingFile.objectUrl : null;
     addMessage('user', displayMsg, null, { isImage: filePreviewUrl, fileName: pendingFile ? pendingFile.name : null });
+    lastUserMsg = displayMsg;  // 记录用户消息供反馈学习使用
     input.value = '';
     input.style.height = 'auto';
 
@@ -2630,7 +2632,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const feedback = document.createElement('div');
     feedback.className = 'msg-feedback';
     const idx = messageIndex++;
-    feedback.innerHTML = '<span class="feedback-hint">有帮助吗？</span><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">\ud83d\udc4d 有用</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">\ud83d\udc4e 不准</button>';
+    feedback.dataset.userMsg = lastUserMsg;
+    feedback.dataset.assistantMsg = mainContent.substring(0, 2000);  // 最多取2000字
+    feedback.innerHTML = '<span class="feedback-hint">有帮助吗？</span><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">👍 有用</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">👎 不准</button>';
     bubble.appendChild(feedback);
 
     // Suggested questions
@@ -2756,6 +2760,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const feedback = document.createElement('div');
       feedback.className = 'msg-feedback';
       const idx = messageIndex++;
+      feedback.dataset.userMsg = lastUserMsg;
+      feedback.dataset.assistantMsg = (mainContent || content || '').substring(0, 2000);
       feedback.innerHTML = `<span class="feedback-hint">有帮助吗？</span><button class="feedback-btn" onclick="submitFeedback(this,${idx},'up')">👍 有用</button><button class="feedback-btn" onclick="submitFeedback(this,${idx},'down')">👎 不准</button>`;
       bubble.appendChild(feedback);
       row.appendChild(avatar);
@@ -2841,10 +2847,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const hint = btn.parentElement.querySelector('.feedback-hint');
     if (hint) { hint.textContent = val === 'up' ? '✓ 感谢反馈，将用于改进训练' : '✓ 已记录，将持续优化'; hint.style.color = val === 'up' ? '#16A34A' : '#DC2626'; }
     try {
+      const feedbackDiv = btn.parentElement;
+      const userMsg = feedbackDiv.dataset.userMsg || '';
+      const assistantMsg = feedbackDiv.dataset.assistantMsg || '';
       await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, messageIndex: idx, feedback: val })
+        body: JSON.stringify({ sessionId, messageIndex: idx, feedback: val, userMsg, assistantMsg })
       });
     } catch {}
   }
