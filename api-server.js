@@ -2854,8 +2854,8 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       // 检查 Agent 访问权限（内测期间分级控制）
-      if (session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
-        if (CONTENT_AGENTS.has(session.agentId)) {
+      if (session2.agentId && !TRIAL_AGENTS.includes(session2.agentId)) {
+        if (CONTENT_AGENTS.has(session2.agentId)) {
           const userProfile2 = loadProfiles()[userCode2] || {};
           const hasBetaUnlock2 = userProfile2.beta_unlock === true;
           if (!planStatus2.isPro && !hasBetaUnlock2) {
@@ -2883,17 +2883,17 @@ const server = http.createServer(async (req, res) => {
         userContent = `用户上传了文件《${fileContext.name}》，内容如下：\n\n---\n${fileContext.content.substring(0, 8000)}\n---\n\n用户问题：${message}`;
       }
 
-      session.messages.push({ role: 'user', content: userContent });
-      console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
+      session2.messages.push({ role: 'user', content: userContent });
+      console.log(`💬 [${session2.agentName}] User: ${message.substring(0, 50)}...`);
 
       // ===== 意图感知的多路检索系统 =====
       let searchResults = null;
-      let enrichedSystemPrompt = session.systemPrompt;
+      let enrichedSystemPrompt = session2.systemPrompt;
       // 注入用户记忆上下文
       if (session2._memoryContext) {
         enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + session2._memoryContext;
       }
-      const agentId2 = session.agentId;
+      const agentId2 = session2.agentId;
 
       // 0️⃣ 查询意图分类
       const intentResult2 = classifyIntentFast(message);
@@ -2911,7 +2911,7 @@ const server = http.createServer(async (req, res) => {
             const nmpaContext2 = nmpaData2.results.map(r =>
               `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
             ).join('\n\n');
-            enrichedSystemPrompt = session.systemPrompt + `\n\n===== 药监局实时注册信息 =====\n以下是关于「${detectedProducts2.join('、')}」的药监局官方注册信息，请将这些信息结合你的专业知识进行回答，并在回答末尾标注数据来源：\n\n${nmpaContext2}\n\n重要：如有注册证号、适应症范围、有效期等官方信息，请明确引用。`;
+            enrichedSystemPrompt = session2.systemPrompt + `\n\n===== 药监局实时注册信息 =====\n以下是关于「${detectedProducts2.join('、')}」的药监局官方注册信息，请将这些信息结合你的专业知识进行回答，并在回答末尾标注数据来源：\n\n${nmpaContext2}\n\n重要：如有注册证号、适应症范围、有效期等官方信息，请明确引用。`;
             searchResults = nmpaData2.results;
             console.log(`✅ [药监局查询] 找到 ${nmpaData2.results.length} 条结果`);
           }
@@ -2980,13 +2980,13 @@ const server = http.createServer(async (req, res) => {
             const topK2 = strategy2.topK || 5;
             const [vectorChunks2, bm25Chunks2] = await Promise.all([
               Promise.race([
-                kb.retrieve(message, session.agentId, sfKey2, topK2),
+                kb.retrieve(message, session2.agentId, sfKey2, topK2),
                 new Promise(resolve => setTimeout(() => resolve([]), 5000))
               ]),
               (async () => {
                 try {
                   const globalIndex2 = kb.loadVectorIndex('global');
-                  const agentIndex2 = session.agentId ? kb.loadVectorIndex(`agent:${session.agentId}`) : [];
+                  const agentIndex2 = session2.agentId ? kb.loadVectorIndex(`agent:${session2.agentId}`) : [];
                   return bm25Retrieve(message, [...globalIndex2, ...agentIndex2], topK2);
                 } catch (e) { return []; }
               })()
@@ -3009,9 +3009,9 @@ const server = http.createServer(async (req, res) => {
         : aiProvider;
 
       // Call AI provider (with enriched system prompt if search was done)
-      const response = await activeProvider.chat(enrichedSystemPrompt, session.messages);
+      const response = await activeProvider.chat(enrichedSystemPrompt, session2.messages);
 
-      session.messages.push({
+      session2.messages.push({
         role: 'assistant',
         content: response.message
       });
@@ -3020,10 +3020,10 @@ const server = http.createServer(async (req, res) => {
       const logTs2 = new Date().toISOString();
       const logEntry = JSON.stringify({
         ts: logTs2,
-        agent: session.agentId,
-        agent_name: session.agentName,
-        user_code: userCode,
-        user_name: session.userName,
+        agent: session2.agentId,
+        agent_name: session2.agentName,
+        user_code: userCode2,
+        user_name: session2.userName,
         user: message,
         assistant: response.message,
         feedback: null
@@ -3031,7 +3031,7 @@ const server = http.createServer(async (req, res) => {
       const logLine = logEntry + '\n';
       fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logLine, () => {});
       // 同时写入 SQLite内存索引
-      try { stmtInsertConvLog.run(logTs2, 'chat', session.agentId, session.agentName, userCode, session.userName, message, response.message, null); } catch (e) { /* non-fatal */ }
+      try { stmtInsertConvLog.run(logTs2, 'chat', session2.agentId, session2.agentName, userCode2, session2.userName, message, response.message, null); } catch (e) { /* non-fatal */ }
 
       // Save messages to SQLite
       try {
@@ -3042,21 +3042,21 @@ const server = http.createServer(async (req, res) => {
         console.error('DB insert message error:', dbErr.message);
       }
 
-      console.log(`🤖 [${session.agentName}] Response: ${response.message.substring(0, 50)}...`);
+      console.log(`🤖 [${session2.agentName}] Response: ${response.message.substring(0, 50)}...`);
 
       // Record token usage
       const provName = userProvider || AI_PROVIDER;
       const msgApiType = webSearch ? 'chat_with_search' : 'chat';
       if (response.usage) {
-        recordTokenUsage(session.userCode, session.userName, session.agentId, provName, userModel || '', response.usage.input_tokens || 0, response.usage.output_tokens || 0, msgApiType);
+        recordTokenUsage(session2.userCode, session2.userName, session2.agentId, provName, userModel || '', response.usage.input_tokens || 0, response.usage.output_tokens || 0, msgApiType);
       } else {
-        const estIn = Math.ceil((message.length + (session.systemPrompt || '').length) / 4);
+        const estIn = Math.ceil((message.length + (session2.systemPrompt || '').length) / 4);
         const estOut = Math.ceil((response.message || '').length / 4);
-        recordTokenUsage(session.userCode, session.userName, session.agentId, provName, userModel || '', estIn, estOut, msgApiType);
+        recordTokenUsage(session2.userCode, session2.userName, session2.agentId, provName, userModel || '', estIn, estOut, msgApiType);
       }
       // Record Bocha search cost separately if web search was used
       if (webSearch && searchResults) {
-        recordBochaUsage(session.userCode, session.userName);
+        recordBochaUsage(session2.userCode, session2.userName);
       }
 
       // 记录消息配额和搜索配额
