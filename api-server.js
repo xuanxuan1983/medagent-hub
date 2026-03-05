@@ -4656,16 +4656,13 @@ const server = http.createServer(async (req, res) => {
           }
         } catch(e) { restartOut = `${p} 失败: ` + e.message; }
       }
-      // 如果所有pm2方式失败，尝试通过当前进程的父进程发信号
-      if (!restarted) {
-        try {
-          // 对自身发SIGUSR2，触发pm2的graceful reload
-          process.kill(process.pid, 'SIGUSR2');
-          restartOut = '已对自身发SIGUSR2信号';
-        } catch(se) { restartOut += ' | 自身信号失败: ' + se.message; }
-      }
+      // 如果所有pm2方式失败，先返回响应，然后用process.exit让pm2自动重启
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, pull: pullOut, restart: restartOut, pm2List }));
+      res.end(JSON.stringify({ success: true, pull: pullOut, restart: restarted ? restartOut : 'process.exit重启', pm2List }));
+      if (!restarted) {
+        // 延迟500ms后退出，让响应先发出去，pm2会自动重启进程加载新代码
+        setTimeout(() => { process.exit(0); }, 500);
+      }
     } catch (e) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: e.message }));
