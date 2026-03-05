@@ -2846,7 +2846,8 @@ const server = http.createServer(async (req, res) => {
         console.warn('[用户记忆] 提取跳过:', e.message);
       }
 
-      // ===== 权限检查 =====     const planStatus2 = getUserPlanStatus(userCode2);
+      // ===== 权限检查 =====
+      const planStatus2 = getUserPlanStatus(userCode2);
       if (planStatus2.isTrialExpired) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'trial_expired', message: '免费试用期已结束，请升级为 Pro 会员继续使用', planStatus: planStatus2 }));
