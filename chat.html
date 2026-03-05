@@ -2126,7 +2126,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
      * 从豆豆对话跳转到专家 Agent 时，自动提取用户意图作为上下文透传
      * 仅当当前 Agent 是豆豆时才提取上下文，其他情况直接调用 startChat
      */
-    function startChatFromDoudou(agentId) {
+  function startChatFromDoudou(agentId) {
       let doudouContext = null;
       if (currentAgentId === 'doudou') {
         // 提取豆豆对话中最近一条用户消息（最多200字）
