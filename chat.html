@@ -505,7 +505,27 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .msg-row.user .msg-avatar { background: var(--text); color: white; font-size: 0.7rem; font-weight: 700; }
-    .msg-bubble {
+      .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    line-height: 1.5;
+    z-index: 10;
+  }
+  .msg-bubble:hover .copy-btn { opacity: 1; }
+  .copy-btn:hover { background: #f0f0f0; color: #333; }
+  .copy-btn.copied { color: #4caf50; border-color: #4caf50; }
+  .msg-bubble { position: relative; }
+.msg-bubble {
       position: relative;
       max-width: 72%; padding: 0.875rem 1.1rem;
       border-radius: 14px; font-size: 0.875rem; line-height: 1.75;
@@ -686,16 +706,23 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
 
     .typing-dots {
-      display: flex; align-items: center; gap: 4px;
+      display: flex; align-items: center;
       padding: 0.75rem 1rem; background: white;
       border: 1px solid var(--border); border-radius: 12px;
+      min-width: 80px;
     }
-    .typing-dots span {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--text-3); animation: bounce 1.2s infinite;
+    .typing-dots span { display: none; }
+    .typing-pen-svg .pen-path {
+      stroke-dasharray: 120;
+      stroke-dashoffset: 120;
+      animation: pen-write 1.8s ease-in-out infinite;
     }
-    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pen-write {
+      0%   { stroke-dashoffset: 120; opacity: 1; }
+      60%  { stroke-dashoffset: 0;   opacity: 1; }
+      80%  { stroke-dashoffset: 0;   opacity: 0.3; }
+      100% { stroke-dashoffset: 120; opacity: 0; }
+    }
 
     .chat-input-area {
       padding: 0.875rem 1.5rem 1rem;
@@ -1079,7 +1106,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       .welcome-mascot { width: 70px; height: 70px; }
     }
     /* Agent 跳转按钮（豆豆分流用） */
-    .agent-link-btn {
+    .agent-link-btn { display: none !important; /* hidden */
       display: inline-flex; align-items: center; gap: 0.3rem;
       padding: 0.2rem 0.65rem;
       border-radius: 20px;
@@ -1101,6 +1128,28 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     .agent-link-btn::after {
       content: ' →';
       font-size: 0.75rem;
+    }
+  
+    .reasoning-box {
+      font-size: 0.85rem;
+      color: var(--text-3);
+      background: rgba(0,0,0,0.02);
+      border-left: 3px solid #cbd5e1;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0 4px 4px 0;
+      cursor: pointer;
+    }
+    .reasoning-box summary {
+      font-weight: 600;
+      outline: none;
+      list-style: none;
+    }
+    .reasoning-box summary::-webkit-details-marker { display: none; }
+    .reasoning-content {
+      margin-top: 0.5rem;
+      white-space: pre-wrap;
+      font-family: monospace;
     }
   </style>
 </head>
@@ -2588,6 +2637,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let sseBuffer = '';
+        let sseEventType = 'message';
 
         while (true) {
           const { done, value } = await reader.read();
@@ -2596,10 +2646,31 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           const sseLines = sseBuffer.split('\n');
           sseBuffer = sseLines.pop() || '';
 
+          
           for (const line of sseLines) {
+            if (line.startsWith('event: ')) { sseEventType = line.slice(7).trim(); continue; }
             if (!line.startsWith('data: ')) continue;
             const dataStr = line.slice(6).trim();
             if (!dataStr) continue;
+            // 处理 reasoning 思考过程事件
+            if (sseEventType === 'reasoning') {
+              try {
+                const r = JSON.parse(dataStr);
+                let reasoningEl = bubble.querySelector('.reasoning-box');
+                if (!reasoningEl) {
+                  reasoningEl = document.createElement('details');
+                  reasoningEl.className = 'reasoning-box';
+                  reasoningEl.innerHTML = '<summary>🧠 正在深度思考...</summary><div class="reasoning-content"></div>';
+                  bubble.insertBefore(reasoningEl, bubble.firstChild);
+                }
+                const contentEl = reasoningEl.querySelector('.reasoning-content');
+                if (contentEl) contentEl.textContent += r.content || '';
+                container.scrollTop = container.scrollHeight;
+              } catch(e) {}
+              sseEventType = 'message';
+              continue;
+            }
+            sseEventType = 'message';
             try {
               const evt = JSON.parse(dataStr);
               if (evt.type === 'skill_dispatch') {
@@ -2648,8 +2719,19 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 }
                 container.scrollTop = container.scrollHeight;
               } else if (evt.type === 'done') {
-                // Finalize: add search sources + feedback buttons
-                finalizeStreamBubble(bubble, row, container, fullText, searchResults);
+                // 思考结束，更新思考框标题
+                const rBox = bubble.querySelector('.reasoning-box summary');
+                if (rBox && rBox.textContent.includes('正在')) {
+                  rBox.textContent = '💡 思考过程（点击展开）';
+                }
+                // 保护：如果 fullText 为空，说明 delta 事件未收到，显示错误提示
+                if (!fullText && !bubble.querySelector('.reasoning-box')) {
+                  bubble.textContent = '抱歉，响应异常，请重新发送。';
+                  console.warn('[SSE] done received but fullText is empty');
+                } else {
+                  // Finalize: add search sources + feedback buttons
+                  finalizeStreamBubble(bubble, row, container, fullText, searchResults);
+                }
                 setDoudouEmotion('happy');
                 setTimeout(() => setDoudouEmotion('default'), 3000);
               } else if (evt.type === 'error') {
@@ -2658,6 +2740,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             } catch (e) { /* skip */ }
           }
         }
+        input.disabled = false;
+        document.getElementById('sendBtn').disabled = false;
+        document.getElementById('uploadBtn').disabled = false;
+        const micBtnR = document.getElementById('micBtn');
+        if (micBtnR) micBtnR.disabled = false;
         setTimeout(() => loadSidebarHistory(), 500);
       } else {
         // === NON-STREAMING FALLBACK ===
@@ -2679,6 +2766,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       input.disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('uploadBtn').disabled = false;
+      const micBtn = document.getElementById('micBtn');
+      if (micBtn) micBtn.disabled = false;
       input.focus();
     }
   }
@@ -3007,7 +3096,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     } else { avatar.textContent = '🤖'; }
     const dots = document.createElement('div');
     dots.className = 'typing-dots';
-    dots.innerHTML = '<span></span><span></span><span></span>';
+    dots.innerHTML = '<svg class=\'typing-pen-svg\' width=\'64\' height=\'20\' viewBox=\'0 0 64 20\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'><path class=\'pen-path\' d=\'M4 16 Q12 4 20 14 Q28 4 36 14 Q44 4 52 14 Q58 8 62 10\' stroke=\'#AEAAA5\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\' fill=\'none\'/></svg>';
     row.appendChild(avatar);
     row.appendChild(dots);
     container.appendChild(row);

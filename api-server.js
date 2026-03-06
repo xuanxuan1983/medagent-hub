@@ -1927,6 +1927,7 @@ class SiliconFlowProvider {
       },
       body: JSON.stringify(body)
     });
+    console.log(`🌐 [chatStreamWithTools] HTTP ${response.status} | model=${this.model}`);
     if (!response.ok) {
       const errData = await response.text();
       throw new Error(`SiliconFlow tool stream error: ${errData}`);
@@ -2860,9 +2861,17 @@ const server = http.createServer(async (req, res) => {
       }
 
       // Determine provider
-      const activeProvider = (userProvider && userApiKey)
+      let activeProvider = (userProvider && userApiKey)
         ? createProviderFromConfig(userProvider, userApiKey, userModel)
         : aiProvider;
+      // 付费用户专属：DeepSeek-R1 推理模型（复用上方已声明的 planStatus）
+      const useR1 = false; // TODO: 开通 SiliconFlow R1 权限后再启用
+      if (useR1 && activeProvider instanceof SiliconFlowProvider) {
+        const r1Provider = new SiliconFlowProvider();
+        r1Provider.model = process.env.SILICONFLOW_R1_MODEL || 'deepseek-ai/DeepSeek-R1';
+        activeProvider = r1Provider;
+        console.log(`🧠 [R1] 付费用户启用 DeepSeek-R1 | plan=${planStatus.plan} | user=${userCode}`);
+      }
 
       // Check if provider supports streaming
       if (typeof activeProvider.chatStream !== 'function') {
@@ -3020,13 +3029,15 @@ const server = http.createServer(async (req, res) => {
             // ===== Skill 路由调度：切换专家 system prompt 直接回答 =====
             const skillId = toolArgs.skill_id;
             const reason = toolArgs.reason || '';
+            // 立即向前端发送 skill_dispatch 事件（提前显示，不等工具执行完毕）
+            const previewName = toolRegistry.SKILL_DISPLAY_NAMES?.[skillId] || skillId;
+            res.write(`data: ${JSON.stringify({ type: 'skill_dispatch', skill_id: skillId, displayName: previewName })}\n\n`);
             try {
               const toolResult = await toolRegistry.executeTool('skill_dispatch', toolArgs, {
                 message, nmpaSearch, detectNmpaProduct, bochaSearch
               });
               const displayName = toolResult.skillDisplayName || skillId;
               // 向前端发送 skill_dispatch 事件（用于显示"正在调用 XX 专家..."）
-              res.write(`data: ${JSON.stringify({ type: 'skill_dispatch', skill_id: skillId, displayName })}\n\n`);
 
               if (toolResult.skillPrompt) {
                 // 用专家 system prompt 替换豆豆的 system prompt，直接发起第二轮调用
@@ -3036,17 +3047,39 @@ const server = http.createServer(async (req, res) => {
                 ];
                 console.log(`🎯 [skill_dispatch] 使用专家 prompt 直接回答 | skill: ${skillId} | prompt长度: ${expertSystemPrompt.length}`);
                 const stream2Expert = await activeProvider.chatStreamWithTools(expertSystemPrompt, messagesForExpert, []);
-                for await (const parsed of parseSSEStream(stream2Expert)) {
-                  const delta = parsed.choices?.[0]?.delta?.content || '';
-                  if (delta) {
-                    fullMessage += delta;
-                    res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+                let expertDeltaCount = 0;
+                try {
+                  for await (const parsed of parseSSEStream(stream2Expert)) {
+                    const delta = parsed.choices?.[0]?.delta?.content || '';
+                    const reasoning = parsed.choices?.[0]?.delta?.reasoning_content || '';
+                    if (reasoning) {
+                      res.write(`event: reasoning\ndata: ${JSON.stringify({ content: reasoning })}\n\n`);
+                    }
+                    if (delta) {
+                      expertDeltaCount++;
+                      fullMessage += delta;
+                      res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+                    }
                   }
+                } catch (streamErr) {
+                  console.error(`❌ [skill_dispatch] stream2Expert error | skill=${skillId} | err=${streamErr.message}`);
+                  if (fullMessage.length === 0) {
+                    fullMessage = '抱歉，专家响应异常，请重新发送。';
+                    res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
+                  }
+                }
+                console.log(`📤 [skill_dispatch] expert stream done | skill=${skillId} | deltaCount=${expertDeltaCount} | msgLen=${fullMessage.length}`);
+                // 保护：如果专家没有输出任何内容，发送错误提示
+                if (expertDeltaCount === 0 && fullMessage.length === 0) {
+                  console.error(`❌ [skill_dispatch] expert returned empty response | skill=${skillId}`);
+                  fullMessage = '抱歉，专家暂时无法响应，请稍后重试。';
+                  res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
                 }
                 // skill_dispatch 已完成流式输出，直接跳过后续的 stream2
                 if (searchResults) {
                   res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
                 }
+                res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
                 return; // 提前返回，不再执行下方的 stream2
               } else {
                 toolResultText = `专家 Skill "${skillId}" 暂时不可用，请稍后再试。`;
@@ -3131,7 +3164,10 @@ const server = http.createServer(async (req, res) => {
       fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logEntry + '\n', () => {});
       // 同时写入 SQLite内存索引
       try { stmtInsertConvLog.run(logTs, 'chat', session.agentId, session.agentName, userCode, session.userName, message, fullMessage, null); } catch (e) { /* non-fatal */ }
-      console.log(`\ud83e\udd16 [${session.agentName}] Stream complete: ${fullMessage.substring(0, 50)}...`);
+      const msgLen = fullMessage.length;
+      console.log(`🤖 [${session.agentName}] Stream complete: len=${msgLen} | ${fullMessage.substring(0, 50)}...`);
+      if (msgLen === 0) { console.error(`❌ [EMPTY_RESPONSE] agent=${session.agentName} user=${userCode} msg=${message.substring(0, 80)}`); }
+      if (msgLen === 0) { console.error(`274C [EMPTY RESPONSE] agent=${session.agentName} user=${userCode} msg=${message.substring(0, 80)}`); }
 
       // Record token usage (estimate for streaming: ~4 chars per token)
       const estInputTokens = Math.ceil((message.length + (session.systemPrompt || '').length) / 4);
@@ -5585,7 +5621,16 @@ server.listen(PORT, () => {
     const nextRun = new Date(now.getFullYear(), now.getMonth() + 1, 1, 2, 0, 0, 0);
     const msUntilNextRun = nextRun - now;
     console.log(`📅 [NMPA Sync] 下次自动同步: ${nextRun.toLocaleString('zh-CN')} (还有 ${Math.round(msUntilNextRun / 1000 / 60 / 60)} 小时)`);
-    setTimeout(() => {
+    // 修复：setTimeout 最大值约 24.8 天，超过会溢出。使用分段等待避免溢出。
+    const MAX_TIMEOUT = 24 * 60 * 60 * 1000; // 24 小时
+    const safeDelay = (ms, callback) => {
+      if (ms <= MAX_TIMEOUT) {
+        setTimeout(callback, ms);
+      } else {
+        setTimeout(() => safeDelay(ms - MAX_TIMEOUT, callback), MAX_TIMEOUT);
+      }
+    };
+    safeDelay(msUntilNextRun, () => {
       console.log('🔄 [NMPA Sync] 开始每月定时同步...');
       try {
         const nmpaSync = require('./nmpa-sync');
@@ -5602,7 +5647,7 @@ server.listen(PORT, () => {
         console.error('[NMPA Sync] 模块加载失败:', e.message);
         scheduleNmpaSync();
       }
-    }, msUntilNextRun);
+    });
   };
   scheduleNmpaSync();
   // ==============================================
