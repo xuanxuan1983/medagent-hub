@@ -227,11 +227,27 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         用户反馈
       </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <table id="feedbackTable">
-          <thead><tr><th>时间</th><th>用户</th><th>类型</th><th>内容</th><th>联系方式</th></tr></thead>
-          <tbody id="feedbackBody"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
-        </table>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
+        <button class="btn" id="tab-conv-feedback" onclick="switchFeedbackTab('conv')" style="background:#E8715A;color:#fff;border:none">对话评价</button>
+        <button class="btn btn-ghost" id="tab-text-feedback" onclick="switchFeedbackTab('text')">文字反馈</button>
+      </div>
+      <!-- 对话评价 Tab -->
+      <div id="panel-conv-feedback">
+        <div class="card" style="padding:0;overflow:hidden">
+          <table id="convFeedbackTable">
+            <thead><tr><th>时间</th><th>用户</th><th>Agent</th><th>评价</th></tr></thead>
+            <tbody id="convFeedbackBody"><tr><td colspan="4" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- 文字反馈 Tab -->
+      <div id="panel-text-feedback" style="display:none">
+        <div class="card" style="padding:0;overflow:hidden">
+          <table id="feedbackTable">
+            <thead><tr><th>时间</th><th>用户</th><th>类型</th><th>内容</th><th>联系方式</th></tr></thead>
+            <tbody id="feedbackBody"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -683,12 +699,51 @@ async function deleteCode(code) {
 }
 
 // ===== Feedback =====
+function switchFeedbackTab(tab) {
+  const convPanel = document.getElementById('panel-conv-feedback');
+  const textPanel = document.getElementById('panel-text-feedback');
+  const convBtn = document.getElementById('tab-conv-feedback');
+  const textBtn = document.getElementById('tab-text-feedback');
+  if (tab === 'conv') {
+    convPanel.style.display = '';
+    textPanel.style.display = 'none';
+    convBtn.style.background = '#E8715A'; convBtn.style.color = '#fff'; convBtn.className = 'btn';
+    textBtn.style.background = ''; textBtn.style.color = ''; textBtn.className = 'btn btn-ghost';
+  } else {
+    convPanel.style.display = 'none';
+    textPanel.style.display = '';
+    textBtn.style.background = '#E8715A'; textBtn.style.color = '#fff'; textBtn.className = 'btn';
+    convBtn.style.background = ''; convBtn.style.color = ''; convBtn.className = 'btn btn-ghost';
+    loadTextFeedback();
+  }
+}
 async function loadFeedback() {
+  loadConvFeedback();
+}
+async function loadConvFeedback() {
+  const data = await api('/api/admin/conversation-feedback?limit=200');
+  if (!data) return;
+  const list = data.feedbacks || [];
+  const tbody = document.getElementById('convFeedbackBody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">暂无对话评价</td></tr>'; return; }
+  tbody.innerHTML = list.map(f => {
+    const isUp = f.feedback === 'up';
+    const icon = isUp ? '👍' : '👎';
+    const color = isUp ? '#22c55e' : '#ef4444';
+    return `<tr>
+      <td style="font-size:0.75rem;color:#aaa;white-space:nowrap">${f.ts ? new Date(f.ts).toLocaleString('zh-CN') : '—'}</td>
+      <td>${f.user_name || '—'}</td>
+      <td><span class="tag">${f.agent_name || f.agent || '—'}</span></td>
+      <td style="font-size:1.2rem;color:${color}">${icon}</td>
+    </tr>`;
+  }).join('');
+}
+async function loadTextFeedback() {
   const data = await api('/api/admin/beta-feedback');
   if (!data) return;
   const list = data.feedbacks || [];
   const tbody = document.getElementById('feedbackBody');
-  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无反馈</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无文字反馈</td></tr>'; return; }
   tbody.innerHTML = list.slice().reverse().map(f => `
     <tr>
       <td style="font-size:0.75rem;color:#aaa;white-space:nowrap">${f.ts ? new Date(f.ts).toLocaleString('zh-CN') : '—'}</td>

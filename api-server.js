@@ -14,6 +14,7 @@ const XLSX = require('xlsx');
 const { Client: NotionClient } = require('@notionhq/client');
 const { execSync } = require('child_process');
 const kb = require('./knowledge-base');
+const toolRegistry = require('./tools/index');
 
 const PORT = process.env.PORT || 3002;
 const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
@@ -137,19 +138,19 @@ const PRO_PLUS_MONTHLY_SEARCH_LIMIT = 600; // 全能版 Pro+ 每月联网搜索�
 // 内测期间免费开放的21个医美专属Agent白名单
 const TRIAL_AGENTS = [
   // 上游厂商（9个）
-  'gtm-strategy',        // GTM战略大师
+  'gtm-strategist',        // GTM战略大师
   'product-expert',      // 产品材料专家
-  'academic-liaison',    // 学术推广专家
+  'medical-liaison',    // 学术推广专家
   'marketing-director',  // 市场创意总监
   'sales-director',      // 销售作战总监
   'operations-director', // 运营效能总监
   'area-manager',        // 大区经理
   'channel-manager',     // 商务经理
   // 下游机构（9个）
-  'aesthetic-design',    // 高定美学设计总监
+  'aesthetic-designer',    // 高定美学设计总监
   'senior-consultant',   // 金牌医美咨询师
-  'sparring-robot',      // 医美实战陪练机器人
-  'post-op-guardian',    // 医美术后私域管家
+  'sparring-partner',      // 医美实战陪练机器人
+  'postop-specialist',    // 医美术后私域管家
   'trend-setter',        // 医美爆款种草官
   'training-director',   // 培训赋能总监
   'anatomy-architect',   // 医美解剖决策建筑师
@@ -405,9 +406,9 @@ async function bochaSearch(query, count = 5) {
 // ===== NMPA 药监局产品查询 =====
 // 需要药监局查询的 Agent（产品/学术/咨询/材料类）
 const AGENTS_NEED_NMPA = new Set([
-  'product-expert', 'academic-liaison', 'senior-consultant', 'sparring-robot',
+  'product-expert', 'medical-liaison', 'senior-consultant', 'sparring-partner',
   'materials-mentor', 'material-architect', 'anatomy-architect', 'trend-setter',
-  'aesthetic-design', 'post-op-guardian', 'neuro-aesthetic-architect',
+  'aesthetic-designer', 'postop-specialist', 'neuro-aesthetic-architect',
   'doudou'  // 豆豆作为入口 Agent，需要实时药监局数据支撑合规回答
 ]);
 
@@ -1470,6 +1471,10 @@ function loadSkillMeta(skillName) {
       const val = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
       if (val === 'true') meta[key] = true;
       else if (val === 'false') meta[key] = false;
+      else if (val.startsWith('[') && val.endsWith(']')) {
+        // 解析 YAML 行内数组，如 allowed_tools: [nmpa_search, query_med_db]
+        meta[key] = val.slice(1, -1).split(',').map(s => s.trim()).filter(Boolean);
+      }
       else meta[key] = val;
     }
     return meta;
@@ -1498,7 +1503,17 @@ function buildMetaSets(agentSkillMap) {
     if (meta.access === 'admin') adminAgentSet.add(agentId);
   }
 
-  return { nmpaSet, fullMaterialSet, briefMaterialSet, contentAgentSet, adminAgentSet };
+  // 新增：每个 Agent 对应的工具列表（由 skill.md 中 allowed_tools 字段驱动）
+  const agentToolsMap = {};
+  for (const [agentId, skillName] of Object.entries(agentSkillMap)) {
+    const meta2 = loadSkillMeta(skillName);
+    if (Array.isArray(meta2.allowed_tools) && meta2.allowed_tools.length > 0) {
+      agentToolsMap[agentId] = meta2.allowed_tools;
+    } else if (meta2.nmpa === true) {
+      agentToolsMap[agentId] = ['nmpa_search'];
+    }
+  }
+  return { nmpaSet, fullMaterialSet, briefMaterialSet, contentAgentSet, adminAgentSet, agentToolsMap };
 }
 
 function loadSkillPrompt(skillName) {
@@ -1555,16 +1570,16 @@ function loadSkillPrompt(skillName) {
 
 // Agent ID to skill name mapping
 const agentSkillMap = {
-  'gtm-strategy': 'gtm-strategist',
+  'gtm-strategist': 'gtm-strategist',
   'product-expert': 'product-strategist',
-  'academic-liaison': 'medical-liaison',
+  'medical-liaison': 'medical-liaison',
   'marketing-director': 'marketing-director',
   'sales-director': 'sales-director',
   'operations-director': 'sfe-director',
-  'aesthetic-design': 'aesthetic-designer',
+  'aesthetic-designer': 'aesthetic-designer',
   'senior-consultant': 'senior-consultant',
-  'sparring-robot': 'sparring-partner',
-  'post-op-guardian': 'postop-specialist',
+  'sparring-partner': 'sparring-partner',
+  'postop-specialist': 'postop-specialist',
   'trend-setter': 'new-media-director',
   'training-director': 'training-director',
   'anatomy-architect': 'anatomy-architect',
@@ -1595,16 +1610,16 @@ const agentSkillMap = {
 };
 
 const agentNames = {
-  'gtm-strategy': 'GTM战略大师',
+  'gtm-strategist': 'GTM战略大师',
   'product-expert': '产品材料专家',
-  'academic-liaison': '学术推广专家',
+  'medical-liaison': '学术推广专家',
   'marketing-director': '市场创意总监',
   'sales-director': '销售作战总监',
   'operations-director': '运营效能总监',
-  'aesthetic-design': '高定美学设计总监',
+  'aesthetic-designer': '高定美学设计总监',
   'senior-consultant': '金牌医美咨询师',
-  'sparring-robot': '医美实战陪练机器人',
-  'post-op-guardian': '医美术后私域管家',
+  'sparring-partner': '医美实战陪练机器人',
+  'postop-specialist': '医美术后私域管家',
   'trend-setter': '医美爆款种草官',
   'training-director': '培训赋能总监',
   'anatomy-architect': '医美解剖决策建筑师',
@@ -1642,6 +1657,9 @@ const AGENTS_NEED_FULL_MATERIAL_META = _metaSets.fullMaterialSet;
 const AGENTS_NEED_BRIEF_MATERIAL_META = _metaSets.briefMaterialSet;
 const CONTENT_AGENTS_META = _metaSets.contentAgentSet;
 const ADMIN_ONLY_AGENTS_META = _metaSets.adminAgentSet;
+// 新增：Agent 工具映射表（由 skill.md 中 allowed_tools 字段驱动）
+const AGENT_TOOLS_MAP = _metaSets.agentToolsMap || {};
+console.log('[MetaConfig] Agents with tools:', Object.keys(AGENT_TOOLS_MAP).join(', '));
 console.log('[MetaConfig] NMPA agents:', [...AGENTS_NEED_NMPA_META].join(', '));
 console.log('[MetaConfig] Admin-only agents:', [...ADMIN_ONLY_AGENTS_META].join(', '));
 
@@ -2875,7 +2893,10 @@ const server = http.createServer(async (req, res) => {
       }
 
       // ===== 流式处理（支持 Function Calling，阶段三改造）=====
-      const useToolCalling = AGENTS_NEED_NMPA_META.has(agentId) &&
+      // 从 AGENT_TOOLS_MAP 动态获取当前 Agent 的工具列表（向后兼容：nmpa=true 自动获得 nmpa_search）
+      const agentToolIds = AGENT_TOOLS_MAP[agentId] || [];
+      const agentToolDefs = toolRegistry.getToolDefinitions(agentToolIds);
+      const useToolCalling = agentToolDefs.length > 0 &&
                              typeof activeProvider.chatStreamWithTools === 'function';
 
       async function* parseSSEStream(stream) {
@@ -2896,7 +2917,7 @@ const server = http.createServer(async (req, res) => {
       let fullMessage = '';
 
       if (useToolCalling) {
-        const tools = [NMPA_TOOL_DEFINITION];
+        const tools = agentToolDefs.length > 0 ? agentToolDefs : [NMPA_TOOL_DEFINITION];
         const stream1 = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, session.messages, tools);
 
         let toolCallId = null;
@@ -2929,27 +2950,86 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        if (assistantMsg1 && toolCallName === 'nmpa_search') {
+        if (assistantMsg1 && toolCallName) {
+          // ===== 动态多工具路由（工具箱架构 v2）=====
           let toolArgs = {};
           try { toolArgs = JSON.parse(toolCallArgsBuf); } catch (e) {}
-          const products = toolArgs.products || detectNmpaProduct(message) || [];
-          const toolQuery = toolArgs.query || message;
 
-          console.log(`🔧 [FunctionCall] nmpa_search | products: ${products.join(', ')}`);
-          res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'nmpa_search', products })}\n\n`);
+          console.log(`🔧 [FunctionCall] ${toolCallName} | args: ${JSON.stringify(toolArgs)}`);
 
-          let toolResultText = '未找到相关药监局数据。';
-          try {
-            const nmpaData = await nmpaSearch(toolQuery, products);
-            if (nmpaData.success && nmpaData.results.length > 0) {
-              searchResults = nmpaData.results;
-              toolResultText = nmpaData.results.map(r =>
-                `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
-              ).join('\n\n');
-              console.log(`✅ [FunctionCall] nmpa_search 返回 ${nmpaData.results.length} 条结果`);
+          let toolResultText = '工具执行完成。';
+
+          if (toolCallName === 'nmpa_search') {
+            // NMPA 药监局查询
+            const products = toolArgs.products || detectNmpaProduct(message) || [];
+            const toolQuery = toolArgs.query || toolArgs.keyword || message;
+            res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'nmpa_search', products })}\n\n`);
+            try {
+              const nmpaData = await nmpaSearch(toolQuery, products);
+              if (nmpaData.success && nmpaData.results.length > 0) {
+                searchResults = nmpaData.results;
+                toolResultText = nmpaData.results.map(r =>
+                  `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
+                ).join('\n\n');
+                console.log(`✅ [FunctionCall] nmpa_search 返回 ${nmpaData.results.length} 条结果`);
+              } else {
+                toolResultText = '未找到相关药监局数据。';
+              }
+            } catch (e) {
+              console.warn('[FunctionCall] nmpa_search 执行失败:', e.message);
+              toolResultText = `NMPA 查询失败：${e.message}`;
             }
-          } catch (e) {
-            console.warn('[FunctionCall] nmpa_search 执行失败:', e.message);
+
+          } else if (toolCallName === 'web_search') {
+            // 联网搜索（Bocha）
+            const query = toolArgs.query || toolArgs.keyword || message;
+            const freshness = toolArgs.freshness || 'noLimit';
+            res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'web_search', query })}\n\n`);
+            try {
+              const webData = await bochaSearch(query, 8);
+              if (webData && webData.results && webData.results.length > 0) {
+                searchResults = webData.results;
+                toolResultText = webData.results.slice(0, 5).map(r =>
+                  `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
+                ).join('\n\n');
+                console.log(`✅ [FunctionCall] web_search 返回 ${webData.results.length} 条结果`);
+              } else {
+                toolResultText = '联网搜索未找到相关结果，请基于已有知识回答。';
+              }
+            } catch (e) {
+              console.warn('[FunctionCall] web_search 执行失败:', e.message);
+              toolResultText = `联网搜索失败：${e.message}，请基于已有知识回答。`;
+            }
+
+          } else if (toolCallName === 'query_med_db') {
+            // 本地医美价格数据库
+            const keyword = toolArgs.keyword || message;
+            res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'query_med_db', keyword })}\n\n`);
+            try {
+              const toolResult = await toolRegistry.executeTool('query_med_db', toolArgs, {
+                message, nmpaSearch, detectNmpaProduct, bochaSearch
+              });
+              toolResultText = toolResult.text || '数据库查询无结果。';
+              console.log(`✅ [FunctionCall] query_med_db 查询"${keyword}"完成`);
+            } catch (e) {
+              console.warn('[FunctionCall] query_med_db 执行失败:', e.message);
+              toolResultText = `价格数据库查询失败：${e.message}`;
+            }
+
+          } else {
+            // 其他工具：通过 toolRegistry 统一执行
+            try {
+              const toolResult = await toolRegistry.executeTool(toolCallName, toolArgs, {
+                message, nmpaSearch, detectNmpaProduct, bochaSearch
+              });
+              toolResultText = toolResult.text || '工具执行完成。';
+              if (toolResult.toolEvent) {
+                res.write(`data: ${JSON.stringify(toolResult.toolEvent)}\n\n`);
+              }
+            } catch (e) {
+              console.warn(`[FunctionCall] ${toolCallName} 执行失败:`, e.message);
+              toolResultText = `工具执行失败：${e.message}`;
+            }
           }
 
           const messagesWithTool = [
@@ -3649,6 +3729,25 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
+  // Admin: get conversation feedback (thumbs up/down)
+  if (url.pathname === '/api/admin/conversation-feedback' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      const limit = parseInt(url.searchParams.get('limit') || '100');
+      const rows = db.prepare(`SELECT ts, agent, agent_name, user_name, feedback FROM conversation_logs WHERE type='feedback' ORDER BY ts DESC LIMIT ?`).all(limit);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ feedbacks: rows, total: rows.length }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
+
 
   // Admin: list users with usage stats
   if (url.pathname === '/api/admin/users' && req.method === 'GET') {
