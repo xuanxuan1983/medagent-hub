@@ -2602,7 +2602,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             if (!dataStr) continue;
             try {
               const evt = JSON.parse(dataStr);
-              if (evt.type === 'tool_call') {
+              if (evt.type === 'skill_dispatch') {
+                // Skill 路由：豆豆正在调用专家 Skill
+                hideTyping();
+                const name = evt.displayName || evt.skill_id || '专家';
+                showToolStatusIndicator('skill_dispatch', `正在调用 ${name}...`);
+              } else if (evt.type === 'tool_call') {
                 // Function Calling：模型触发了工具调用，显示查询提示
                 hideTyping();
                 if (evt.tool === 'nmpa_search') {
@@ -2804,7 +2809,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const icons = {
       'web_search': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
       'query_med_db': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
-      'nmpa_search': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+      'nmpa_search': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+      'skill_dispatch': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
     };
     const icon = icons[tool] || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
     el.innerHTML = `<span class="tool-status-icon">${icon}</span><span class="tool-status-text">${text}</span><span class="tool-status-dots"><span></span><span></span><span></span></span>`;

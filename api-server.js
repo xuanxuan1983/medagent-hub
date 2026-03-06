@@ -3016,6 +3016,46 @@ const server = http.createServer(async (req, res) => {
               toolResultText = `价格数据库查询失败：${e.message}`;
             }
 
+          } else if (toolCallName === 'skill_dispatch') {
+            // ===== Skill 路由调度：切换专家 system prompt 直接回答 =====
+            const skillId = toolArgs.skill_id;
+            const reason = toolArgs.reason || '';
+            try {
+              const toolResult = await toolRegistry.executeTool('skill_dispatch', toolArgs, {
+                message, nmpaSearch, detectNmpaProduct, bochaSearch
+              });
+              const displayName = toolResult.skillDisplayName || skillId;
+              // 向前端发送 skill_dispatch 事件（用于显示"正在调用 XX 专家..."）
+              res.write(`data: ${JSON.stringify({ type: 'skill_dispatch', skill_id: skillId, displayName })}\n\n`);
+
+              if (toolResult.skillPrompt) {
+                // 用专家 system prompt 替换豆豆的 system prompt，直接发起第二轮调用
+                const expertSystemPrompt = toolResult.skillPrompt;
+                const messagesForExpert = [
+                  ...session.messages
+                ];
+                console.log(`🎯 [skill_dispatch] 使用专家 prompt 直接回答 | skill: ${skillId} | prompt长度: ${expertSystemPrompt.length}`);
+                const stream2Expert = await activeProvider.chatStreamWithTools(expertSystemPrompt, messagesForExpert, []);
+                for await (const parsed of parseSSEStream(stream2Expert)) {
+                  const delta = parsed.choices?.[0]?.delta?.content || '';
+                  if (delta) {
+                    fullMessage += delta;
+                    res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+                  }
+                }
+                // skill_dispatch 已完成流式输出，直接跳过后续的 stream2
+                if (searchResults) {
+                  res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
+                }
+                return; // 提前返回，不再执行下方的 stream2
+              } else {
+                toolResultText = `专家 Skill "${skillId}" 暂时不可用，请稍后再试。`;
+              }
+            } catch (e) {
+              console.warn('[FunctionCall] skill_dispatch 执行失败:', e.message);
+              toolResultText = `专家调度失败：${e.message}`;
+            }
+
           } else {
             // 其他工具：通过 toolRegistry 统一执行
             try {
