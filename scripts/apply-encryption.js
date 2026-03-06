@@ -56,6 +56,17 @@ const SKILLS_TO_ENCRYPT = [
   'creative-director',
   'channel-manager',
   'area-manager',
+  // 补充加密（铁律：所有 skill 必须加密）
+  'anatomy-architect',
+  'materials-mentor',
+  'meta-prompt-architect',
+  'operations-director',
+  'personal-brand-cinematic',
+  'personal-ip-builder',
+  'prompt-engineer-pro',
+  'super-writer',
+  'training-director',
+  'visual-translator',
 ];
 
 // ============================================================
