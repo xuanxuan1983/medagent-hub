@@ -843,7 +843,7 @@ let _briefData = null;
 
 // ── 摘要数据（fallback，由 Manus 定时任务写入 /api/daily-brief 接口） ──
 const BRIEF_DATA = {
-  date: "2026年3月4日",
+  date: (function(){ var d=new Date(Date.now()+8*3600000); return d.getUTCFullYear()+"年"+(d.getUTCMonth()+1)+"月"+d.getUTCDate()+"日"; })(),
   sources: ["21世纪经济报道", "医美部落", "每日经济新闻", "东方财富", "万联证券"],
   priorities: [
     { level: "high", event: "干细胞监管新规（5月1日实施）", action: "更新平台合规知识库，提醒机构客户及时下架违规项目" },
