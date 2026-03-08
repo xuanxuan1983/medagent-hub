@@ -3115,9 +3115,25 @@ const server = http.createServer(async (req, res) => {
             res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
           }
 
-          const stream2 = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, messagesWithTool, []);
-          for await (const parsed of parseSSEStream(stream2)) {
-            const delta = parsed.choices?.[0]?.delta?.content || '';
+          // stream2：使用不带工具的 chatStream，避免 DeepSeek-V3 在第二轮仍输出 tool_calls
+          // 将 tool 角色消息转换为 user 消息（chatStream 不支持 tool 角色）
+          const stream2SystemPrompt = enrichedSystemPrompt + '\n\n【重要指令】请直接用自然语言回答用户问题，不要调用任何工具，直接给出答案。';
+          const messagesForStream2 = messagesWithTool.map(m => {
+            if (m.role === 'tool') {
+              return { role: 'user', content: '工具查询结果：' + m.content };
+            }
+            if (m.role === 'assistant' && m.tool_calls) {
+              return { role: 'assistant', content: m.content || '（正在查询数据）' };
+            }
+            return m;
+          });
+          const stream2Raw = await activeProvider.chatStream(stream2SystemPrompt, messagesForStream2);
+          for await (const parsed of parseSSEStream(stream2Raw)) {
+            const choice2 = parsed.choices?.[0];
+            if (!choice2) continue;
+            if (choice2.finish_reason === 'tool_calls') continue;
+            if (choice2.delta?.tool_calls) continue;
+            const delta = choice2.delta?.content || '';
             if (delta) {
               fullMessage += delta;
               res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
