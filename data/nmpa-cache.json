@@ -5,110 +5,91 @@
     "juvederm": {
       "id": "juvederm",
       "name": "乔雅登",
-      "brand": "艾尔建美学",
-      "searchKeyword": "乔雅登 玻尿酸 注册证",
+      "brand": "艾尔建",
+      "searchKeyword": "乔雅登 注射用修饰透明质酸钠凝胶 注册证号",
       "category": "玻尿酸",
       "nmpaInfo": {
-        "registrationNo": "国械注进20243130436（盈致，含利多卡因）；国械注进20223130141（丰颜，含利多卡因，已注销）",
-        "approvalDate": "2024-08-14（盈致）",
-        "expiryDate": "2029-08-13",
-        "status": "approved",
-        "indications": [
-          "用于注射至面部皮下组织，以纠正中重度面部皱纹和皱褶（如鼻唇沟）",
-          "用于丰唇及改善口周皱纹",
-          "用于面颊部增容"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "交联透明质酸钠凝胶（含利多卡因）",
-        "source": "国家药监局官网公告 2024-08-14",
-        "snippet": "乔雅登®盈致（含利多卡因注射用交联透明质酸钠凝胶）于2024年8月14日获国家药监局批准，注册证号：国械注进20243130436。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:48.123Z",
+        "syncNote": "搜索无结果"
       }
     },
     "restylane": {
       "id": "restylane",
       "name": "瑞蓝",
       "brand": "高德美",
-      "searchKeyword": "瑞蓝 玻尿酸 注册证",
+      "searchKeyword": "瑞蓝 注射用透明质酸钠凝胶 注册证号 国械注进",
       "category": "玻尿酸",
       "nmpaInfo": {
-        "registrationNo": "国械注进20183460227（瑞蓝丽瑅）；国械注进20203130045（瑞蓝瑞瑅）",
-        "approvalDate": "2018年（丽瑅）；2020年（瑞瑅）",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "瑞蓝丽瑅：面部真皮组织深层和/或皮下组织浅层注射，以纠正中到重度鼻唇沟皱纹",
-          "瑞蓝瑞瑅：面部真皮组织深层注射，用于丰唇及改善口周皱纹"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "稳定化透明质酸钠凝胶（NASHA技术）",
-        "source": "国家药监局医疗器械数据库",
-        "snippet": "瑞蓝系列产品（高德美）在国内已获批多款，注册证号分别为国械注进20183460227（丽瑅）和国械注进20203130045（瑞瑅）。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:51.150Z",
+        "syncNote": "搜索无结果"
       }
     },
     "runbailian": {
       "id": "runbailian",
       "name": "润百颜",
       "brand": "华熙生物",
-      "searchKeyword": "润百颜 玻尿酸 注册证",
+      "searchKeyword": "润百颜 注射用透明质酸钠 注册证号 国械注准",
       "category": "玻尿酸",
       "nmpaInfo": {
-        "registrationNo": "国械注准20233131478（注射用交联透明质酸钠凝胶）；国械注准20253130824（玻玻，含利多卡因）",
-        "approvalDate": "2022-12-14（交联凝胶）；2025-04-23（玻玻）",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "注射于面部皮肤真皮层，用于矫正面部皱纹",
-          "润百颜®玻玻：用于面部软组织增容"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "交联透明质酸钠凝胶",
-        "source": "国家药监局公告；华熙生物官方公告",
-        "snippet": "华熙生物润百颜®玻玻（含利多卡因注射用透明质酸钠溶液）于2025年4月23日获批，注册证号：国械注准20253130824。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:54.185Z",
+        "syncNote": "搜索无结果"
       }
     },
     "haiwei": {
       "id": "haiwei",
       "name": "海薇",
       "brand": "昊海生科",
-      "searchKeyword": "海薇 玻尿酸 注册证",
+      "searchKeyword": "海薇 注射用透明质酸钠凝胶 国械注准",
       "category": "玻尿酸",
       "nmpaInfo": {
-        "registrationNo": "国械注准20163131609",
-        "approvalDate": "2016年",
-        "expiryDate": "有效期内（已多次延续）",
-        "status": "approved",
-        "indications": [
-          "注射于面部真皮层，用于矫正鼻唇沟等中重度面部皱纹"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "交联透明质酸钠凝胶",
-        "source": "爱美客招股书及行业研究报告",
-        "snippet": "海薇（昊海生科）注册证号：国械注准20163131609，为国内最早获批的国产玻尿酸品牌之一。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:57.215Z",
+        "syncNote": "搜索无结果"
       }
     },
     "bonita": {
       "id": "bonita",
       "name": "宝尼达",
       "brand": "爱美客",
-      "searchKeyword": "宝尼达 玻尿酸 注册证",
+      "searchKeyword": "宝尼达 注射用透明质酸钠凝胶 注册证号",
       "category": "玻尿酸",
       "nmpaInfo": {
-        "registrationNo": "国械注准20163132859",
-        "approvalDate": "2016年",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "注射于面部真皮层，用于矫正面部皱纹"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "交联透明质酸钠凝胶",
-        "source": "爱美客招股书及行业研究报告",
-        "snippet": "宝尼达（爱美客）注册证号：国械注准20163132859，为爱美客旗下主力玻尿酸产品。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:53:00.243Z",
+        "syncNote": "搜索无结果"
       }
     },
     "yvoire": {
@@ -158,66 +139,54 @@
       "id": "botox",
       "name": "保妥适",
       "brand": "艾尔建",
-      "searchKeyword": "保妥适 肉毒素 注册证",
+      "searchKeyword": "保妥适 注射用A型肉毒毒素 国药准字 适应症",
       "category": "肉毒素",
       "nmpaInfo": {
-        "registrationNo": "国药准字SJ20171003（100单位）；国药准字SJ20171004（200单位）",
-        "approvalDate": "2017年（现行注册证）",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "眼睑痉挛、面肌痉挛及相关局灶性肌张力障碍",
-          "暂时性改善65岁及以下成人因皱眉肌和/或降眉间肌活动引起的中度至重度眉间纹（美容适应症）"
-        ],
-        "productClass": "药品（生物制品）",
-        "mainIngredient": "注射用A型肉毒毒素",
-        "source": "国家人口健康科学数据中心；国家药监局",
-        "snippet": "保妥适（BOTOX，艾尔建）注册证号：国药准字SJ20171003（100单位），注意：美容适应症仅限眉间纹，超适应症使用属违规行为。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:17.818Z",
+        "syncNote": "搜索无结果"
       }
     },
     "dysport": {
       "id": "dysport",
       "name": "吉适",
       "brand": "益普生",
-      "searchKeyword": "吉适 肉毒素 注册证",
+      "searchKeyword": "吉适 注射用A型肉毒毒素 国药准字 适应症",
       "category": "肉毒素",
       "nmpaInfo": {
-        "registrationNo": "S20200016",
-        "approvalDate": "2020年",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "成人面部皱纹（眉间纹）的暂时性改善",
-          "痉挛性斜颈等神经系统适应症"
-        ],
-        "productClass": "药品（生物制品）",
-        "mainIngredient": "注射用A型肉毒毒素（300单位/瓶）",
-        "source": "上海市药监局经销产品名单",
-        "snippet": "吉适（Dysport，益普生）注册证号：S20200016，300单位/瓶，美容适应症为眉间纹的暂时性改善。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:20.842Z",
+        "syncNote": "搜索无结果"
       }
     },
     "hengli": {
       "id": "hengli",
       "name": "衡力",
-      "brand": "兰州生物技术",
-      "searchKeyword": "衡力 肉毒素 注册证",
+      "brand": "兰州生物",
+      "searchKeyword": "衡力 注射用A型肉毒毒素 国药准字 适应症",
       "category": "肉毒素",
       "nmpaInfo": {
-        "registrationNo": "国药准字S10970073",
-        "approvalDate": "1997年（原批准）；多次续期",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "眼睑痉挛、面肌痉挛",
-          "美容适应症：眉间纹（后续补充申请获批）"
-        ],
-        "productClass": "药品（生物制品）",
-        "mainIngredient": "注射用A型肉毒毒素",
-        "source": "国家药监局；行业研究报告",
-        "snippet": "衡力（兰州生物）是国内唯一获批的国产A型肉毒素，注册证号：国药准字S10970073，也是目前价格最亲民的合规肉毒素产品。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:23.871Z",
+        "syncNote": "搜索无结果"
       }
     },
     "letybo": {
@@ -243,46 +212,38 @@
     },
     "sculptra": {
       "id": "sculptra",
-      "name": "童颜针",
-      "brand": "高德美（Sculptra 塑妍萃）/ 圣博玛（艾维岚）等，截至2026年2月共12款获批",
-      "searchKeyword": "童颜针 PLLA 注册证",
-      "category": "再生材料",
+      "name": "童颜针(Sculptra)",
+      "brand": "高德美",
+      "searchKeyword": "Sculptra 注射用聚左旋乳酸 国械注进 注册证号",
+      "category": "胶原刺激剂",
       "nmpaInfo": {
-        "registrationNo": "Sculptra塑妍萃：国械注进20243130557；艾维岚（圣博玛）：国械注准20213130083；截至2026年2月国内共12款PLLA产品获批",
-        "approvalDate": "Sculptra塑妍萃：2024年9月；艾维岚：2021年（首批国产）",
-        "expiryDate": "Sculptra塑妍萃有效期至：2029-09-29",
-        "status": "approved",
-        "indications": [
-          "Sculptra塑妍萃（注册证口径）：用于真皮深层、皮下层注射，以矫正中面部容量缺失和/或中面部轮廓缺陷",
-          "注意：Sculptra塑妍萃是12款中唯一适应症覆盖'中面部容量缺失和/或中面部轮廓缺陷'的产品，其余多数产品适应症为鼻唇沟皱纹",
-          "注册人：科医有限公司 Q-Med AB（瑞典进口）；复配成分：羧甲基纤维素钠、甘露醇；剂型：冻干粉"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "聚左旋乳酸（PLLA）微球",
-        "source": "国家药监局注册证数据库（用户核实）",
-        "snippet": "Sculptra塑妍萃（高德美/Q-Med AB）已于2024年9月在中国大陆正式获批，注册证号：国械注进20243130557，有效期至2029-09-29。适应症为中面部容量缺失和/或中面部轮廓缺陷，是国内12款获批PLLA产品中唯一覆盖该适应症的产品。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:29.923Z",
+        "syncNote": "搜索无结果"
       }
     },
     "ellanse": {
       "id": "ellanse",
-      "name": "少女针",
-      "brand": "辛迪思（Sinclair）",
-      "searchKeyword": "少女针 Ellanse 伊妍仕 注册证",
-      "category": "再生材料",
+      "name": "少女针(Ellansé)",
+      "brand": "辛迪思",
+      "searchKeyword": "Ellansé 注射用聚己内酯微球 国械注进 注册证号",
+      "category": "胶原刺激剂",
       "nmpaInfo": {
-        "registrationNo": "国械注进20213130103",
-        "approvalDate": "2021-04",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "注射于面部真皮深层至皮下组织，用于矫正中重度鼻唇沟及面部软组织缺失"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "聚己内酯（PCL）微球 + 羧甲基纤维素钠载体",
-        "source": "国家药监局；医美部落",
-        "snippet": "少女针（Ellansé伊妍仕，辛迪思）于2021年4月获批，注册证号：国械注进20213130103，是国内获批的唯一进口PCL再生填充产品。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:32.952Z",
+        "syncNote": "搜索无结果"
       }
     },
     "weivi": {
@@ -330,67 +291,147 @@
     "thermage": {
       "id": "thermage",
       "name": "热玛吉",
-      "brand": "索塔医疗（Solta Medical）",
-      "searchKeyword": "热玛吉 Thermage 注册证",
-      "category": "能量源设备",
+      "brand": "索塔医疗",
+      "searchKeyword": "热玛吉 射频治疗仪 医疗器械注册证 国械注进",
+      "category": "光电设备",
       "nmpaInfo": {
-        "registrationNo": "国械注进20153092408（Thermage CPT）",
-        "approvalDate": "2015年",
-        "expiryDate": "有效期内（已续期）",
-        "status": "approved",
-        "indications": [
-          "用于非侵入性皮肤治疗，包括皱纹改善、皮肤紧致提升",
-          "适用于面部、眼周、颈部、腹部等部位"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "单极射频能量设备",
-        "source": "知乎医美合规科普；行业研究报告",
-        "snippet": "热玛吉（Thermage CPT，索塔医疗）注册证号：国械注进20153092408，为第三类医疗器械，是目前国内合规的主流射频紧肤设备之一。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:42.035Z",
+        "syncNote": "搜索无结果"
       }
     },
     "ulthera": {
       "id": "ulthera",
-      "name": "超声炮",
-      "brand": "美敦力（Ulthera）",
-      "searchKeyword": "超声炮 Ulthera 聚焦超声 注册证",
-      "category": "能量源设备",
+      "name": "超声炮(Ulthera)",
+      "brand": "美敦力",
+      "searchKeyword": "Ulthera 聚焦超声治疗仪 国械注进 注册证号",
+      "category": "光电设备",
       "nmpaInfo": {
-        "registrationNo": "国械注进20163092370（Ulthera System）",
-        "approvalDate": "2016年",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "用于非侵入性皮肤提升和紧致，适用于眉部提升、颈部和颏下皮肤改善"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "高强度聚焦超声（HIFU）设备",
-        "source": "行业研究报告；知乎医美合规科普",
-        "snippet": "超声炮（Ulthera，美敦力）注册证号：国械注进20163092370，为第三类医疗器械。⚠️ 注意：市面上大量'超声炮'为仿冒品，需核实设备注册证。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:45.063Z",
+        "syncNote": "搜索无结果"
       }
     },
     "picosure": {
       "id": "picosure",
-      "name": "皮秒激光",
-      "brand": "赛诺秀（Cynosure）/ 多品牌",
-      "searchKeyword": "皮秒激光 PicoSure 注册证",
-      "category": "能量源设备",
+      "name": "皮秒激光(PicoSure)",
+      "brand": "赛诺秀",
+      "searchKeyword": "PicoSure 皮秒激光治疗仪 国械注进 注册证号",
+      "category": "光电设备",
       "nmpaInfo": {
-        "registrationNo": "赛诺秀PicoSure：国械注进20173092879；其他品牌各有独立注册证",
-        "approvalDate": "2017年（赛诺秀PicoSure）",
-        "expiryDate": "有效期内",
-        "status": "approved",
-        "indications": [
-          "用于良性色素性皮肤病变的治疗（如色斑、文身去除）",
-          "用于皮肤年轻化治疗"
-        ],
-        "productClass": "第三类医疗器械",
-        "mainIngredient": "皮秒脉冲激光设备（755nm/532nm/1064nm）",
-        "source": "行业研究报告；国家药监局",
-        "snippet": "皮秒激光（赛诺秀PicoSure）注册证号：国械注进20173092879。⚠️ 注意：'皮秒激光'是技术类别而非单一产品，不同品牌设备需分别核实注册证，市面上存在大量未获批的仿制设备。",
-        "lastChecked": "2026-03-05T07:00:00.000Z"
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:48.093Z",
+        "syncNote": "搜索无结果"
+      }
+    },
+    "yiwan": {
+      "id": "yiwan",
+      "name": "伊婉",
+      "brand": "常州药业",
+      "searchKeyword": "伊婉 注射用透明质酸钠 国械注准",
+      "category": "玻尿酸",
+      "nmpaInfo": {
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:53:03.271Z",
+        "syncNote": "搜索无结果"
+      }
+    },
+    "aimeike": {
+      "id": "aimeike",
+      "name": "爱芙莱",
+      "brand": "爱美客",
+      "searchKeyword": "爱芙莱 注射用聚乳酸微球 注册证号",
+      "category": "玻尿酸",
+      "nmpaInfo": {
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:14.792Z",
+        "syncNote": "搜索无结果"
+      }
+    },
+    "letibow": {
+      "id": "letibow",
+      "name": "乐提葆",
+      "brand": "益普生",
+      "searchKeyword": "乐提葆 注射用A型肉毒毒素 国药准字",
+      "category": "肉毒素",
+      "nmpaInfo": {
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:26.898Z",
+        "syncNote": "搜索无结果"
+      }
+    },
+    "weiyi": {
+      "id": "weiyi",
+      "name": "薇旖",
+      "brand": "锦波生物",
+      "searchKeyword": "薇旖 重组III型人源化胶原蛋白 国械注准",
+      "category": "胶原蛋白",
+      "nmpaInfo": {
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:35.979Z",
+        "syncNote": "搜索无结果"
+      }
+    },
+    "aivigan": {
+      "id": "aivigan",
+      "name": "艾维岚",
+      "brand": "长春圣博玛",
+      "searchKeyword": "艾维岚 注射用聚乳酸微球 国械注准",
+      "category": "胶原刺激剂",
+      "nmpaInfo": {
+        "registrationNo": null,
+        "approvalDate": null,
+        "expiryDate": null,
+        "status": "unknown",
+        "indications": [],
+        "source": null,
+        "snippet": null,
+        "lastChecked": "2026-03-06T14:52:39.005Z",
+        "syncNote": "搜索无结果"
       }
     }
-  }
+  },
+  "lastSync": "2026-03-06T14:52:48.096Z"
 }

@@ -578,19 +578,19 @@ function classifyIntentFast(message) {
 function getRetrievalStrategy(intent) {
   switch (intent) {
     case INTENT_TYPES.COMPLIANCE:
-      return { useNmpa: true, useWebSearch: true, useKb: true, webSearchPriority: 'nmpa', topK: 5 };
+      return { useNmpa: true, useWebSearch: true, useKb: true, webSearchPriority: 'nmpa', topK: 15 };
     case INTENT_TYPES.PRICE_QUERY:
-      return { useNmpa: false, useWebSearch: true, useKb: true, webSearchPriority: 'price', topK: 5 };
+      return { useNmpa: false, useWebSearch: true, useKb: true, webSearchPriority: 'price', topK: 8 };
     case INTENT_TYPES.TREND_QUERY:
       return { useNmpa: false, useWebSearch: true, useKb: false, webSearchPriority: 'news', topK: 7 };
     case INTENT_TYPES.PRODUCT_INFO:
-      return { useNmpa: true, useWebSearch: false, useKb: true, topK: 5 };
+      return { useNmpa: true, useWebSearch: false, useKb: true, topK: 12 };
     case INTENT_TYPES.CLINICAL_QA:
-      return { useNmpa: false, useWebSearch: false, useKb: true, topK: 7 };
+      return { useNmpa: false, useWebSearch: false, useKb: true, topK: 10 };
     case INTENT_TYPES.COMPARISON:
-      return { useNmpa: true, useWebSearch: true, useKb: true, topK: 8 };
+      return { useNmpa: true, useWebSearch: true, useKb: true, topK: 12 };
     default:
-      return { useNmpa: false, useWebSearch: false, useKb: true, topK: 5 };
+      return { useNmpa: false, useWebSearch: false, useKb: true, topK: 10 };
   }
 }
 
@@ -628,7 +628,7 @@ function tokenize(text) {
   return [...new Set([...words, ...enWords])];
 }
 
-function bm25Score(query, docText, k1 = 1.5, b = 0.75, avgDocLen = 500) {
+function bm25Score(query, docText, k1 = 1.5, b = 0.75, avgDocLen = 500, idfMap = null) {
   const queryTokens = tokenize(query);
   const docTokens = tokenize(docText);
   const docLen = docTokens.length;
@@ -637,7 +637,7 @@ function bm25Score(query, docText, k1 = 1.5, b = 0.75, avgDocLen = 500) {
   for (const term of queryTokens) {
     const tf = docTokens.filter(t => t === term).length;
     if (tf === 0) continue;
-    const idf = Math.log(1 + 1); // 简化IDF（单文档场景）
+    const idf = idfMap && idfMap.has(term) ? idfMap.get(term) : Math.log(2); // 使用真实IDF
     const tfNorm = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * docLen / avgDocLen));
     score += idf * tfNorm;
   }
@@ -649,11 +649,23 @@ function bm25Retrieve(query, vectorIndex, topK = 10) {
   if (!vectorIndex || vectorIndex.length === 0) return [];
   
   const avgDocLen = vectorIndex.reduce((sum, e) => sum + (e.text?.length || 0), 0) / vectorIndex.length / 2;
+  const N = vectorIndex.length;
+  
+  // 计算真实IDF：统计每个词在多少个文档中出现
+  const idfMap = new Map();
+  const queryTokensForIdf = tokenize(query);
+  for (const term of queryTokensForIdf) {
+    let df = 0;
+    for (const entry of vectorIndex) {
+      if ((entry.text || '').includes(term)) df++;
+    }
+    idfMap.set(term, Math.log((N - df + 0.5) / (df + 0.5) + 1));
+  }
   
   const scored = vectorIndex
     .map(entry => ({
       ...entry,
-      bm25Score: bm25Score(query, entry.text || '', 1.5, 0.75, avgDocLen)
+      bm25Score: bm25Score(query, entry.text || '', 1.5, 0.75, avgDocLen, idfMap)
     }))
     .filter(e => e.bm25Score > 0)
     .sort((a, b) => b.bm25Score - a.bm25Score);
@@ -1807,10 +1819,10 @@ class DeepSeekProvider {
         'Authorization': `Bearer ${this.apiKey}`
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
         messages: formattedMessages,
         temperature: 0.7,
-        max_tokens: 800
+        max_tokens: 2048
       })
     });
 
@@ -1828,8 +1840,75 @@ class DeepSeekProvider {
       }
     };
   }
-}
 
+  // Streaming version
+  async chatStream(systemPrompt, messages) {
+    const formattedMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages
+    ];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+        messages: formattedMessages,
+        temperature: 0.7,
+        max_tokens: 2048,
+        stream: true
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      const errData = await response.text();
+      throw new Error(`DeepSeek stream error: ${errData}`);
+    }
+    return response.body;
+  }
+  // Function Calling 流式版本
+  async chatStreamWithTools(systemPrompt, messages, tools) {
+    const formattedMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages
+    ];
+    const body = {
+      model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+      messages: formattedMessages,
+      temperature: 0.7,
+      max_tokens: 2048,
+      stream: true
+    };
+    if (tools && tools.length > 0) {
+      body.tools = tools;
+      body.tool_choice = 'auto';
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    console.log(`🌐 [DeepSeek chatStreamWithTools] HTTP ${response.status} | model=${body.model}`);
+    if (!response.ok) {
+      const errData = await response.text();
+      throw new Error(`DeepSeek tool stream error: ${errData}`);
+    }
+    return response.body;
+  }
+
+}
 class SiliconFlowProvider {
   constructor() {
     this.apiKey = process.env.SILICONFLOW_API_KEY;
@@ -2829,7 +2908,7 @@ const server = http.createServer(async (req, res) => {
             const [vectorChunks, bm25Chunks] = await Promise.all([
               Promise.race([
                 kb.retrieve(message, session.agentId, sfKey, topK),
-                new Promise(resolve => setTimeout(() => resolve([]), 5000))
+                new Promise(resolve => setTimeout(() => resolve([]), 10000))
               ]),
               (async () => {
                 try {
@@ -2941,7 +3020,8 @@ const server = http.createServer(async (req, res) => {
           const delta = choice.delta || {};
           if (delta.content) {
             firstRoundContent += delta.content;
-            res.write(`data: ${JSON.stringify({ type: 'delta', content: delta.content })}\n\n`);
+            // ★ 不在 stream1 阶段直接发送 delta（避免伪函数调用文本泄露给前端）
+            // delta 文本会在 stream1 结束后统一处理
           }
           if (delta.tool_calls) {
             for (const tc of delta.tool_calls) {
@@ -2970,7 +3050,7 @@ const server = http.createServer(async (req, res) => {
 
           if (toolCallName === 'nmpa_search') {
             // NMPA 药监局查询
-            const products = toolArgs.products || detectNmpaProduct(message) || [];
+            const products = toolArgs.products || (toolArgs.keyword ? [toolArgs.keyword] : null) || detectNmpaProduct(message) || [];
             const toolQuery = toolArgs.query || toolArgs.keyword || message;
             res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'nmpa_search', products })}\n\n`);
             try {
@@ -2982,7 +3062,7 @@ const server = http.createServer(async (req, res) => {
                 ).join('\n\n');
                 console.log(`✅ [FunctionCall] nmpa_search 返回 ${nmpaData.results.length} 条结果`);
               } else {
-                toolResultText = '未找到相关药监局数据。';
+                toolResultText = '药监局实时搜索未找到匹配结果。【重要】请优先使用上方系统提示词中的《知识库参考资料》来回答，这些资料包含了最新的内部知识库数据。严禁使用训练数据中的老旧注册证号，必须以知识库中的具体数据为准。';
               }
             } catch (e) {
               console.warn('[FunctionCall] nmpa_search 执行失败:', e.message);
@@ -3029,6 +3109,11 @@ const server = http.createServer(async (req, res) => {
             // ===== Skill 路由调度：切换专家 system prompt 直接回答 =====
             const skillId = toolArgs.skill_id;
             const reason = toolArgs.reason || '';
+            // ★ 防御：模型传入空 skill_id 时，跳过专家路由，走普通 stream2 回答
+            if (!skillId) {
+              console.warn(`⚠️ [skill_dispatch] 模型传入空 skill_id，跳过专家路由，走普通回答`);
+              toolResultText = "请根据已有的知识库内容和搜索结果，直接回答用户的问题。";
+            } else {
             // 立即向前端发送 skill_dispatch 事件（提前显示，不等工具执行完毕）
             const previewName = toolRegistry.SKILL_DISPLAY_NAMES?.[skillId] || skillId;
             res.write(`data: ${JSON.stringify({ type: 'skill_dispatch', skill_id: skillId, displayName: previewName })}\n\n`);
@@ -3057,8 +3142,17 @@ const server = http.createServer(async (req, res) => {
                     }
                     if (delta) {
                       expertDeltaCount++;
-                      fullMessage += delta;
-                      res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+                      // ★ 过滤专家回复中的伪工具调用和过渡语
+                      let filteredDelta = delta
+                        .replace(/skill_dispatch\([^)]*\)/g, '')
+                        .replace(/nmpa_search\([^)]*\)/g, '')
+                        .replace(/[（(]正在调用[^)）]*[)）]/g, '')
+                        .replace(/[（(]正在连接[^)）]*[)）]/g, '')
+                        .replace(/[（(]正在查询[^)）]*[)）]/g, '');
+                      fullMessage += filteredDelta;
+                      if (filteredDelta.trim()) {
+                        res.write(`data: ${JSON.stringify({ type: 'delta', content: filteredDelta })}\n\n`);
+                      }
                     }
                   }
                 } catch (streamErr) {
@@ -3075,6 +3169,11 @@ const server = http.createServer(async (req, res) => {
                   fullMessage = '抱歉，专家暂时无法响应，请稍后重试。';
                   res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
                 }
+                // ★ 专家路径最终清洗：过滤 tool_calls 文本泄露（保证存入DB的内容干净）
+                fullMessage = fullMessage.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在调用[^)）]*[)）]/g, '').replace(/（正在连接[^）]*）/g, '').trim();
+
+                // ★ 标准化引导问题格式：确保 --- 前后有换行，每个问题独占一行
+                fullMessage = fullMessage.replace(/(\S)---/g, '$1\n---').replace(/---(?=\s*-)/g, '---\n').replace(/([^\n])(- [\u4e00-\u9fff])/g, '$1\n$2').replace(/([^\n])(-[\u4e00-\u9fff])/g, '$1\n$2');
                 // skill_dispatch 已完成流式输出，直接跳过后续的 stream2
                 if (searchResults) {
                   res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
@@ -3087,6 +3186,7 @@ const server = http.createServer(async (req, res) => {
             } catch (e) {
               console.warn('[FunctionCall] skill_dispatch 执行失败:', e.message);
               toolResultText = `专家调度失败：${e.message}`;
+            }
             }
 
           } else {
@@ -3117,30 +3217,82 @@ const server = http.createServer(async (req, res) => {
 
           // stream2：使用不带工具的 chatStream，避免 DeepSeek-V3 在第二轮仍输出 tool_calls
           // 将 tool 角色消息转换为 user 消息（chatStream 不支持 tool 角色）
-          const stream2SystemPrompt = enrichedSystemPrompt + '\n\n【重要指令】请直接用自然语言回答用户问题，不要调用任何工具，直接给出答案。';
+          const stream2SystemPrompt = enrichedSystemPrompt + '\n\n【重要指令】你现在处于纯文本回答模式。禁止输出任何函数调用、工具调用、代码格式内容。禁止输出类似 skill_dispatch()、nmpa_search() 等内容。禁止输出"正在调用""正在连接"等过渡语。请直接用自然语言详细回答用户的问题，给出有价值的专业信息。\n\n【知识库优先原则】如果上方系统提示词中包含《知识库参考资料》或《胶原III类注册证库》等内部数据，必须优先使用这些内部数据回答，包括具体的国械注准20XXXXXXXX格式的注册证号、注册人、适应症等。严禁使用训练数据中的旧注册证号。如果知识库中没有相关数据，才可以说"知识库中暂无此产品的注册证信息，建议通过NMPA官网核验"。';  // KB优先指令已注入
           const messagesForStream2 = messagesWithTool.map(m => {
             if (m.role === 'tool') {
               return { role: 'user', content: '工具查询结果：' + m.content };
             }
             if (m.role === 'assistant' && m.tool_calls) {
-              return { role: 'assistant', content: m.content || '（正在查询数据）' };
+              // ★ 清除 stream1 中的过渡语和推荐问题，避免误导 stream2
+              return { role: 'assistant', content: '（正在查询数据）' };
             }
             return m;
           });
+          console.log('[stream2] 开始执行 | toolCallName=' + toolCallName + ' | toolResultText长度=' + toolResultText.length + ' | systemPrompt长度=' + stream2SystemPrompt.length + ' | messagesCount=' + messagesForStream2.length);
           const stream2Raw = await activeProvider.chatStream(stream2SystemPrompt, messagesForStream2);
           for await (const parsed of parseSSEStream(stream2Raw)) {
             const choice2 = parsed.choices?.[0];
             if (!choice2) continue;
             if (choice2.finish_reason === 'tool_calls') continue;
             if (choice2.delta?.tool_calls) continue;
-            const delta = choice2.delta?.content || '';
+            let delta = choice2.delta?.content || '';
+            // ★ 过滤 tool_calls 文本泄露（DeepSeek-V3 偶尔在纯文本中输出伪函数调用）
+            if (delta) {
+              delta = delta.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
+            }
             if (delta) {
               fullMessage += delta;
               res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
             }
           }
         } else {
-          fullMessage = firstRoundContent;
+          // ★ 检测 stream1 文本中的伪函数调用（DeepSeek-V3 有时不走 tool_calls 而直接输出文本）
+          const pseudoMatch = firstRoundContent.match(/skill_dispatch\(["']([\w-]+)["']\)/);
+          if (pseudoMatch) {
+            const pseudoSkillId = pseudoMatch[1];
+            console.log('[PseudoToolCall] 检测到文本中的伪函数调用，转为工具执行:', pseudoSkillId);
+            // 清除已发送的伪函数调用文本，发送清屏信号
+            res.write(`data: ${JSON.stringify({ type: 'clear' })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'skill_dispatch', skill_id: pseudoSkillId })}\n\n`);
+            // 执行 skill_dispatch
+            let pseudoToolResult = '专家技能暂不可用。';
+            try {
+              const pseudoSkillPrompt = extractSkillPrompt(pseudoSkillId, session.agentId);
+              if (pseudoSkillPrompt) {
+                pseudoToolResult = pseudoSkillPrompt;
+              }
+            } catch (e) {
+              console.warn('[PseudoToolCall] skill加载失败:', e.message);
+            }
+            // 构建 stream2 消息
+            const pseudoMessages = [
+              ...session.messages,
+              { role: 'assistant', content: '（正在查询数据）' },
+              { role: 'user', content: '工具查询结果：' + pseudoToolResult }
+            ];
+            const pseudoStream2Prompt = enrichedSystemPrompt + '\n\n【重要指令】你现在处于纯文本回答模式。禁止输出任何函数调用、工具调用、代码格式内容。禁止输出类似 skill_dispatch()、nmpa_search() 等内容。禁止输出"正在调用""正在连接"等过渡语。请直接用自然语言详细回答用户的问题，给出有价值的专业信息。';
+            const pseudoStream2 = await activeProvider.chatStream(pseudoStream2Prompt, pseudoMessages);
+            for await (const parsed of parseSSEStream(pseudoStream2)) {
+              const c2 = parsed.choices?.[0];
+              if (!c2) continue;
+              if (c2.finish_reason === 'tool_calls') continue;
+              if (c2.delta?.tool_calls) continue;
+              let d2 = c2.delta?.content || '';
+              if (d2) {
+                d2 = d2.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').trim();
+              }
+              if (d2) {
+                fullMessage += d2;
+                res.write(`data: ${JSON.stringify({ type: 'delta', content: d2 })}\n\n`);
+              }
+            }
+          } else {
+            // 正常文本回复：将缓冲的 stream1 内容发送给前端
+            if (firstRoundContent) {
+              res.write(`data: ${JSON.stringify({ type: 'delta', content: firstRoundContent })}\n\n`);
+            }
+            fullMessage = firstRoundContent;
+          }
         }
       } else {
         // 降级兜底：原有流式路径
@@ -3156,13 +3308,52 @@ const server = http.createServer(async (req, res) => {
             if (dataStr === '[DONE]') continue;
             try {
               const parsed = JSON.parse(dataStr);
-              const delta = parsed.choices?.[0]?.delta?.content || '';
+              let delta = parsed.choices?.[0]?.delta?.content || '';
+              if (delta) {
+                // ★ 过滤 tool_calls 文本泄露
+                delta = delta.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
+              }
               if (delta) {
                 fullMessage += delta;
                 res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
               }
             } catch (e) { /* skip */ }
           }
+        }
+      }
+
+      // ★ 防御：空响应自动重试一次
+      if (fullMessage.length === 0) {
+        console.warn(`⚠️ [EMPTY_RESPONSE_RETRY] 首次响应为空，自动重试 | agent=${session.agentName}`);
+        try {
+          const retryPrompt = enrichedSystemPrompt + '\n\n【重要】请直接回答用户最后一个问题，不要重复开场白，不要自我介绍，直接给出有价值的回答。';
+          const retryStream = await activeProvider.chatStream(retryPrompt, session.messages);
+          for await (const parsed of parseSSEStream(retryStream)) {
+            let delta = parsed.choices?.[0]?.delta?.content || '';
+            if (delta) {
+              // ★ 过滤 tool_calls 文本泄露
+              delta = delta.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
+            }
+            if (delta) {
+              fullMessage += delta;
+              res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+            }
+          }
+          console.log(`🔄 [EMPTY_RESPONSE_RETRY] 重试完成 | len=${fullMessage.length}`);
+        } catch (retryErr) {
+          console.error(`❌ [EMPTY_RESPONSE_RETRY] 重试失败:`, retryErr.message);
+        }
+      }
+      if (fullMessage.length === 0) {
+        fullMessage = '抱歉，我暂时无法回答这个问题，请换个方式再问一次。';
+        res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
+      }
+
+      // ★ 最终清洗：过滤 tool_calls 文本泄露
+      if (fullMessage) {
+        fullMessage = fullMessage.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在调用[^)）]*[)）]/g, '').replace(/（正在连接[^）]*）/g, '').replace(/^\s*---\s*$/gm, '').trim();
+        if (fullMessage.length === 0) {
+          fullMessage = '抱歉，我暂时无法回答这个问题，请换个方式再问一次。';
         }
       }
 
@@ -3384,7 +3575,7 @@ const server = http.createServer(async (req, res) => {
             const [vectorChunks2, bm25Chunks2] = await Promise.all([
               Promise.race([
                 kb.retrieve(message, session2.agentId, sfKey2, topK2),
-                new Promise(resolve => setTimeout(() => resolve([]), 5000))
+                new Promise(resolve => setTimeout(() => resolve([]), 10000))
               ]),
               (async () => {
                 try {

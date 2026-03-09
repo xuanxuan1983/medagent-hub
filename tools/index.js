@@ -197,6 +197,11 @@ const skillDispatchTool = {
   async execute(args, context) {
     const { skill_id, reason } = args;
     const displayName = SKILL_DISPLAY_NAMES[skill_id] || skill_id;
+    // ★ 防御：模型传入空 skill_id 时拒绝路由
+    if (!skill_id) {
+      console.warn(`⚠️ [skill_dispatch] 收到空 skill_id，拒绝路由`);
+      return { text: "请直接回答用户的问题。", toolEvent: null, skillPrompt: null, skillId: null, skillDisplayName: null };
+    }
     console.log(`🎯 [skill_dispatch] 路由到: ${skill_id} (${displayName}) | 原因: ${reason || '未说明'}`);
     const skillPrompt = extractSkillPrompt(skill_id);
     if (!skillPrompt) {
@@ -227,6 +232,22 @@ function getToolDefinitions(toolIds) {
 }
 
 async function executeTool(toolName, args, context) {
+  // ★ 工具名别名映射：DeepSeek-V3 有时直接输出技能名而非 skill_dispatch
+  const TOOL_ALIASES = {
+    'product_strategist': 'skill_dispatch',
+    'senior_consultant': 'skill_dispatch',
+    'product-strategist': 'skill_dispatch',
+    'senior-consultant': 'skill_dispatch',
+    'compliance_expert': 'skill_dispatch',
+    'compliance-expert': 'skill_dispatch',
+    'training_advisor': 'skill_dispatch',
+    'training-advisor': 'skill_dispatch',
+  };
+  if (TOOL_ALIASES[toolName]) {
+    console.log(`[ToolRegistry] 别名映射: ${toolName} -> ${TOOL_ALIASES[toolName]}`);
+    args = { skill_id: toolName.replace(/_/g, '-'), ...args };
+    toolName = TOOL_ALIASES[toolName];
+  }
   const tool = TOOL_REGISTRY[toolName];
   if (!tool) {
     console.warn(`[ToolRegistry] 未知工具: ${toolName}`);

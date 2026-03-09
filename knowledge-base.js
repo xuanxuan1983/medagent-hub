@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const embeddingAgent = new https.Agent({ keepAlive: true, maxSockets: 3, timeout: 10000 } );
 const crypto = require('crypto');
 
 // ===== 配置 =====
@@ -208,6 +209,7 @@ function embedBatch(texts, apiKey) {
       hostname: 'api.siliconflow.cn',
       path: '/v1/embeddings',
       method: 'POST',
+      agent: embeddingAgent,
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
@@ -231,7 +233,7 @@ function embedBatch(texts, apiKey) {
     });
 
     req.on('error', reject);
-    req.setTimeout(30000, () => { req.destroy(); reject(new Error('向量化请求超时')); });
+    req.setTimeout(8000, () => { req.destroy(); reject(new Error('向量化请求超时')); });
     req.write(body);
     req.end();
   });
@@ -340,7 +342,14 @@ async function retrieve(query, agentId, apiKey, topK = TOP_K) {
   // 对 query 向量化（唯一的网络请求）
   let queryVector;
   try {
-    const vectors = await embedBatch([query], apiKey);
+    let vectors;
+    try {
+      vectors = await embedBatch([query], apiKey);
+    } catch (firstErr) {
+      console.warn('[KB] 向量化首次失败，500ms后重试:', firstErr.message);
+      await new Promise(r => setTimeout(r, 500));
+      vectors = await embedBatch([query], apiKey);
+    }
     queryVector = vectors[0];
   } catch (e) {
     console.warn('[KB] 查询向量化失败:', e.message);

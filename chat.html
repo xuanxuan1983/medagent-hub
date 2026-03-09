@@ -2733,8 +2733,21 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 }
                 setDoudouEmotion('happy');
                 setTimeout(() => setDoudouEmotion('default'), 3000);
+                // ★ 安全网：done 事件时立即恢复输入框
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('uploadBtn').disabled = false;
+                const micBtnDone = document.getElementById('micBtn');
+                if (micBtnDone) micBtnDone.disabled = false;
+                document.getElementById('messageInput').focus();
               } else if (evt.type === 'error') {
                 bubble.textContent = '抱歉，遇到了问题：' + (evt.message || '请稍后再试');
+                // ★ 安全网：error 事件时也恢复输入框
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('uploadBtn').disabled = false;
+                const micBtnErr = document.getElementById('micBtn');
+                if (micBtnErr) micBtnErr.disabled = false;
               }
             } catch (e) { /* skip */ }
           }
@@ -2800,14 +2813,43 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     // Re-parse with suggested questions (only from clearly marked final section)
     let mainContent = fullText;
     let suggestedQuestions = [];
-    const lastSepIdx = fullText.lastIndexOf('\n---\n');
+    // 找最后一个 ---（3+个短横线）后面跟引导问题的位置
+    let lastSepIdx = -1;
+    let sepLen = 0;
+    const sepRegex = /-{3,}/g;
+    let m;
+    while ((m = sepRegex.exec(fullText)) !== null) {
+      const afterPos = m.index + m[0].length;
+      const afterStr = fullText.substring(afterPos, afterPos + 10).replace(/^\s*/, '');
+      if (afterStr.startsWith('-') || afterStr.startsWith('我')) {
+        lastSepIdx = m.index;
+        sepLen = m[0].length;
+      }
+    }
     if (lastSepIdx > 0) {
-      const afterSep = fullText.substring(lastSepIdx + 5).trim();
-      const lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      const allQuestionLike = lines.length > 0 && lines.length <= 5 && lines.every(l => /^[-*\d]/.test(l) && l.length < 80 && !l.includes('|'));
-      if (allQuestionLike) {
+      const afterSep = fullText.substring(lastSepIdx + sepLen).trim();
+      // 先尝试按换行分割，如果只有1行则尝试按 "- 我" 模式分割
+      let lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length <= 1 && afterSep.length > 10) {
+        // 智能分割：处理问题挤在一行的情况
+        // 先去掉开头的 - 和空格
+        const cleaned = afterSep.replace(/^[-\s]+/, '');
+        // 找分割点：中文/引号/括号后跟 - 再跟4个以上中文字符
+        const pts = [];
+        const pr = /(?<=[\u4e00-\u9fff\u201d\u201c"'）\)a-zA-Z0-9])[-](?=[\u4e00-\u9fff]{3,})/g;
+        let pm;
+        while ((pm = pr.exec(cleaned)) !== null) { pts.push(pm.index); }
+        if (pts.length >= 2) {
+          const segs = [];
+          let prev = 0;
+          for (const idx of pts) { segs.push(cleaned.substring(prev, idx).trim()); prev = idx + 1; }
+          segs.push(cleaned.substring(prev).trim());
+          lines = segs.filter(l => l.length > 4);
+        }
+      }
+      if (lines.length >= 2 && lines.length <= 5) {
         mainContent = fullText.substring(0, lastSepIdx).trim();
-        suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4);
+        suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4).map(q => q.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').trim()).filter(q => q.length > 4);
       }
     }
     if (typeof marked !== 'undefined') {
@@ -2956,15 +2998,39 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     let suggestedQuestions = [];
     if (role === 'assistant') {
       // Only match if the LAST section after --- contains short question-like items
-      const lastSepIdx = content.lastIndexOf('\n---\n');
+      // 找最后一个 ---（3+个短横线）后面跟引导问题的位置
+      let lastSepIdx = -1;
+      let sepLen = 0;
+      const sepRegex = /-{3,}/g;
+      let m;
+      while ((m = sepRegex.exec(content)) !== null) {
+        const afterPos = m.index + m[0].length;
+        const afterStr = content.substring(afterPos, afterPos + 10).replace(/^\s*/, '');
+        if (afterStr.startsWith('-') || afterStr.startsWith('我')) {
+          lastSepIdx = m.index;
+          sepLen = m[0].length;
+        }
+      }
       if (lastSepIdx > 0) {
-        const afterSep = content.substring(lastSepIdx + 5).trim();
-        const lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        // Only treat as suggested questions if ALL lines look like questions (start with - or number, and are short)
-        const allQuestionLike = lines.length > 0 && lines.length <= 5 && lines.every(l => /^[-*\d]/.test(l) && l.length < 80 && !l.includes('|'));
-        if (allQuestionLike) {
+        const afterSep = content.substring(lastSepIdx + sepLen).trim();
+        let lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length <= 1 && afterSep.length > 10) {
+          const cleaned = afterSep.replace(/^[-\s]+/, '');
+          const pts = [];
+          const pr = /(?<=[\u4e00-\u9fff\u201d\u201c"'）\)a-zA-Z0-9])[-](?=[\u4e00-\u9fff]{3,})/g;
+          let pm;
+          while ((pm = pr.exec(cleaned)) !== null) { pts.push(pm.index); }
+          if (pts.length >= 2) {
+            const segs = [];
+            let prev = 0;
+            for (const idx of pts) { segs.push(cleaned.substring(prev, idx).trim()); prev = idx + 1; }
+            segs.push(cleaned.substring(prev).trim());
+            lines = segs.filter(l => l.length > 4);
+          }
+        }
+        if (lines.length >= 2 && lines.length <= 5) {
           mainContent = content.substring(0, lastSepIdx).trim();
-          suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4);
+          suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4).map(q => q.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').trim()).filter(q => q.length > 4);
         }
       }
     }
