@@ -2704,6 +2704,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                   renderText = renderText.replace(/##([^\s#\n])/g, '## $1');
                   // Fix missing blank line before table (LLM often puts table right after heading text)
                   renderText = renderText.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
+                  // Fix table rows starting with space before pipe (marked.js requires no leading space)
+                  renderText = renderText.replace(/^[ \t]+(\|)/gm, '$1');
                   // Count unmatched ** and * for bold/italic
                   const dblAst = (renderText.match(/\*\*/g) || []).length;
                   if (dblAst % 2 !== 0) renderText += '**';
@@ -2859,6 +2861,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (typeof marked !== 'undefined') {
       mainContent = mainContent.replace(/##([^\s#\n])/g, '## $1');
       mainContent = mainContent.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
+      mainContent = mainContent.replace(/^[ \t]+(\|)/gm, '$1');
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
