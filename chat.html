@@ -2700,6 +2700,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 if (typeof marked !== 'undefined') {
                   // Fix incomplete markdown markers during streaming
                   let renderText = fullText;
+                  // Fix ## heading without space (LLM often omits the space)
+                  renderText = renderText.replace(/##([^\s#\n])/g, '## $1');
                   // Count unmatched ** and * for bold/italic
                   const dblAst = (renderText.match(/\*\*/g) || []).length;
                   if (dblAst % 2 !== 0) renderText += '**';
@@ -2853,6 +2855,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       }
     }
     if (typeof marked !== 'undefined') {
+      mainContent = mainContent.replace(/##([^\s#\n])/g, '## $1');
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
