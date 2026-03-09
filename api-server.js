@@ -3126,7 +3126,13 @@ const server = http.createServer(async (req, res) => {
 
               if (toolResult.skillPrompt) {
                 // 用专家 system prompt 替换豆豆的 system prompt，直接发起第二轮调用
-                const expertSystemPrompt = toolResult.skillPrompt;
+                // ★ 知识库透传：将主 Agent 已检索到的 RAG 知识库内容追加到专家 prompt 中
+                const kbSection = (() => {
+                  const marker = '--- 知识库参考资料（请优先基于以下内容回答）---';
+                  const idx = enrichedSystemPrompt.indexOf(marker);
+                  return idx >= 0 ? '\n\n' + enrichedSystemPrompt.slice(idx) : '';
+                })();
+                const expertSystemPrompt = toolResult.skillPrompt + kbSection;
                 const messagesForExpert = [
                   ...session.messages
                 ];
