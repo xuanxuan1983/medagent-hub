@@ -56,3 +56,4 @@ add_new_agents.py
 deploy_team_plan.py
 fix_team_api.py
 team_api_addon.js
+node_modules/
