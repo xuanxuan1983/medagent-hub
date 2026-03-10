@@ -1,0 +1,975 @@
+2026-02-27T01:23:19: ✅ Using AI Provider: GEMINI
+2026-02-27T01:23:19: 🎯 MedAgent API Server running on http://localhost:3002
+2026-02-27T01:23:19: 🤖 AI Provider: GEMINI
+2026-02-27T01:23:19: 📋 Available endpoints:
+2026-02-27T01:23:19:    - POST /api/auth/login      - Login with invite code
+2026-02-27T01:23:19:    - GET  /api/auth/code-status - Check invite code usage
+2026-02-27T01:23:19:    - POST /api/chat/init       - Initialize chat session
+2026-02-27T01:23:19:    - POST /api/chat/message    - Send message
+2026-02-27T01:23:19:    - GET  /api/chat/history    - Get conversation history
+2026-02-27T01:23:19:    - GET  /health              - Health check
+2026-02-27T01:23:19: 
+2026-02-27T01:23:19: 🔑 Invite Code Limit: 5 uses per code
+2026-02-27T01:23:19: 
+2026-02-27T01:23:19: ✨ Ready to serve medical aesthetics agents!
+2026-02-27T01:23:19: 
+2026-02-27T01:23:19: ⚠️  Required API Key: GEMINI_API_KEY
+2026-02-27T10:49:10: 📝 邀请码 medvip3932 使用次数: 5/10
+2026-02-27T11:44:53: 📝 邀请码 medagent2026 使用次数: 1/5
+2026-02-27T11:45:03: [USAGE] 2026-02-27T03:45:03.949Z agent=hrbp
+2026-02-27T11:45:17: 💬 [战略HRBP] User: nihao...
+2026-02-27T11:47:33: Error sending message: AggregateError [ETIMEDOUT]: 
+2026-02-27T11:47:33:     at internalConnectMultiple (node:net:1122:18)
+2026-02-27T11:47:33:     at afterConnectMultiple (node:net:1689:7) {
+2026-02-27T11:47:33:   code: 'ETIMEDOUT',
+2026-02-27T11:47:33:   [errors]: [
+2026-02-27T11:47:33:     Error: connect ETIMEDOUT 142.250.73.106:443
+2026-02-27T11:47:33:         at createConnectionError (node:net:1652:14)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -110,
+2026-02-27T11:47:33:       code: 'ETIMEDOUT',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '142.250.73.106',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ENETUNREACH 2607:f8b0:400a:803::200a:443 - Local (:::0)
+2026-02-27T11:47:33:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -101,
+2026-02-27T11:47:33:       code: 'ENETUNREACH',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '2607:f8b0:400a:803::200a',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ETIMEDOUT 142.250.73.138:443
+2026-02-27T11:47:33:         at createConnectionError (node:net:1652:14)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -110,
+2026-02-27T11:47:33:       code: 'ETIMEDOUT',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '142.250.73.138',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ENETUNREACH 2607:f8b0:400a:809::200a:443 - Local (:::0)
+2026-02-27T11:47:33:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -101,
+2026-02-27T11:47:33:       code: 'ENETUNREACH',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '2607:f8b0:400a:809::200a',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ETIMEDOUT 142.250.69.170:443
+2026-02-27T11:47:33:         at createConnectionError (node:net:1652:14)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -110,
+2026-02-27T11:47:33:       code: 'ETIMEDOUT',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '142.250.69.170',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ENETUNREACH 2607:f8b0:400a:801::200a:443 - Local (:::0)
+2026-02-27T11:47:33:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -101,
+2026-02-27T11:47:33:       code: 'ENETUNREACH',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '2607:f8b0:400a:801::200a',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ETIMEDOUT 142.251.45.138:443
+2026-02-27T11:47:33:         at createConnectionError (node:net:1652:14)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -110,
+2026-02-27T11:47:33:       code: 'ETIMEDOUT',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '142.251.45.138',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ENETUNREACH 2607:f8b0:400a:800::200a:443 - Local (:::0)
+2026-02-27T11:47:33:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -101,
+2026-02-27T11:47:33:       code: 'ENETUNREACH',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '2607:f8b0:400a:800::200a',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ETIMEDOUT 142.251.34.202:443
+2026-02-27T11:47:33:         at createConnectionError (node:net:1652:14)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -110,
+2026-02-27T11:47:33:       code: 'ETIMEDOUT',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '142.251.34.202',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ETIMEDOUT 142.251.33.202:443
+2026-02-27T11:47:33:         at createConnectionError (node:net:1652:14)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -110,
+2026-02-27T11:47:33:       code: 'ETIMEDOUT',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '142.251.33.202',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ETIMEDOUT 142.251.46.74:443
+2026-02-27T11:47:33:         at createConnectionError (node:net:1652:14)
+2026-02-27T11:47:33:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T11:47:33:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T11:47:33:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T11:47:33:       errno: -110,
+2026-02-27T11:47:33:       code: 'ETIMEDOUT',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '142.251.46.74',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     },
+2026-02-27T11:47:33:     Error: connect ETIMEDOUT 142.250.73.74:443
+2026-02-27T11:47:33:         at createConnectionError (node:net:1652:14)
+2026-02-27T11:47:33:         at afterConnectMultiple (node:net:1682:16) {
+2026-02-27T11:47:33:       errno: -110,
+2026-02-27T11:47:33:       code: 'ETIMEDOUT',
+2026-02-27T11:47:33:       syscall: 'connect',
+2026-02-27T11:47:33:       address: '142.250.73.74',
+2026-02-27T11:47:33:       port: 443
+2026-02-27T11:47:33:     }
+2026-02-27T11:47:33:   ]
+2026-02-27T11:47:33: }
+2026-02-27T11:57:23: 📝 邀请码 medagent2026 使用次数: 2/5
+2026-02-27T11:57:46: 📝 邀请码 medagent2026 使用次数: 3/5
+2026-02-27T11:57:46: [USAGE] 2026-02-27T03:57:46.619Z agent=product-expert
+2026-02-27T11:57:52: 💬 [产品材料专家] User: 您好...
+2026-02-27T12:00:11: Error sending message: AggregateError [ETIMEDOUT]: 
+2026-02-27T12:00:11:     at internalConnectMultiple (node:net:1122:18)
+2026-02-27T12:00:11:     at afterConnectMultiple (node:net:1689:7) {
+2026-02-27T12:00:11:   code: 'ETIMEDOUT',
+2026-02-27T12:00:11:   [errors]: [
+2026-02-27T12:00:11:     Error: connect ETIMEDOUT 142.251.34.202:443
+2026-02-27T12:00:11:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -110,
+2026-02-27T12:00:11:       code: 'ETIMEDOUT',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '142.251.34.202',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ENETUNREACH 2607:f8b0:400a:802::200a:443 - Local (:::0)
+2026-02-27T12:00:11:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -101,
+2026-02-27T12:00:11:       code: 'ENETUNREACH',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '2607:f8b0:400a:802::200a',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ETIMEDOUT 142.251.33.202:443
+2026-02-27T12:00:11:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -110,
+2026-02-27T12:00:11:       code: 'ETIMEDOUT',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '142.251.33.202',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ENETUNREACH 2607:f8b0:400a:80c::200a:443 - Local (:::0)
+2026-02-27T12:00:11:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -101,
+2026-02-27T12:00:11:       code: 'ENETUNREACH',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '2607:f8b0:400a:80c::200a',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ETIMEDOUT 142.251.46.74:443
+2026-02-27T12:00:11:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -110,
+2026-02-27T12:00:11:       code: 'ETIMEDOUT',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '142.251.46.74',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ENETUNREACH 2607:f8b0:400a:80d::200a:443 - Local (:::0)
+2026-02-27T12:00:11:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -101,
+2026-02-27T12:00:11:       code: 'ENETUNREACH',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '2607:f8b0:400a:80d::200a',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ETIMEDOUT 142.250.73.74:443
+2026-02-27T12:00:11:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -110,
+2026-02-27T12:00:11:       code: 'ETIMEDOUT',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '142.250.73.74',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ENETUNREACH 2607:f8b0:400a:808::200a:443 - Local (:::0)
+2026-02-27T12:00:11:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -101,
+2026-02-27T12:00:11:       code: 'ENETUNREACH',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '2607:f8b0:400a:808::200a',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ETIMEDOUT 142.250.73.106:443
+2026-02-27T12:00:11:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -110,
+2026-02-27T12:00:11:       code: 'ETIMEDOUT',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '142.250.73.106',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ETIMEDOUT 142.250.73.138:443
+2026-02-27T12:00:11:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -110,
+2026-02-27T12:00:11:       code: 'ETIMEDOUT',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '142.250.73.138',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ETIMEDOUT 142.250.69.170:443
+2026-02-27T12:00:11:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:00:11:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:00:11:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:00:11:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:00:11:       errno: -110,
+2026-02-27T12:00:11:       code: 'ETIMEDOUT',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '142.250.69.170',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     },
+2026-02-27T12:00:11:     Error: connect ETIMEDOUT 142.251.45.138:443
+2026-02-27T12:00:11:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:00:11:         at afterConnectMultiple (node:net:1682:16) {
+2026-02-27T12:00:11:       errno: -110,
+2026-02-27T12:00:11:       code: 'ETIMEDOUT',
+2026-02-27T12:00:11:       syscall: 'connect',
+2026-02-27T12:00:11:       address: '142.251.45.138',
+2026-02-27T12:00:11:       port: 443
+2026-02-27T12:00:11:     }
+2026-02-27T12:00:11:   ]
+2026-02-27T12:00:11: }
+2026-02-27T12:03:02: ✅ Using AI Provider: GEMINI
+2026-02-27T12:03:02: 🎯 MedAgent API Server running on http://localhost:3002
+2026-02-27T12:03:02: 🤖 AI Provider: GEMINI
+2026-02-27T12:03:02: 📋 Available endpoints:
+2026-02-27T12:03:02:    - POST /api/auth/login      - Login with invite code
+2026-02-27T12:03:02:    - GET  /api/auth/code-status - Check invite code usage
+2026-02-27T12:03:02:    - POST /api/chat/init       - Initialize chat session
+2026-02-27T12:03:02:    - POST /api/chat/message    - Send message
+2026-02-27T12:03:02:    - GET  /api/chat/history    - Get conversation history
+2026-02-27T12:03:02:    - GET  /health              - Health check
+2026-02-27T12:03:02: 
+2026-02-27T12:03:02: 🔑 Invite Code Limit: 5 uses per code
+2026-02-27T12:03:02: 
+2026-02-27T12:03:02: ✨ Ready to serve medical aesthetics agents!
+2026-02-27T12:03:02: 
+2026-02-27T12:03:02: ⚠️  Required API Key: GEMINI_API_KEY
+2026-02-27T12:04:13: 📝 邀请码 medagent2026 使用次数: 4/5
+2026-02-27T12:05:09: 📝 邀请码 medagent2026 使用次数: 5/5
+2026-02-27T12:05:09: [USAGE] 2026-02-27T04:05:09.809Z agent=product-expert
+2026-02-27T12:05:14: 💬 [产品材料专家] User: 您好...
+2026-02-27T12:07:01: [USAGE] 2026-02-27T04:07:01.634Z agent=senior-consultant
+2026-02-27T12:07:04: 💬 [金牌医美咨询师] User: 您好...
+2026-02-27T12:07:29: Error sending message: AggregateError [ETIMEDOUT]: 
+2026-02-27T12:07:29:     at internalConnectMultiple (node:net:1122:18)
+2026-02-27T12:07:29:     at afterConnectMultiple (node:net:1689:7) {
+2026-02-27T12:07:29:   code: 'ETIMEDOUT',
+2026-02-27T12:07:29:   [errors]: [
+2026-02-27T12:07:29:     Error: connect ETIMEDOUT 142.251.46.74:443
+2026-02-27T12:07:29:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -110,
+2026-02-27T12:07:29:       code: 'ETIMEDOUT',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '142.251.46.74',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ENETUNREACH 2607:f8b0:400a:808::200a:443 - Local (:::0)
+2026-02-27T12:07:29:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -101,
+2026-02-27T12:07:29:       code: 'ENETUNREACH',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '2607:f8b0:400a:808::200a',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ETIMEDOUT 142.250.73.74:443
+2026-02-27T12:07:29:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -110,
+2026-02-27T12:07:29:       code: 'ETIMEDOUT',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '142.250.73.74',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ENETUNREACH 2607:f8b0:400a:802::200a:443 - Local (:::0)
+2026-02-27T12:07:29:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -101,
+2026-02-27T12:07:29:       code: 'ENETUNREACH',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '2607:f8b0:400a:802::200a',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ETIMEDOUT 142.250.73.106:443
+2026-02-27T12:07:29:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -110,
+2026-02-27T12:07:29:       code: 'ETIMEDOUT',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '142.250.73.106',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ENETUNREACH 2607:f8b0:400a:80c::200a:443 - Local (:::0)
+2026-02-27T12:07:29:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -101,
+2026-02-27T12:07:29:       code: 'ENETUNREACH',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '2607:f8b0:400a:80c::200a',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ETIMEDOUT 142.250.73.138:443
+2026-02-27T12:07:29:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -110,
+2026-02-27T12:07:29:       code: 'ETIMEDOUT',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '142.250.73.138',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ENETUNREACH 2607:f8b0:400a:80d::200a:443 - Local (:::0)
+2026-02-27T12:07:29:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -101,
+2026-02-27T12:07:29:       code: 'ENETUNREACH',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '2607:f8b0:400a:80d::200a',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ETIMEDOUT 142.250.69.170:443
+2026-02-27T12:07:29:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -110,
+2026-02-27T12:07:29:       code: 'ETIMEDOUT',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '142.250.69.170',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ETIMEDOUT 142.251.45.138:443
+2026-02-27T12:07:29:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -110,
+2026-02-27T12:07:29:       code: 'ETIMEDOUT',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '142.251.45.138',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ETIMEDOUT 142.251.34.202:443
+2026-02-27T12:07:29:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:07:29:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:07:29:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:07:29:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:07:29:       errno: -110,
+2026-02-27T12:07:29:       code: 'ETIMEDOUT',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '142.251.34.202',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     },
+2026-02-27T12:07:29:     Error: connect ETIMEDOUT 142.251.33.202:443
+2026-02-27T12:07:29:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:07:29:         at afterConnectMultiple (node:net:1682:16) {
+2026-02-27T12:07:29:       errno: -110,
+2026-02-27T12:07:29:       code: 'ETIMEDOUT',
+2026-02-27T12:07:29:       syscall: 'connect',
+2026-02-27T12:07:29:       address: '142.251.33.202',
+2026-02-27T12:07:29:       port: 443
+2026-02-27T12:07:29:     }
+2026-02-27T12:07:29:   ]
+2026-02-27T12:07:29: }
+2026-02-27T12:09:20: Error sending message: AggregateError [ETIMEDOUT]: 
+2026-02-27T12:09:20:     at internalConnectMultiple (node:net:1122:18)
+2026-02-27T12:09:20:     at afterConnectMultiple (node:net:1689:7) {
+2026-02-27T12:09:20:   code: 'ETIMEDOUT',
+2026-02-27T12:09:20:   [errors]: [
+2026-02-27T12:09:20:     Error: connect ETIMEDOUT 142.251.45.138:443
+2026-02-27T12:09:20:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -110,
+2026-02-27T12:09:20:       code: 'ETIMEDOUT',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '142.251.45.138',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ENETUNREACH 2607:f8b0:400a:80d::200a:443 - Local (:::0)
+2026-02-27T12:09:20:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -101,
+2026-02-27T12:09:20:       code: 'ENETUNREACH',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '2607:f8b0:400a:80d::200a',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ETIMEDOUT 142.250.73.74:443
+2026-02-27T12:09:20:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -110,
+2026-02-27T12:09:20:       code: 'ETIMEDOUT',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '142.250.73.74',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ENETUNREACH 2607:f8b0:400a:803::200a:443 - Local (:::0)
+2026-02-27T12:09:20:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -101,
+2026-02-27T12:09:20:       code: 'ENETUNREACH',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '2607:f8b0:400a:803::200a',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ETIMEDOUT 142.251.33.202:443
+2026-02-27T12:09:20:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -110,
+2026-02-27T12:09:20:       code: 'ETIMEDOUT',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '142.251.33.202',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ENETUNREACH 2607:f8b0:400a:809::200a:443 - Local (:::0)
+2026-02-27T12:09:20:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -101,
+2026-02-27T12:09:20:       code: 'ENETUNREACH',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '2607:f8b0:400a:809::200a',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ETIMEDOUT 142.250.69.170:443
+2026-02-27T12:09:20:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -110,
+2026-02-27T12:09:20:       code: 'ETIMEDOUT',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '142.250.69.170',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ENETUNREACH 2607:f8b0:400a:80c::200a:443 - Local (:::0)
+2026-02-27T12:09:20:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -101,
+2026-02-27T12:09:20:       code: 'ENETUNREACH',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '2607:f8b0:400a:80c::200a',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ETIMEDOUT 142.250.73.138:443
+2026-02-27T12:09:20:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -110,
+2026-02-27T12:09:20:       code: 'ETIMEDOUT',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '142.250.73.138',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ETIMEDOUT 142.251.46.74:443
+2026-02-27T12:09:20:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -110,
+2026-02-27T12:09:20:       code: 'ETIMEDOUT',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '142.251.46.74',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ETIMEDOUT 142.251.34.202:443
+2026-02-27T12:09:20:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:09:20:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:09:20:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:09:20:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:09:20:       errno: -110,
+2026-02-27T12:09:20:       code: 'ETIMEDOUT',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '142.251.34.202',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     },
+2026-02-27T12:09:20:     Error: connect ETIMEDOUT 142.250.73.106:443
+2026-02-27T12:09:20:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:09:20:         at afterConnectMultiple (node:net:1682:16) {
+2026-02-27T12:09:20:       errno: -110,
+2026-02-27T12:09:20:       code: 'ETIMEDOUT',
+2026-02-27T12:09:20:       syscall: 'connect',
+2026-02-27T12:09:20:       address: '142.250.73.106',
+2026-02-27T12:09:20:       port: 443
+2026-02-27T12:09:20:     }
+2026-02-27T12:09:20:   ]
+2026-02-27T12:09:20: }
+2026-02-27T12:35:26: 💬 [金牌医美咨询师] User: 你好...
+2026-02-27T12:35:29: [USAGE] 2026-02-27T04:35:29.264Z agent=senior-consultant
+2026-02-27T12:35:31: 💬 [金牌医美咨询师] User: 你好...
+2026-02-27T12:37:44: Error sending message: AggregateError [ETIMEDOUT]: 
+2026-02-27T12:37:44:     at internalConnectMultiple (node:net:1122:18)
+2026-02-27T12:37:44:     at afterConnectMultiple (node:net:1689:7) {
+2026-02-27T12:37:44:   code: 'ETIMEDOUT',
+2026-02-27T12:37:44:   [errors]: [
+2026-02-27T12:37:44:     Error: connect ETIMEDOUT 142.250.73.106:443
+2026-02-27T12:37:44:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:44:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:44:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:44:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:44:       errno: -110,
+2026-02-27T12:37:44:       code: 'ETIMEDOUT',
+2026-02-27T12:37:44:       syscall: 'connect',
+2026-02-27T12:37:44:       address: '142.250.73.106',
+2026-02-27T12:37:44:       port: 443
+2026-02-27T12:37:44:     },
+2026-02-27T12:37:44:     Error: connect ETIMEDOUT 142.250.73.138:443
+2026-02-27T12:37:44:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:44:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:44:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:44:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:44:       errno: -110,
+2026-02-27T12:37:44:       code: 'ETIMEDOUT',
+2026-02-27T12:37:44:       syscall: 'connect',
+2026-02-27T12:37:44:       address: '142.250.73.138',
+2026-02-27T12:37:44:       port: 443
+2026-02-27T12:37:44:     },
+2026-02-27T12:37:44:     Error: connect ETIMEDOUT 142.250.69.170:443
+2026-02-27T12:37:44:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:44:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:44:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:44:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:44:       errno: -110,
+2026-02-27T12:37:44:       code: 'ETIMEDOUT',
+2026-02-27T12:37:44:       syscall: 'connect',
+2026-02-27T12:37:44:       address: '142.250.69.170',
+2026-02-27T12:37:44:       port: 443
+2026-02-27T12:37:44:     },
+2026-02-27T12:37:44:     Error: connect ETIMEDOUT 142.251.45.138:443
+2026-02-27T12:37:44:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:44:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:44:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:44:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:44:       errno: -110,
+2026-02-27T12:37:44:       code: 'ETIMEDOUT',
+2026-02-27T12:37:44:       syscall: 'connect',
+2026-02-27T12:37:44:       address: '142.251.45.138',
+2026-02-27T12:37:44:       port: 443
+2026-02-27T12:37:44:     },
+2026-02-27T12:37:44:     Error: connect ETIMEDOUT 142.251.34.202:443
+2026-02-27T12:37:44:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:44:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:44:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:44:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:44:       errno: -110,
+2026-02-27T12:37:44:       code: 'ETIMEDOUT',
+2026-02-27T12:37:44:       syscall: 'connect',
+2026-02-27T12:37:44:       address: '142.251.34.202',
+2026-02-27T12:37:44:       port: 443
+2026-02-27T12:37:44:     },
+2026-02-27T12:37:44:     Error: connect ETIMEDOUT 142.251.33.202:443
+2026-02-27T12:37:44:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:44:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:44:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:44:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:44:       errno: -110,
+2026-02-27T12:37:44:       code: 'ETIMEDOUT',
+2026-02-27T12:37:44:       syscall: 'connect',
+2026-02-27T12:37:44:       address: '142.251.33.202',
+2026-02-27T12:37:44:       port: 443
+2026-02-27T12:37:44:     },
+2026-02-27T12:37:44:     Error: connect ETIMEDOUT 142.251.46.74:443
+2026-02-27T12:37:44:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:44:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:44:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:44:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:44:       errno: -110,
+2026-02-27T12:37:44:       code: 'ETIMEDOUT',
+2026-02-27T12:37:44:       syscall: 'connect',
+2026-02-27T12:37:44:       address: '142.251.46.74',
+2026-02-27T12:37:44:       port: 443
+2026-02-27T12:37:44:     },
+2026-02-27T12:37:44:     Error: connect ETIMEDOUT 142.250.73.74:443
+2026-02-27T12:37:44:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:44:         at afterConnectMultiple (node:net:1682:16) {
+2026-02-27T12:37:44:       errno: -110,
+2026-02-27T12:37:44:       code: 'ETIMEDOUT',
+2026-02-27T12:37:44:       syscall: 'connect',
+2026-02-27T12:37:44:       address: '142.250.73.74',
+2026-02-27T12:37:44:       port: 443
+2026-02-27T12:37:44:     }
+2026-02-27T12:37:44:   ]
+2026-02-27T12:37:44: }
+2026-02-27T12:37:48: Error sending message: AggregateError [ETIMEDOUT]: 
+2026-02-27T12:37:48:     at internalConnectMultiple (node:net:1122:18)
+2026-02-27T12:37:48:     at afterConnectMultiple (node:net:1689:7) {
+2026-02-27T12:37:48:   code: 'ETIMEDOUT',
+2026-02-27T12:37:48:   [errors]: [
+2026-02-27T12:37:48:     Error: connect ETIMEDOUT 142.250.73.138:443
+2026-02-27T12:37:48:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:48:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:48:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:48:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:48:       errno: -110,
+2026-02-27T12:37:48:       code: 'ETIMEDOUT',
+2026-02-27T12:37:48:       syscall: 'connect',
+2026-02-27T12:37:48:       address: '142.250.73.138',
+2026-02-27T12:37:48:       port: 443
+2026-02-27T12:37:48:     },
+2026-02-27T12:37:48:     Error: connect ETIMEDOUT 142.251.45.138:443
+2026-02-27T12:37:48:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:48:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:48:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:48:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:48:       errno: -110,
+2026-02-27T12:37:48:       code: 'ETIMEDOUT',
+2026-02-27T12:37:48:       syscall: 'connect',
+2026-02-27T12:37:48:       address: '142.251.45.138',
+2026-02-27T12:37:48:       port: 443
+2026-02-27T12:37:48:     },
+2026-02-27T12:37:48:     Error: connect ETIMEDOUT 142.251.46.74:443
+2026-02-27T12:37:48:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:48:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:48:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:48:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:48:       errno: -110,
+2026-02-27T12:37:48:       code: 'ETIMEDOUT',
+2026-02-27T12:37:48:       syscall: 'connect',
+2026-02-27T12:37:48:       address: '142.251.46.74',
+2026-02-27T12:37:48:       port: 443
+2026-02-27T12:37:48:     },
+2026-02-27T12:37:48:     Error: connect ETIMEDOUT 142.250.73.106:443
+2026-02-27T12:37:48:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:48:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:48:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:48:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:48:       errno: -110,
+2026-02-27T12:37:48:       code: 'ETIMEDOUT',
+2026-02-27T12:37:48:       syscall: 'connect',
+2026-02-27T12:37:48:       address: '142.250.73.106',
+2026-02-27T12:37:48:       port: 443
+2026-02-27T12:37:48:     },
+2026-02-27T12:37:48:     Error: connect ETIMEDOUT 142.250.73.74:443
+2026-02-27T12:37:48:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:48:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:48:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:48:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:48:       errno: -110,
+2026-02-27T12:37:48:       code: 'ETIMEDOUT',
+2026-02-27T12:37:48:       syscall: 'connect',
+2026-02-27T12:37:48:       address: '142.250.73.74',
+2026-02-27T12:37:48:       port: 443
+2026-02-27T12:37:48:     },
+2026-02-27T12:37:48:     Error: connect ETIMEDOUT 142.251.34.202:443
+2026-02-27T12:37:48:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:48:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:48:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:48:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:48:       errno: -110,
+2026-02-27T12:37:48:       code: 'ETIMEDOUT',
+2026-02-27T12:37:48:       syscall: 'connect',
+2026-02-27T12:37:48:       address: '142.251.34.202',
+2026-02-27T12:37:48:       port: 443
+2026-02-27T12:37:48:     },
+2026-02-27T12:37:48:     Error: connect ETIMEDOUT 142.250.69.170:443
+2026-02-27T12:37:48:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:48:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T12:37:48:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T12:37:48:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T12:37:48:       errno: -110,
+2026-02-27T12:37:48:       code: 'ETIMEDOUT',
+2026-02-27T12:37:48:       syscall: 'connect',
+2026-02-27T12:37:48:       address: '142.250.69.170',
+2026-02-27T12:37:48:       port: 443
+2026-02-27T12:37:48:     },
+2026-02-27T12:37:48:     Error: connect ETIMEDOUT 142.251.33.202:443
+2026-02-27T12:37:48:         at createConnectionError (node:net:1652:14)
+2026-02-27T12:37:48:         at afterConnectMultiple (node:net:1682:16) {
+2026-02-27T12:37:48:       errno: -110,
+2026-02-27T12:37:48:       code: 'ETIMEDOUT',
+2026-02-27T12:37:48:       syscall: 'connect',
+2026-02-27T12:37:48:       address: '142.251.33.202',
+2026-02-27T12:37:48:       port: 443
+2026-02-27T12:37:48:     }
+2026-02-27T12:37:48:   ]
+2026-02-27T12:37:48: }
+2026-02-27T13:02:01: [USAGE] 2026-02-27T05:02:01.013Z agent=senior-consultant
+2026-02-27T13:04:26: [USAGE] 2026-02-27T05:04:26.866Z agent=senior-consultant
+2026-02-27T13:24:54: ✅ Using AI Provider: GEMINI
+2026-02-27T13:24:54: 🎯 MedAgent API Server running on http://localhost:3002
+2026-02-27T13:24:54: 🤖 AI Provider: GEMINI
+2026-02-27T13:24:54: 📋 Available endpoints:
+2026-02-27T13:24:54:    - POST /api/auth/login      - Login with invite code
+2026-02-27T13:24:54:    - GET  /api/auth/code-status - Check invite code usage
+2026-02-27T13:24:54:    - POST /api/chat/init       - Initialize chat session
+2026-02-27T13:24:54:    - POST /api/chat/message    - Send message
+2026-02-27T13:24:54:    - GET  /api/chat/history    - Get conversation history
+2026-02-27T13:24:54:    - GET  /health              - Health check
+2026-02-27T13:24:54: 
+2026-02-27T13:24:54: 🔑 Invite Code Limit: 5 uses per code
+2026-02-27T13:24:54: 
+2026-02-27T13:24:54: ✨ Ready to serve medical aesthetics agents!
+2026-02-27T13:24:54: 
+2026-02-27T13:24:54: ⚠️  Required API Key: GEMINI_API_KEY
+2026-02-27T13:28:04: [USAGE] 2026-02-27T05:28:04.686Z agent=senior-consultant
+2026-02-27T13:28:07: 💬 [金牌医美咨询师] User: 你好...
+2026-02-27T13:30:22: Error sending message: AggregateError [ETIMEDOUT]: 
+2026-02-27T13:30:22:     at internalConnectMultiple (node:net:1122:18)
+2026-02-27T13:30:22:     at afterConnectMultiple (node:net:1689:7) {
+2026-02-27T13:30:22:   code: 'ETIMEDOUT',
+2026-02-27T13:30:22:   [errors]: [
+2026-02-27T13:30:22:     Error: connect ETIMEDOUT 142.251.33.202:443
+2026-02-27T13:30:22:         at createConnectionError (node:net:1652:14)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -110,
+2026-02-27T13:30:22:       code: 'ETIMEDOUT',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '142.251.33.202',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ENETUNREACH 2607:f8b0:400a:801::200a:443 - Local (:::0)
+2026-02-27T13:30:22:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -101,
+2026-02-27T13:30:22:       code: 'ENETUNREACH',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '2607:f8b0:400a:801::200a',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ETIMEDOUT 142.251.46.74:443
+2026-02-27T13:30:22:         at createConnectionError (node:net:1652:14)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -110,
+2026-02-27T13:30:22:       code: 'ETIMEDOUT',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '142.251.46.74',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ENETUNREACH 2607:f8b0:400a:800::200a:443 - Local (:::0)
+2026-02-27T13:30:22:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -101,
+2026-02-27T13:30:22:       code: 'ENETUNREACH',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '2607:f8b0:400a:800::200a',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ETIMEDOUT 142.250.73.74:443
+2026-02-27T13:30:22:         at createConnectionError (node:net:1652:14)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -110,
+2026-02-27T13:30:22:       code: 'ETIMEDOUT',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '142.250.73.74',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ENETUNREACH 2607:f8b0:400a:808::200a:443 - Local (:::0)
+2026-02-27T13:30:22:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -101,
+2026-02-27T13:30:22:       code: 'ENETUNREACH',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '2607:f8b0:400a:808::200a',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ETIMEDOUT 142.250.73.106:443
+2026-02-27T13:30:22:         at createConnectionError (node:net:1652:14)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -110,
+2026-02-27T13:30:22:       code: 'ETIMEDOUT',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '142.250.73.106',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ENETUNREACH 2607:f8b0:400a:802::200a:443 - Local (:::0)
+2026-02-27T13:30:22:         at internalConnectMultiple (node:net:1186:16)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1716:5)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -101,
+2026-02-27T13:30:22:       code: 'ENETUNREACH',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '2607:f8b0:400a:802::200a',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ETIMEDOUT 142.250.73.138:443
+2026-02-27T13:30:22:         at createConnectionError (node:net:1652:14)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -110,
+2026-02-27T13:30:22:       code: 'ETIMEDOUT',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '142.250.73.138',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ETIMEDOUT 142.250.69.170:443
+2026-02-27T13:30:22:         at createConnectionError (node:net:1652:14)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -110,
+2026-02-27T13:30:22:       code: 'ETIMEDOUT',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '142.250.69.170',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ETIMEDOUT 142.251.45.138:443
+2026-02-27T13:30:22:         at createConnectionError (node:net:1652:14)
+2026-02-27T13:30:22:         at Timeout.internalConnectMultipleTimeout (node:net:1711:38)
+2026-02-27T13:30:22:         at listOnTimeout (node:internal/timers:583:11)
+2026-02-27T13:30:22:         at process.processTimers (node:internal/timers:519:7) {
+2026-02-27T13:30:22:       errno: -110,
+2026-02-27T13:30:22:       code: 'ETIMEDOUT',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '142.251.45.138',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     },
+2026-02-27T13:30:22:     Error: connect ETIMEDOUT 142.251.34.202:443
+2026-02-27T13:30:22:         at createConnectionError (node:net:1652:14)
+2026-02-27T13:30:22:         at afterConnectMultiple (node:net:1682:16) {
+2026-02-27T13:30:22:       errno: -110,
+2026-02-27T13:30:22:       code: 'ETIMEDOUT',
+2026-02-27T13:30:22:       syscall: 'connect',
+2026-02-27T13:30:22:       address: '142.251.34.202',
+2026-02-27T13:30:22:       port: 443
+2026-02-27T13:30:22:     }
+2026-02-27T13:30:22:   ]
+2026-02-27T13:30:22: }
+2026-02-27T13:30:29: ✅ Using AI Provider: GEMINI
+2026-02-27T13:30:29: 🎯 MedAgent API Server running on http://localhost:3002
+2026-02-27T13:30:29: 🤖 AI Provider: GEMINI
+2026-02-27T13:30:29: 📋 Available endpoints:
+2026-02-27T13:30:29:    - POST /api/auth/login      - Login with invite code
+2026-02-27T13:30:29:    - GET  /api/auth/code-status - Check invite code usage
+2026-02-27T13:30:29:    - POST /api/chat/init       - Initialize chat session
+2026-02-27T13:30:29:    - POST /api/chat/message    - Send message
+2026-02-27T13:30:29:    - GET  /api/chat/history    - Get conversation history
+2026-02-27T13:30:29:    - GET  /health              - Health check
+2026-02-27T13:30:29: 
+2026-02-27T13:30:29: 🔑 Invite Code Limit: 5 uses per code
+2026-02-27T13:30:29: 
+2026-02-27T13:30:29: ✨ Ready to serve medical aesthetics agents!
+2026-02-27T13:30:29: 
+2026-02-27T13:30:29: ⚠️  Required API Key: GEMINI_API_KEY
+2026-02-27T13:31:41: ✅ Using AI Provider: GEMINI
+2026-02-27T13:31:41: 🎯 MedAgent API Server running on http://localhost:3002
+2026-02-27T13:31:41: 🤖 AI Provider: GEMINI
+2026-02-27T13:31:41: 📋 Available endpoints:
+2026-02-27T13:31:41:    - POST /api/auth/login      - Login with invite code
+2026-02-27T13:31:41:    - GET  /api/auth/code-status - Check invite code usage
+2026-02-27T13:31:41:    - POST /api/chat/init       - Initialize chat session
+2026-02-27T13:31:41:    - POST /api/chat/message    - Send message
+2026-02-27T13:31:41:    - GET  /api/chat/history    - Get conversation history
+2026-02-27T13:31:41:    - GET  /health              - Health check
+2026-02-27T13:31:41: 
+2026-02-27T13:31:41: 🔑 Invite Code Limit: 5 uses per code
+2026-02-27T13:31:41: 
+2026-02-27T13:31:41: ✨ Ready to serve medical aesthetics agents!
+2026-02-27T13:31:41: 
+2026-02-27T13:31:41: ⚠️  Required API Key: GEMINI_API_KEY
+2026-02-27T13:35:41: 
+2026-02-27T13:35:41: 👋 Shutting down MedAgent API Server...
+2026-02-27T13:35:41: ✅ Server closed

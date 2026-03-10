@@ -505,6 +505,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .msg-row.user .msg-avatar { background: var(--text); color: white; font-size: 0.7rem; font-weight: 700; }
+    /* AI助手头像使用SVG图片，去掉背景方框让图片自然显示 */
+    .msg-row.assistant .msg-avatar { background: transparent !important; border: none !important; }
       .copy-btn {
     position: absolute;
     top: 8px;
@@ -2703,7 +2705,30 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                   // Fix ## heading without space (LLM often omits the space)
                   renderText = renderText.replace(/##([^\s#\n])/g, '## $1');
                   // Fix missing blank line before table (LLM often puts table right after heading text)
-                  renderText = renderText.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
+                  // 修复表格渲染：处理LLM生成表格的常见格式问题
+                  renderText = (function(text) {
+                    // Step1: 去除行首空格（LLM有时缩进表格行）
+                    text = text.replace(/^[ \t]+\|/gm, '|');
+                    // Step2: 去除表格行之间的空行（LLM常在每行后加空行）
+                    var changed = true;
+                    while (changed) {
+                      var prev = text;
+                      text = text.replace(/(\|[^\n]*)\n\n(\|)/g, '$1\n$2');
+                      changed = (text !== prev);
+                    }
+                    // Step3: 处理标题行和表格连写在一起的情况
+                    text = text.replace(/^([^|\n]+)(\|[^\n]+\|[ \t]*)$/gm, function(m, pre, row) {
+                      return (row.match(/\|/g)||[]).length >= 2 ? pre.trimEnd() + '\n' + row : m;
+                    });
+                    // Step4: 在非表格行后跟表格行时插入空行
+                    var lines = text.split('\n'), out = [];
+                    for (var i = 0; i < lines.length; i++) {
+                      var ln = lines[i], prev = i > 0 ? lines[i-1] : '';
+                      if (ln.trimStart().startsWith('|') && prev !== '' && !prev.trimStart().startsWith('|')) out.push('');
+                      out.push(ln);
+                    }
+                    return out.join('\n');
+                  })(renderText);
                   // Fix table rows starting with space before pipe (marked.js requires no leading space)
                   renderText = renderText.replace(/^[ \t]+(\|)/gm, '$1');
                   // Count unmatched ** and * for bold/italic
@@ -2802,7 +2827,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
     if (agent) {
-      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = agent.id === 'doudou' ? `<img src="/mascot-default.png" alt="豆豆" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else { avatar.textContent = '🤖'; }
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
@@ -2860,8 +2885,30 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     if (typeof marked !== 'undefined') {
       mainContent = mainContent.replace(/##([^\s#\n])/g, '## $1');
-      mainContent = mainContent.replace(/([^\n])\n(\|)/g, '$1\n\n$2');
-      mainContent = mainContent.replace(/^[ \t]+(\|)/gm, '$1');
+      // 修复表格渲染：处理LLM生成表格的常见格式问题
+      mainContent = (function(text) {
+        // Step1: 去除行首空格
+        text = text.replace(/^[ \t]+\|/gm, '|');
+        // Step2: 去除表格行之间的空行（LLM常在每行后加空行）
+        var changed = true;
+        while (changed) {
+          var prev = text;
+          text = text.replace(/(\|[^\n]*)\n\n(\|)/g, '$1\n$2');
+          changed = (text !== prev);
+        }
+        // Step3: 处理标题行和表格连写在同一行的情况
+        text = text.replace(/^([^|\n]+)(\|[^\n]+\|[ \t]*)$/gm, function(m, pre, row) {
+          return (row.match(/\|/g)||[]).length >= 2 ? pre.trimEnd() + '\n' + row : m;
+        });
+        // Step4: 在非表格行后跟表格行时插入空行
+        var lines = text.split('\n'), out = [];
+        for (var i = 0; i < lines.length; i++) {
+          var ln = lines[i], prev2 = i > 0 ? lines[i-1] : '';
+          if (ln.trimStart().startsWith('|') && prev2 !== '' && !prev2.trimStart().startsWith('|')) out.push('');
+          out.push(ln);
+        }
+        return out.join('\n');
+      })(mainContent);
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
@@ -2994,7 +3041,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (role === 'user') {
       avatar.textContent = currentUserName ? currentUserName.charAt(0).toUpperCase() : '我';
     } else if (agent) {
-      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = agent.id === 'doudou' ? `<img src="/mascot-default.png" alt="豆豆" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else {
       avatar.textContent = '🤖';
     }
@@ -3045,6 +3092,22 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
 
     if (role === 'assistant' && typeof marked !== 'undefined') {
+      // 修复表格渲染：处理LLM生成表格的常见格式问题
+      mainContent = (function(text) {
+        text = text.replace(/^[ \t]+\|/gm, '|');
+        var changed = true;
+        while (changed) { var prev = text; text = text.replace(/(\|[^\n]*)\n\n(\|)/g, '$1\n$2'); changed = (text !== prev); }
+        text = text.replace(/^([^|\n]+)(\|[^\n]+\|[ \t]*)$/gm, function(m, pre, row) {
+          return (row.match(/\|/g)||[]).length >= 2 ? pre.trimEnd() + '\n' + row : m;
+        });
+        var lines = text.split('\n'), out = [];
+        for (var i = 0; i < lines.length; i++) {
+          var ln = lines[i], prev2 = i > 0 ? lines[i-1] : '';
+          if (ln.trimStart().startsWith('|') && prev2 !== '' && !prev2.trimStart().startsWith('|')) out.push('');
+          out.push(ln);
+        }
+        return out.join('\n');
+      })(mainContent);
       bubble.innerHTML = marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
@@ -3166,7 +3229,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
     if (agent) {
-      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = agent.id === 'doudou' ? `<img src="/mascot-default.png" alt="豆豆" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else { avatar.textContent = '🤖'; }
     const dots = document.createElement('div');
     dots.className = 'typing-dots';

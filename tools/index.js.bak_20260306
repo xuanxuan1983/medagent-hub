@@ -1,0 +1,214 @@
+/**
+ * MedAgent Hub 工具注册中心 v2
+ * 统一管理所有 Function Calling 工具的定义和执行逻辑
+ */
+'use strict';
+
+let medaestheticsDb = null;
+try {
+  medaestheticsDb = require('../medaesthetics-db');
+} catch (e) {
+  console.warn('[ToolRegistry] medaesthetics-db 未找到，query_med_db 工具将降级');
+}
+
+// ============================================================
+// 工具 1：NMPA 药监局查询
+// ============================================================
+const nmpaSearchTool = {
+  id: 'nmpa_search',
+  definition: {
+    type: 'function',
+    function: {
+      name: 'nmpa_search',
+      description: '查询国家药品监督管理局（NMPA）数据库，验证医疗器械、药品、化妆品的注册/备案信息、批准文号、生产企业等合规信息。当用户询问某产品是否合规、是否有批文、是否正规时调用此工具。',
+      parameters: {
+        type: 'object',
+        properties: {
+          keyword: {
+            type: 'string',
+            description: '要查询的产品名称、批准文号或企业名称，例如"热玛吉"、"玻尿酸"、"肉毒素"'
+          }
+        },
+        required: ['keyword']
+      }
+    }
+  },
+  async execute(args, context) {
+    const { keyword } = args;
+    const { nmpaSearch, detectNmpaProduct, message } = context;
+    const searchTerm = keyword || detectNmpaProduct?.(message) || message;
+    if (!nmpaSearch) {
+      return { text: 'NMPA 查询功能当前不可用。', toolEvent: null };
+    }
+    try {
+      const result = await nmpaSearch(searchTerm);
+      return {
+        text: result.text || JSON.stringify(result),
+        toolEvent: { type: 'tool_call', tool: 'nmpa_search', keyword: searchTerm }
+      };
+    } catch (e) {
+      console.warn('[Tool:nmpa_search] 执行失败:', e.message);
+      return { text: `NMPA 查询失败：${e.message}`, toolEvent: null };
+    }
+  }
+};
+
+// ============================================================
+// 工具 2：医美价格数据库查询
+// ============================================================
+const queryMedDbTool = {
+  id: 'query_med_db',
+  definition: {
+    type: 'function',
+    function: {
+      name: 'query_med_db',
+      description: '查询本地医美价格和合规信息数据库，获取医美项目（如热玛吉、水光针、玻尿酸等）的参考价格区间、产品规格、注意事项等结构化信息。当用户询问某医美项目的价格、费用、多少钱时优先调用此工具。',
+      parameters: {
+        type: 'object',
+        properties: {
+          keyword: {
+            type: 'string',
+            description: '要查询的医美项目或产品名称，例如"热玛吉"、"水光针"、"玻尿酸填充"'
+          },
+          intent: {
+            type: 'string',
+            enum: ['price', 'compliance', 'general'],
+            description: '查询意图：price=价格查询，compliance=合规信息，general=综合查询'
+          },
+          city: {
+            type: 'string',
+            description: '可选，用户所在城市，用于返回地区调整后的价格，例如"北京"、"上海"'
+          }
+        },
+        required: ['keyword']
+      }
+    }
+  },
+  async execute(args, context) {
+    const { keyword, intent = 'general', city } = args;
+    if (!medaestheticsDb) {
+      return { text: `医美数据库模块未加载，无法查询"${keyword}"的价格信息。`, toolEvent: null };
+    }
+    try {
+      const queryStr = city ? `${keyword} ${city}` : keyword;
+      const result = medaestheticsDb.queryMedAestheticsDB(queryStr, intent);
+      if (result.summary && result.summary.trim().length > 0) {
+        return {
+          text: result.summary,
+          toolEvent: { type: 'tool_call', tool: 'query_med_db', keyword }
+        };
+      }
+      const priceResults = medaestheticsDb.queryPrice(keyword);
+      const complianceResults = medaestheticsDb.queryCompliance(keyword);
+      if (priceResults.length === 0 && complianceResults.length === 0) {
+        return {
+          text: `暂无"${keyword}"的本地数据库记录，建议参考机构官方报价或咨询专业医生。`,
+          toolEvent: null
+        };
+      }
+      const parts = [];
+      if (complianceResults.length > 0) {
+        parts.push('## 产品合规信息\n\n' + medaestheticsDb.formatComplianceResult(complianceResults));
+      }
+      if (priceResults.length > 0) {
+        parts.push('## 价格行情参考\n\n' + medaestheticsDb.formatPriceResult(priceResults, city || null));
+      }
+      return {
+        text: parts.join('\n\n'),
+        toolEvent: { type: 'tool_call', tool: 'query_med_db', keyword }
+      };
+    } catch (e) {
+      console.warn('[Tool:query_med_db] 执行失败:', e.message);
+      return { text: `医美数据库查询失败：${e.message}`, toolEvent: null };
+    }
+  }
+};
+
+// ============================================================
+// 工具 3：联网搜索（Bocha）
+// ============================================================
+const webSearchTool = {
+  id: 'web_search',
+  definition: {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: '通过互联网搜索最新信息，适用于查询行业动态、最新技术、近期新闻、实时数据等需要最新信息的问题。当用户询问"最新"、"最近"、"今年"、"现在"等时效性强的问题时调用此工具。',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: '搜索关键词，应简洁准确，例如"2025年热玛吉最新技术进展"'
+          },
+          freshness: {
+            type: 'string',
+            enum: ['day', 'week', 'month', 'year', 'noLimit'],
+            description: '搜索时效性过滤：day=今天，week=本周，month=本月，year=今年，noLimit=不限'
+          }
+        },
+        required: ['query']
+      }
+    }
+  },
+  async execute(args, context) {
+    const { query, freshness = 'noLimit' } = args;
+    const { bochaSearch } = context;
+    if (!bochaSearch) {
+      return { text: '联网搜索功能当前不可用。', searchResults: [], toolEvent: null };
+    }
+    try {
+      const results = await bochaSearch(query, freshness);
+      if (results && results.length > 0) {
+        const text = results.slice(0, 5).map((r, i) =>
+          `[${i + 1}] ${r.title}\n来源：${r.url}\n摘要：${r.snippet}`
+        ).join('\n\n');
+        return {
+          text,
+          searchResults: results,
+          toolEvent: { type: 'tool_call', tool: 'web_search', query }
+        };
+      }
+      return { text: `搜索"${query}"未找到相关结果。`, searchResults: [], toolEvent: null };
+    } catch (e) {
+      console.warn('[Tool:web_search] 执行失败:', e.message);
+      return { text: `联网搜索失败：${e.message}`, searchResults: [], toolEvent: null };
+    }
+  }
+};
+
+// ============================================================
+// 工具注册表
+// ============================================================
+const TOOL_REGISTRY = {
+  [nmpaSearchTool.id]: nmpaSearchTool,
+  [queryMedDbTool.id]: queryMedDbTool,
+  [webSearchTool.id]: webSearchTool,
+};
+
+function getToolDefinitions(toolIds) {
+  if (!toolIds || toolIds.length === 0) return [];
+  return toolIds.filter(id => TOOL_REGISTRY[id]).map(id => TOOL_REGISTRY[id].definition);
+}
+
+async function executeTool(toolName, args, context) {
+  const tool = TOOL_REGISTRY[toolName];
+  if (!tool) {
+    console.warn(`[ToolRegistry] 未知工具: ${toolName}`);
+    return { text: `工具 "${toolName}" 不存在。`, searchResults: [], toolEvent: null };
+  }
+  console.log(`🔧 [ToolRegistry] 执行工具: ${toolName} | args: ${JSON.stringify(args)}`);
+  return await tool.execute(args, context);
+}
+
+function listTools() {
+  return Object.keys(TOOL_REGISTRY);
+}
+
+module.exports = {
+  TOOL_REGISTRY,
+  getToolDefinitions,
+  executeTool,
+  listTools,
+  NMPA_TOOL_DEFINITION: nmpaSearchTool.definition,
+};

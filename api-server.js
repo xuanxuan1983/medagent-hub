@@ -1848,7 +1848,7 @@ class DeepSeekProvider {
       ...messages
     ];
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -1881,7 +1881,7 @@ class DeepSeekProvider {
       model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
       messages: formattedMessages,
       temperature: 0.7,
-      max_tokens: 2048,
+      max_tokens: 8192,
       stream: true
     };
     if (tools && tools.length > 0) {
@@ -1889,7 +1889,7 @@ class DeepSeekProvider {
       body.tool_choice = 'auto';
     }
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -3154,7 +3154,8 @@ const server = http.createServer(async (req, res) => {
                         .replace(/nmpa_search\([^)]*\)/g, '')
                         .replace(/[（(]正在调用[^)）]*[)）]/g, '')
                         .replace(/[（(]正在连接[^)）]*[)）]/g, '')
-                        .replace(/[（(]正在查询[^)）]*[)）]/g, '');
+                        .replace(/[（(]正在查询[^)）]*[)）]/g, '')
+                        .replace(/##([^\s#])/g, '## $1');
                       fullMessage += filteredDelta;
                       if (filteredDelta.trim()) {
                         res.write(`data: ${JSON.stringify({ type: 'delta', content: filteredDelta })}\n\n`);
