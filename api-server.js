@@ -830,6 +830,21 @@ try { db.exec(`
     updated_at DATETIME DEFAULT (datetime('now'))
   );`); } catch (e) { /* ignore */ }
 
+try { db.exec(`
+  CREATE TABLE IF NOT EXISTS user_profile_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_code TEXT NOT NULL,
+    identity TEXT,
+    role TEXT,
+    org_name TEXT,
+    product_category TEXT,
+    client_tier TEXT,
+    extra TEXT,
+    change_source TEXT DEFAULT 'manual',
+    created_at DATETIME DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_profile_history_user ON user_profile_history(user_code);`); } catch (e) { /* ignore */ }
+
 // Schema migration: add api_type column if it doesn't exist (for existing databases)
 try { db.exec("ALTER TABLE token_usage ADD COLUMN api_type TEXT DEFAULT 'chat'"); } catch (e) { /* column already exists, ignore */ }
 
@@ -851,6 +866,13 @@ const stmtUpdateImpQueueStatus = db.prepare("UPDATE improvement_queue SET status
 const stmtCountImpQueuePending = db.prepare("SELECT COUNT(*) as cnt FROM improvement_queue WHERE status = 'pending'");
 
 // ===== Conversation Logs SQLite Statements =====
+const stmtInsertProfileHistory = db.prepare(`
+  INSERT INTO user_profile_history (user_code, identity, role, org_name, product_category, client_tier, extra, change_source)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`);
+const stmtGetProfileHistory = db.prepare('SELECT * FROM user_profile_history WHERE user_code = ? ORDER BY id DESC LIMIT 20');
+const stmtGetProfileHistoryById = db.prepare('SELECT * FROM user_profile_history WHERE id = ? AND user_code = ?');
+
 const stmtGetProfile = db.prepare('SELECT * FROM user_profiles WHERE user_code = ?');
 const stmtUpsertProfile = db.prepare(`
   INSERT INTO user_profiles (user_code, identity, role, org_name, product_category, client_tier, extra, updated_at)
@@ -2454,6 +2476,200 @@ const server = http.createServer(async (req, res) => {
   }
 
   
+
+  // ===== 用户档案版本历史 API =====
+  if (url.pathname === '/api/user/profile/history' && req.method === 'GET') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    const userCode = getUserCode(req);
+    const history = stmtGetProfileHistory.all(userCode);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, history }));
+    return;
+  }
+
+  if (url.pathname === '/api/user/profile/rollback' && req.method === 'POST') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { historyId } = JSON.parse(body);
+        const userCode = getUserCode(req);
+        const historyRecord = stmtGetProfileHistoryById.get(historyId, userCode);
+        if (!historyRecord) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'History record not found' }));
+          return;
+        }
+        // 先保存当前版本到历史
+        const current = stmtGetProfile.get(userCode);
+        if (current) {
+          stmtInsertProfileHistory.run(
+            userCode, current.identity, current.role, current.org_name,
+            current.product_category, current.client_tier, current.extra, 'before_rollback'
+          );
+        }
+        // 回滚
+        stmtUpsertProfile.run(
+          userCode,
+          historyRecord.identity || null,
+          historyRecord.role || null,
+          historyRecord.org_name || null,
+          historyRecord.product_category || null,
+          historyRecord.client_tier || null,
+          historyRecord.extra || null
+        );
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, profile: stmtGetProfile.get(userCode) }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid request' }));
+      }
+    });
+    return;
+  }
+
+  // ===== 从对话历史提取档案信息（LLM 摘要）=====
+  if (url.pathname === '/api/user/profile/extract' && req.method === 'POST') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { sessionId } = JSON.parse(body);
+        const userCode = getUserCode(req);
+
+        // 获取对话消息
+        let messages = [];
+        if (sessionId) {
+          const sessionInfo = stmtGetSessionById.get(sessionId);
+          if (sessionInfo && sessionInfo.user_code === userCode) {
+            messages = stmtGetSessionMessages.all(sessionId).map(m => ({ role: m.role, content: m.content }));
+          }
+        } else {
+          // 获取最近 3 个 IP Agent 会话的消息
+          const ipAgents = ['doudou', 'douding', 'douya'];
+          const recentSessions = db.prepare(
+            'SELECT id FROM chat_sessions WHERE user_code = ? AND agent_id IN ('doudou', 'douding', 'douya') ORDER BY updated_at DESC LIMIT 3'
+          ).all(userCode);
+          for (const s of recentSessions) {
+            const msgs = stmtGetSessionMessages.all(s.id).map(m => ({ role: m.role, content: m.content }));
+            messages = messages.concat(msgs.slice(0, 10)); // 每个会话取前 10 条
+          }
+        }
+
+        if (messages.length === 0) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, reason: 'no_messages' }));
+          return;
+        }
+
+        // 构建摘要 prompt
+        const convText = messages
+          .filter(m => m.role === 'user')
+          .slice(0, 20)
+          .map(m => m.content.substring(0, 200))
+          .join('\n');
+
+        const extractPrompt = `从以下用户对话中提取用户的职业背景信息，以 JSON 格式返回。
+只提取明确提到的信息，不要猜测。如果某字段没有提到，返回 null。
+
+对话内容：
+${convText}
+
+请返回 JSON 格式：
+{
+  "role": "职位角色（如院长、咨询师、品牌经理）或 null",
+  "org_name": "机构或公司名称 或 null",
+  "product_category": "主营品类（如水光、肉毒）或 null",
+  "client_tier": "客群定位（如高端抗衰、学生党）或 null"
+}
+
+只返回 JSON，不要其他内容。`;
+
+        // 调用 LLM
+        const extractRes = await callLLM([{ role: 'user', content: extractPrompt }], {
+          model: 'gpt-4.1-mini',
+          maxTokens: 300,
+          systemPrompt: '你是一个信息提取助手，只返回 JSON 格式的结果。'
+        });
+
+        let extracted = null;
+        try {
+          const jsonMatch = extractRes.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            extracted = JSON.parse(jsonMatch[0]);
+          }
+        } catch (e) {
+          console.warn('[ProfileExtract] JSON parse error:', e.message);
+        }
+
+        if (!extracted || (!extracted.role && !extracted.org_name && !extracted.product_category)) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, reason: 'no_info_found' }));
+          return;
+        }
+
+        // 只更新非空字段（不覆盖已有的手动填写内容）
+        const current = stmtGetProfile.get(userCode) || {};
+        const toUpdate = {
+          identity: current.identity || null,
+          role: current.role || extracted.role || null,
+          org_name: current.org_name || extracted.org_name || null,
+          product_category: current.product_category || extracted.product_category || null,
+          client_tier: current.client_tier || extracted.client_tier || null,
+          change_source: 'auto_extract'
+        };
+
+        // 如果有新信息才更新
+        const hasNewInfo = (
+          (!current.role && extracted.role) ||
+          (!current.org_name && extracted.org_name) ||
+          (!current.product_category && extracted.product_category) ||
+          (!current.client_tier && extracted.client_tier)
+        );
+
+        if (hasNewInfo) {
+          if (current.role || current.org_name) {
+            stmtInsertProfileHistory.run(
+              userCode, current.identity, current.role, current.org_name,
+              current.product_category, current.client_tier, current.extra, 'before_auto_extract'
+            );
+          }
+          stmtUpsertProfile.run(
+            userCode, toUpdate.identity, toUpdate.role, toUpdate.org_name,
+            toUpdate.product_category, toUpdate.client_tier, null
+          );
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          extracted,
+          updated: hasNewInfo,
+          profile: stmtGetProfile.get(userCode)
+        }));
+      } catch (e) {
+        console.error('[ProfileExtract] Error:', e.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal error' }));
+      }
+    });
+    return;
+  }
+
   // ===== 用户档案 API =====
   if (url.pathname === '/api/user/profile' && req.method === 'GET') {
     if (!isAuthenticated(req)) {
@@ -2480,6 +2696,20 @@ const server = http.createServer(async (req, res) => {
       try {
         const data = JSON.parse(body);
         const userCode = getUserCode(req);
+        // 保存前记录历史版本
+        const _existingProfile = stmtGetProfile.get(userCode);
+        if (_existingProfile && (_existingProfile.role || _existingProfile.org_name || _existingProfile.product_category)) {
+          stmtInsertProfileHistory.run(
+            userCode,
+            _existingProfile.identity || null,
+            _existingProfile.role || null,
+            _existingProfile.org_name || null,
+            _existingProfile.product_category || null,
+            _existingProfile.client_tier || null,
+            _existingProfile.extra || null,
+            data.change_source || 'manual'
+          );
+        }
         stmtUpsertProfile.run(
           userCode,
           data.identity || null,
