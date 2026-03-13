@@ -1152,141 +1152,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       white-space: pre-wrap;
       font-family: monospace;
     }
-  
-    /* ===== 身份选择弹窗 ===== */
-    #identityModal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-    }
-    #identityModal.show {
-      display: flex;
-    }
-    .identity-box {
-      background: #fff;
-      border-radius: 1.25rem;
-      padding: 2.5rem 2rem 2rem;
-      max-width: 520px;
-      width: 92%;
-      text-align: center;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
-    }
-    .identity-box h2 {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: #1a1a1a;
-      margin-bottom: 0.5rem;
-    }
-    .identity-box p {
-      font-size: 0.9rem;
-      color: #888;
-      margin-bottom: 1.75rem;
-    }
-    .identity-cards {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .identity-card {
-      flex: 1;
-      min-width: 130px;
-      max-width: 150px;
-      border: 2px solid #e8e8e8;
-      border-radius: 1rem;
-      padding: 1.25rem 0.75rem 1rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: #fafafa;
-    }
-    .identity-card:hover {
-      border-color: #c8a96e;
-      background: #fffbf4;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(200,169,110,0.15);
-    }
-    .identity-card.selected {
-      border-color: #c8a96e;
-      background: #fffbf4;
-    }
-    .identity-card img {
-      width: 72px;
-      height: 72px;
-      object-fit: contain;
-      margin-bottom: 0.75rem;
-      mix-blend-mode: multiply;
-    }
-    .identity-card .ic-name {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin-bottom: 0.3rem;
-    }
-    .identity-card .ic-desc {
-      font-size: 0.75rem;
-      color: #999;
-      line-height: 1.4;
-    }
-    .identity-confirm {
-      margin-top: 1.5rem;
-      background: #1a1a1a;
-      color: #fff;
-      border: none;
-      border-radius: 0.75rem;
-      padding: 0.7rem 2.5rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .identity-confirm:hover {
-      background: #333;
-    }
-    .identity-skip {
-      display: block;
-      margin-top: 0.75rem;
-      font-size: 0.8rem;
-      color: #bbb;
-      cursor: pointer;
-      text-decoration: underline;
-    }
-    .identity-skip:hover { color: #888; }
-
-    </style>
+  </style>
 </head>
 <body>
-
-  <!-- 身份选择弹窗 -->
-  <div id="identityModal">
-    <div class="identity-box">
-      <h2>你好，欢迎来到 MedAgent Hub</h2>
-      <p>请选择你的身份，我们将为你匹配专属 AI 搭档</p>
-      <div class="identity-cards">
-        <div class="identity-card" data-identity="upstream" onclick="selectIdentityCard(this)">
-          <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/RuJlgzNDfozKgojS.png" alt="豆子" onerror="this.style.display='none'">
-          <div class="ic-name">上游厂商</div>
-          <div class="ic-desc">品牌商、代理商、学术推广</div>
-        </div>
-        <div class="identity-card" data-identity="clinic" onclick="selectIdentityCard(this)">
-          <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/BIRazuIKsNeRinFi.png" alt="豆丁" onerror="this.style.display='none'">
-          <div class="ic-name">下游机构</div>
-          <div class="ic-desc">诊所、医院、医美机构</div>
-        </div>
-        <div class="identity-card" data-identity="creator" onclick="selectIdentityCard(this)">
-          <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/MlYwtclNISUMqMZT.png" alt="豆芽" onerror="this.style.display='none'">
-          <div class="ic-name">个人 IP</div>
-          <div class="ic-desc">内容创作、个人品牌打造</div>
-        </div>
-      </div>
-      <button class="identity-confirm" onclick="confirmIdentity()">开始使用</button>
-      <span class="identity-skip" onclick="skipIdentity()">稍后再说</span>
-    </div>
-  </div>
-
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -1389,7 +1257,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   <div class="desktop-view active" id="desktopView">
     <div class="desktop-welcome">
       <div class="desktop-mascot">
-        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/RuJlgzNDfozKgojS.png" alt="豆子" id="desktopMascotImg" onerror="this.src='https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/RuJlgzNDfozKgojS.png'">
+        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png" alt="豆子" id="desktopMascotImg" onerror="this.src='https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png'">
       </div>
       <div class="desktop-greeting" id="desktopGreeting">你好！我叫小豆豆</div>
       <div class="desktop-sub" id="desktopSub">一颗正在努力学习医美知识的小种子。有什么可以帮到你的吗？<br>也许你的问题，就是我长出第一片新叶的开始。</div>
@@ -1917,23 +1785,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       ]
     },
     {
-      label: '我的 AI 搭档',
-      hidden: false, isIPGroup: true, ipId: 'douzai',
+      label: '_hidden',
+      hidden: true,
       agents: [
         { id: 'doudou', icon: '🌱', name: '豆子', desc: '上游厂家专属搭档，整合 GTM、产品策略、学术推广等 12 个专家能力', category: '_hidden' },
-      ]
-    },
-    {
-      label: '我的 AI 搭档',
-      hidden: false, isIPGroup: true, ipId: 'douding',
-      agents: [
         { id: 'douding', icon: '🌿', name: '豆丁', desc: '机构端口专属搭档，整合咨询话术、运营、术后管理等 9 个专家能力', category: '_hidden' },
-      ]
-    },
-    {
-      label: '我的 AI 搭档',
-      hidden: false, isIPGroup: true, ipId: 'douya',
-      agents: [
         { id: 'douya', icon: '💡', name: '豆芽', desc: '个人 IP 打造与内容创作操盘手，网感极佳的爆款制造机', category: '_hidden' },
       ]
     }
@@ -1993,8 +1849,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   function init() {
     // 初始化每日随机 mascot
     (function() {
-      const identity = localStorage.getItem('medagent_identity') || 'upstream';
-      const agentId = identity === 'clinic' ? 'douding' : identity === 'creator' ? 'douya' : 'douzai';
+      const identity = localStorage.getItem('medagent_identity') || '';
+      const agentId = identity === 'clinic' ? 'douding' : 'doudou';
       const dailyImg = getAgentDefaultImg(agentId);
       if (dailyImg) {
         const desktopImg = document.getElementById('desktopMascotImg');
@@ -2044,10 +1900,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       // 更新反馈标签状态
       updateFeedbackTabState();
       buildStore(); // 重新渲染 Agent 列表，使锁定状态生效
-      // 首次登录触发身份选择弹窗
-      if (!localStorage.getItem('medagent_identity')) {
-        setTimeout(() => showIdentityModal(), 800);
-      }
 
       // Update sidebar user info
       const avatar = name.charAt(0).toUpperCase();
@@ -2141,14 +1993,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const container = document.getElementById('agentGroupsSection');
     if (!container) return;
     container.innerHTML = '';
-    // 根据用户身份确定显示哪个 IP 分组
-    const _identity = localStorage.getItem('medagent_identity') || 'upstream';
-    const _ipGroupMap = { upstream: 'douzai', clinic: 'douding', creator: 'douya' };
-    const _myIpGroup = _ipGroupMap[_identity] || 'douzai';
     AGENT_GROUPS.forEach(group => {
       if (group.hidden) return; // 跳过隐藏分组（如豆豆）
-      // IP 分组只显示对应身份的那一个
-      if (group.isIPGroup && group.ipId !== _myIpGroup) return;
       const label = document.createElement('div');
       label.className = 'sidebar-group-label';
       label.textContent = group.label;
@@ -3372,28 +3218,28 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   // CDN 图片 URL 映射
   const IP_IMAGES = {
     douzai: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/RuJlgzNDfozKgojS.png',
-      coffee:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/PRQmmFXliUKvZIsk.png',
-      sunglasses: 'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/BlBmzXjJKeeCSHql.png',
-      report:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NSolAMOyrQZzdILj.png',
-      sleepy:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/BZPSxNMdNPaeZgKt.png',
-      happy:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/OouRZGQpTYBHnTUL.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png',
+      coffee:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/zCByYCPTzNZXSsGV.png',
+      sunglasses: 'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/CxWxesiKLZZwBMQk.png',
+      report:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/RstNUaBuaQGSvokZ.png',
+      sleepy:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/AfJguTRkacmmDWoa.png',
+      happy:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/SFCcKGYBhHkseFsX.png'
     },
     douding: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/BIRazuIKsNeRinFi.png',
-      flower:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/DVmIUADvogPGdiEh.png',
-      mic:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/RerYLznytSkzNYru.png',
-      thumbsup:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/fCCjPgphpAkvXOsQ.png',
-      shy:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/vbrmRzlnnNTPNUWa.png',
-      drink:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/MlYwtclNISUMqMZT.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/KuDglFSpdOwuUmna.png',
+      flower:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/UdjUNhIHGezqZZcQ.png',
+      mic:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NqxaisVDpzEuCtJT.png',
+      thumbsup:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/GXzOgUdxAwnYxPLd.png',
+      shy:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/xAuDhYieMnPQmlgT.png',
+      drink:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rhCXFCAagVmamRzL.png'
     },
     douya: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/MlYwtclNISUMqMZT.png',
-      think:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/xnOexMhIimhtZgrn.png',
-      writing:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/lugGoHqvXQRVhbVb.png',
-      run:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/pTGQQimASXsqaaAH.png',
-      flag:       'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/AXeiPWMARTpxPXuS.png',
-      confused:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/fYwBTGKFKgPNHhNg.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NgDFjgWThPLBUAYl.png',
+      think:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/ypWjnTEOjxqptrGW.png',
+      writing:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NAgGJMYKlnacDQAx.png',
+      run:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/kFkbYpYcTUogzmhR.png',
+      flag:       'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/FdmtgQhDAScqlFxq.png',
+      confused:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/ZuiCjUuwNsdvNxnz.png'
     }
   };
 
@@ -3907,63 +3753,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   document.getElementById('historyModal').addEventListener('click', function(e) {
     if (e.target === this) closeHistory();
   });
-
-  // ===== 身份选择弹窗逻辑 =====
-  function selectIdentityCard(el) {
-    document.querySelectorAll('.identity-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-  }
-  function confirmIdentity() {
-    const selected = document.querySelector('.identity-card.selected');
-    if (!selected) {
-      // 提示选择
-      document.querySelectorAll('.identity-card').forEach(c => {
-        c.style.borderColor = '#e8b4b8';
-        setTimeout(() => c.style.borderColor = '', 600);
-      });
-      return;
-    }
-    const identity = selected.dataset.identity;
-    localStorage.setItem('medagent_identity', identity);
-    document.getElementById('identityModal').classList.remove('show');
-    // 重新渲染左侧栏和 mascot
-    buildStore();
-    initDailyMascot();
-  }
-  function skipIdentity() {
-    // 跳过：默认设为 upstream，不再弹出
-    if (!localStorage.getItem('medagent_identity')) {
-      localStorage.setItem('medagent_identity', 'upstream');
-    }
-    document.getElementById('identityModal').classList.remove('show');
-    buildStore();
-    initDailyMascot();
-  }
-  function showIdentityModal() {
-    document.getElementById('identityModal').classList.add('show');
-    // 预选当前身份
-    const cur = localStorage.getItem('medagent_identity') || '';
-    const card = document.querySelector(`.identity-card[data-identity="${cur}"]`);
-    if (card) card.classList.add('selected');
-  }
-  function initDailyMascot() {
-    const identity = localStorage.getItem('medagent_identity') || 'upstream';
-    const agentId = identity === 'clinic' ? 'douding' : identity === 'creator' ? 'douya' : 'douzai';
-    const dailyImg = getAgentDefaultImg(agentId);
-    if (dailyImg) {
-      const desktopImg = document.getElementById('desktopMascotImg');
-      if (desktopImg) desktopImg.src = dailyImg;
-      const welcomeImgs = document.querySelectorAll('.welcome-mascot img');
-      welcomeImgs.forEach(img => img.src = dailyImg);
-    }
-    // 更新欢迎语
-    const greetEl = document.getElementById('welcomeAgentName');
-    if (greetEl) {
-      const names = { douzai: '豆子', douding: '豆丁', douya: '豆芽' };
-      greetEl.textContent = names[agentId] || '豆子';
-    }
-  }
-
 </script>
 </body>
 </html>
