@@ -847,10 +847,6 @@ try { db.exec(`
 
 // Schema migration: add api_type column if it doesn't exist (for existing databases)
 try { db.exec("ALTER TABLE token_usage ADD COLUMN api_type TEXT DEFAULT 'chat'"); } catch (e) { /* column already exists, ignore */ }
-// Schema migration: add user_profiles columns if they don't exist (for databases created before Phase 2)
-try { db.exec("ALTER TABLE user_profiles ADD COLUMN org_name TEXT"); } catch (e) { /* column already exists, ignore */ }
-try { db.exec("ALTER TABLE user_profiles ADD COLUMN product_category TEXT"); } catch (e) { /* column already exists, ignore */ }
-try { db.exec("ALTER TABLE user_profiles ADD COLUMN client_tier TEXT"); } catch (e) { /* column already exists, ignore */ }
 
 // Prepared statements for performance
 const stmtInsertSession = db.prepare('INSERT INTO chat_sessions (id, user_code, user_name, agent_id, agent_name) VALUES (?, ?, ?, ?, ?)');
@@ -2566,7 +2562,7 @@ const server = http.createServer(async (req, res) => {
           // 获取最近 3 个 IP Agent 会话的消息
           const ipAgents = ['doudou', 'douding', 'douya'];
           const recentSessions = db.prepare(
-            'SELECT id FROM chat_sessions WHERE user_code = ? AND agent_id IN ("doudou", "douding", "douya") ORDER BY updated_at DESC LIMIT 3'
+            'SELECT id FROM chat_sessions WHERE user_code = ? AND agent_id IN ('doudou', 'douding', 'douya') ORDER BY updated_at DESC LIMIT 3'
           ).all(userCode);
           for (const s of recentSessions) {
             const msgs = stmtGetSessionMessages.all(s.id).map(m => ({ role: m.role, content: m.content }));
