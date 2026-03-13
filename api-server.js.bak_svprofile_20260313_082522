@@ -1609,8 +1609,6 @@ const agentSkillMap = {
   'prompt-engineer-pro': 'prompt-engineer-pro',
   'first-principles-analyst': 'first-principles-analyst',
   'doudou': 'doudou',
-  'douding': 'douding',
-  'douya': 'douya',
   'xhs-content-creator': 'xhs-content-creator',
   'ppt-creator': 'ppt-creator',
   'wechat-content-creator': 'wechat-content-creator',
@@ -1650,9 +1648,7 @@ const agentNames = {
   'meta-prompt-architect': '元提示词架构师',
   'prompt-engineer-pro': '高级Prompt工程师',
   'first-principles-analyst': '第一性原理深度剖析专家',
-  'doudou': '豆子',
-  'douding': '豆丁',
-  'douya': '豆芽',
+  'doudou': '豆豆',
   'xhs-content-creator': '小红书图文创作顾问',
   'ppt-creator': 'PPT创作顾问',
   'wechat-content-creator': '微信公众号运营顾问',
@@ -2632,7 +2628,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const { agentId, doudouContext } = await parseRequestBody(req);
+      const { agentId, doudouContext, userProfile } = await parseRequestBody(req);
 
       if (!agentId || !agentSkillMap[agentId]) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -2653,6 +2649,19 @@ const server = http.createServer(async (req, res) => {
       if (doudouContext) {
         systemPrompt += `\n\n---\n**[用户背景（来自豆豆对话）]**\n${doudouContext}\n请在回答时充分考虑以上背景，直接切入用户需求，无需重新介绍自己。`;
         console.log(`[ContextPass] doudou→${agentId} | context: ${doudouContext.slice(0, 80)}...`);
+      }
+      // 注入用户画像
+      if (userProfile && typeof userProfile === 'object') {
+        const profileLines = [];
+        if (userProfile.role) profileLines.push(`- 角色：${userProfile.role}`);
+        if (userProfile.products) profileLines.push(`- 产品线/项目：${userProfile.products}`);
+        if (userProfile.channel) profileLines.push(`- 渠道/客群：${userProfile.channel}`);
+        if (userProfile.company) profileLines.push(`- 机构/公司：${userProfile.company}`);
+        if (userProfile.extra) profileLines.push(`- 补充：${userProfile.extra}`);
+        if (profileLines.length > 0) {
+          systemPrompt += `\n\n---\n**[用户档案]**\n${profileLines.join('\n')}\n以上是该用户的背景信息，请在回答时自然地结合这些信息，不要重复列出，直接体现在回答内容中。`;
+          console.log(`[UserProfile] agentId=${agentId} profile=${JSON.stringify(userProfile)}`);
+        }
       }
 
       if (!systemPrompt) {

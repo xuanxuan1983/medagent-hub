@@ -311,7 +311,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       margin: 0 auto 1.5rem;
       animation: float 3.5s ease-in-out infinite;
     }
-    .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+    .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; }
     .desktop-greeting {
       font-size: 2rem; font-weight: 700; color: var(--text);
       font-family: 'Noto Serif SC', serif; margin-bottom: 0.375rem;
@@ -455,7 +455,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       display: flex; align-items: center; justify-content: center;
       font-size: 1.1rem; flex-shrink: 0; overflow: hidden;
     }
-    .chat-agent-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; }
+    .chat-agent-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .chat-agent-name { font-size: 0.9rem; font-weight: 700; color: var(--text); }
     .chat-agent-desc { font-size: 0.775rem; color: var(--text-3); margin-top: 0.1rem; }
     .chat-status {
@@ -490,7 +490,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       width: 90px; height: 90px; margin-bottom: 1rem;
       animation: breathe 4s ease-in-out infinite;
     }
-    .welcome-mascot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+    .welcome-mascot img { width: 100%; height: 100%; object-fit: contain; }
     .welcome-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 0.375rem; font-family: 'Noto Serif SC', serif; }
     .welcome-sub { font-size: 0.85rem; color: var(--text-3); max-width: 320px; line-height: 1.6; }
     .welcome-error { color: #DC2626; font-size: 0.875rem; }
@@ -503,7 +503,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       display: flex; align-items: center; justify-content: center;
       font-size: 0.9rem; flex-shrink: 0; overflow: hidden;
     }
-    .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; }
+    .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .msg-row.user .msg-avatar { background: var(--text); color: white; font-size: 0.7rem; font-weight: 700; }
     /* AI助手头像使用SVG图片，去掉背景方框让图片自然显示 */
     .msg-row.assistant .msg-avatar { background: transparent !important; border: none !important; }
@@ -1257,7 +1257,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   <div class="desktop-view active" id="desktopView">
     <div class="desktop-welcome">
       <div class="desktop-mascot">
-        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png" alt="豆子" id="desktopMascotImg" onerror="this.src='https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png'">
+        <img src="/mascot-default.png" alt="豆豆" id="desktopMascotImg" onerror="this.src='https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png'">
       </div>
       <div class="desktop-greeting" id="desktopGreeting">你好！我叫小豆豆</div>
       <div class="desktop-sub" id="desktopSub">一颗正在努力学习医美知识的小种子。有什么可以帮到你的吗？<br>也许你的问题，就是我长出第一片新叶的开始。</div>
@@ -3218,28 +3218,28 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   // CDN 图片 URL 映射
   const IP_IMAGES = {
     douzai: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png',
-      coffee:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/zCByYCPTzNZXSsGV.png',
-      sunglasses: 'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/CxWxesiKLZZwBMQk.png',
-      report:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/RstNUaBuaQGSvokZ.png',
-      sleepy:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/AfJguTRkacmmDWoa.png',
-      happy:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/SFCcKGYBhHkseFsX.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png',
+      coffee:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rJcjoSULfwDshywp.png',
+      sunglasses: 'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/jYOWNiRUyEvLypVK.png',
+      report:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aupTInjkDYGWHQZw.png',
+      sleepy:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/tyMugFuBhiHGazel.png',
+      happy:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/HXUhLsdKlxAVnrOX.png'
     },
     douding: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/KuDglFSpdOwuUmna.png',
-      flower:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/UdjUNhIHGezqZZcQ.png',
-      mic:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NqxaisVDpzEuCtJT.png',
-      thumbsup:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/GXzOgUdxAwnYxPLd.png',
-      shy:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/xAuDhYieMnPQmlgT.png',
-      drink:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rhCXFCAagVmamRzL.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/owNRYStTXHONGuNk.png',
+      flower:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/amGXwiWJukeVrApc.png',
+      mic:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/FUXToJndeiZTKbzJ.png',
+      thumbsup:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/gYAbNPtZtiEqfBgU.png',
+      shy:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/PuVHCCTmJzppcVbD.png',
+      drink:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/DruqwjMUtHeKCnOm.png'
     },
     douya: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NgDFjgWThPLBUAYl.png',
-      think:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/ypWjnTEOjxqptrGW.png',
-      writing:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NAgGJMYKlnacDQAx.png',
-      run:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/kFkbYpYcTUogzmhR.png',
-      flag:       'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/FdmtgQhDAScqlFxq.png',
-      confused:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/ZuiCjUuwNsdvNxnz.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/GgMEvsMLAyXIubDF.png',
+      think:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/fKgyTLGOmpokvoHJ.png',
+      writing:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/OPptYAnRovlCOmzi.png',
+      run:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/PoAScGLLnDEAcYVk.png',
+      flag:       'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/koYOZXMmvdeBeavQ.png',
+      confused:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/zKpYKEHvnUVthQdj.png'
     }
   };
 

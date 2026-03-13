@@ -82,7 +82,44 @@ Please report this to https://github.com/markedjs/marked.`,e){let s="<p>An error
 
 if(__exports != exports)module.exports = exports;return module.exports}));
 
-  </script>
+  
+  // ── 用户画像面板逻辑 ──────────────────────────────────────────────────────
+  function toggleProfilePanel() {
+    const header = document.getElementById('profilePanelHeader');
+    const body = document.getElementById('profilePanelBody');
+    if (!header || !body) return;
+    header.classList.toggle('open');
+    body.classList.toggle('open');
+  }
+
+  function loadUserProfileToForm() {
+    try {
+      const p = JSON.parse(localStorage.getItem('medagent_user_profile') || 'null');
+      if (!p) return;
+      if (p.role) document.getElementById('pf_role').value = p.role;
+      if (p.products) document.getElementById('pf_products').value = p.products;
+      if (p.channel) document.getElementById('pf_channel').value = p.channel;
+      if (p.company) document.getElementById('pf_company').value = p.company;
+    } catch(e) {}
+  }
+
+  function saveUserProfile() {
+    const profile = {
+      role: (document.getElementById('pf_role').value || '').trim(),
+      products: (document.getElementById('pf_products').value || '').trim(),
+      channel: (document.getElementById('pf_channel').value || '').trim(),
+      company: (document.getElementById('pf_company').value || '').trim(),
+    };
+    localStorage.setItem('medagent_user_profile', JSON.stringify(profile));
+    const tip = document.getElementById('profileSavedTip');
+    if (tip) { tip.style.display = 'block'; setTimeout(() => { tip.style.display = 'none'; }, 2000); }
+  }
+
+  // 页面加载时填充表单
+  document.addEventListener('DOMContentLoaded', loadUserProfileToForm);
+  // ─────────────────────────────────────────────────────────────────────────
+
+</script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -311,7 +348,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       margin: 0 auto 1.5rem;
       animation: float 3.5s ease-in-out infinite;
     }
-    .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+    .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; }
     .desktop-greeting {
       font-size: 2rem; font-weight: 700; color: var(--text);
       font-family: 'Noto Serif SC', serif; margin-bottom: 0.375rem;
@@ -455,7 +492,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       display: flex; align-items: center; justify-content: center;
       font-size: 1.1rem; flex-shrink: 0; overflow: hidden;
     }
-    .chat-agent-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; }
+    .chat-agent-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .chat-agent-name { font-size: 0.9rem; font-weight: 700; color: var(--text); }
     .chat-agent-desc { font-size: 0.775rem; color: var(--text-3); margin-top: 0.1rem; }
     .chat-status {
@@ -490,7 +527,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       width: 90px; height: 90px; margin-bottom: 1rem;
       animation: breathe 4s ease-in-out infinite;
     }
-    .welcome-mascot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+    .welcome-mascot img { width: 100%; height: 100%; object-fit: contain; }
     .welcome-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 0.375rem; font-family: 'Noto Serif SC', serif; }
     .welcome-sub { font-size: 0.85rem; color: var(--text-3); max-width: 320px; line-height: 1.6; }
     .welcome-error { color: #DC2626; font-size: 0.875rem; }
@@ -503,7 +540,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       display: flex; align-items: center; justify-content: center;
       font-size: 0.9rem; flex-shrink: 0; overflow: hidden;
     }
-    .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; }
+    .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .msg-row.user .msg-avatar { background: var(--text); color: white; font-size: 0.7rem; font-weight: 700; }
     /* AI助手头像使用SVG图片，去掉背景方框让图片自然显示 */
     .msg-row.assistant .msg-avatar { background: transparent !important; border: none !important; }
@@ -1152,6 +1189,63 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       white-space: pre-wrap;
       font-family: monospace;
     }
+  
+  /* ── 用户画像面板 ── */
+  .profile-panel {
+    margin: 12px 10px 0;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .profile-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.6);
+    user-select: none;
+  }
+  .profile-panel-header:hover { color: rgba(255,255,255,0.9); }
+  .profile-panel-header .ph-title { font-weight: 600; letter-spacing: 0.02em; }
+  .profile-panel-header .ph-arrow { transition: transform 0.2s; font-size: 0.65rem; }
+  .profile-panel-header.open .ph-arrow { transform: rotate(180deg); }
+  .profile-panel-body {
+    display: none;
+    padding: 0 12px 10px;
+  }
+  .profile-panel-body.open { display: block; }
+  .profile-field { margin-bottom: 7px; }
+  .profile-field label { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.45); margin-bottom: 2px; }
+  .profile-field input {
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.78rem;
+    padding: 4px 8px;
+    box-sizing: border-box;
+    outline: none;
+  }
+  .profile-field input:focus { border-color: rgba(255,255,255,0.35); }
+  .profile-save-btn {
+    width: 100%;
+    margin-top: 6px;
+    padding: 5px 0;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .profile-save-btn:hover { background: rgba(255,255,255,0.25); }
+  .profile-saved-tip { font-size: 0.7rem; color: #6ee7b7; text-align: center; margin-top: 4px; display: none; }
+
   </style>
 </head>
 <body>
@@ -1248,7 +1342,36 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       </div>
     </div>
   </div>
-</aside>
+
+    <!-- 用户画像面板 -->
+    <div class="profile-panel" id="profilePanel">
+      <div class="profile-panel-header" id="profilePanelHeader" onclick="toggleProfilePanel()">
+        <span class="ph-title">我的档案</span>
+        <span class="ph-arrow">▼</span>
+      </div>
+      <div class="profile-panel-body" id="profilePanelBody">
+        <div class="profile-field">
+          <label>角色（咨询师 / 产品经理 / 院长…）</label>
+          <input type="text" id="pf_role" placeholder="你的职位" maxlength="30">
+        </div>
+        <div class="profile-field">
+          <label>产品线 / 主营项目</label>
+          <input type="text" id="pf_products" placeholder="如：PLLA、玻尿酸、光电" maxlength="50">
+        </div>
+        <div class="profile-field">
+          <label>渠道 / 客群定位</label>
+          <input type="text" id="pf_channel" placeholder="如：代理商、高净值客群" maxlength="50">
+        </div>
+        <div class="profile-field">
+          <label>机构 / 公司（选填）</label>
+          <input type="text" id="pf_company" placeholder="机构或公司名称" maxlength="40">
+        </div>
+        <button class="profile-save-btn" onclick="saveUserProfile()">保存档案</button>
+        <div class="profile-saved-tip" id="profileSavedTip">已保存，下次对话自动带入</div>
+      </div>
+    </div>
+
+  </aside>
 
 <!-- MAIN AREA -->
 <main class="main-area">
@@ -1257,7 +1380,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   <div class="desktop-view active" id="desktopView">
     <div class="desktop-welcome">
       <div class="desktop-mascot">
-        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png" alt="豆子" id="desktopMascotImg" onerror="this.src='https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png'">
+        <img src="/mascot-default.png" alt="豆豆" id="desktopMascotImg">
       </div>
       <div class="desktop-greeting" id="desktopGreeting">你好！我叫小豆豆</div>
       <div class="desktop-sub" id="desktopSub">一颗正在努力学习医美知识的小种子。有什么可以帮到你的吗？<br>也许你的问题，就是我长出第一片新叶的开始。</div>
@@ -1317,7 +1440,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     </div>
     <div class="chat-messages" id="chatMessages">
       <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
+        <div class="welcome-mascot"><img src="/mascot-default.png" alt="豆豆" id="welcomeMascotImg"></div>
         <div class="welcome-title" id="welcomeTitle">你好！</div>
         <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
       </div>
@@ -1788,9 +1911,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       label: '_hidden',
       hidden: true,
       agents: [
-        { id: 'doudou', icon: '🌱', name: '豆子', desc: '上游厂家专属搭档，整合 GTM、产品策略、学术推广等 12 个专家能力', category: '_hidden' },
-        { id: 'douding', icon: '🌿', name: '豆丁', desc: '机构端口专属搭档，整合咨询话术、运营、术后管理等 9 个专家能力', category: '_hidden' },
-        { id: 'douya', icon: '💡', name: '豆芽', desc: '个人 IP 打造与内容创作操盘手，网感极佳的爆款制造机', category: '_hidden' },
+        { id: 'doudou',   icon: '🌱', name: '豆子', desc: '上游厂家专属搭档，整合 GTM、产品策略、学术推广等 12 个专家能力', category: '_hidden' },
+        { id: 'douding',  icon: '🌿', name: '豆丁', desc: '机构端口专属搭档，整合咨询话术、运营、术后管理等 9 个专家能力', category: '_hidden' },
       ]
     }
   ];
@@ -1800,11 +1922,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   function getDefaultAgentByRole() {
     const role = localStorage.getItem('medagent_role') || '';
     const roleMap = {
-      'upstream':   'sales-director',   // 上游厂商 → 销售作战总监
-      'downstream': 'senior-consultant', // 下游机构 → 金牌医美咨询师
-      'other':      'senior-consultant', // 其他 → 金牌医美咨询师
+      'upstream':   'doudou',   // 上游厂商 → 豆子
+      'downstream': 'douding',  // 下游机构 → 豆丁
+      'other':      'doudou',   // 其他 → 豆子
     };
-    return roleMap[role] || 'senior-consultant';
+    // 同时兼容 medagent_identity（index.html 身份选择写入的 key）
+    const identity = localStorage.getItem('medagent_identity') || '';
+    const identityMap = {
+      'upstream': 'doudou',
+      'clinic':   'douding',
+      'other':    'doudou',
+    };
+    return identityMap[identity] || roleMap[role] || 'doudou';
   }
 
   const PROVIDERS_MODELS = {
@@ -1847,16 +1976,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   let currentBetaUnlock = false; // 内测反馈解锁状态
 
   function init() {
-    // 初始化每日随机 mascot
-    (function() {
-      const identity = localStorage.getItem('medagent_identity') || '';
-      const agentId = identity === 'clinic' ? 'douding' : 'doudou';
-      const dailyImg = getAgentDefaultImg(agentId);
-      if (dailyImg) {
-        const desktopImg = document.getElementById('desktopMascotImg');
-        if (desktopImg) desktopImg.src = dailyImg;
-      }
-    })();
     buildStore();
     loadUserInfo();
     loadSidebarHistory();
@@ -2239,8 +2358,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   async function desktopSend() {
     const q = document.getElementById('desktopInput').value.trim();
     if (!q) return;
-    // Desktop home always uses doudou as the entry agent
-    await startChat('doudou', q);
+    // 根据用户身份选择入口 Agent
+    const identity = localStorage.getItem('medagent_identity') || 'other';
+    const entryAgent = identity === 'clinic' ? 'douding' : 'doudou';
+    await startChat(entryAgent, q);
   }
 
   function desktopKeydown(e) {
@@ -2286,7 +2407,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     // Reset chat
     document.getElementById('chatMessages').innerHTML = `
       <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
+        <div class="welcome-mascot"><img src="/mascot-default.png" alt="豆豆" id="welcomeMascotImg"></div>
         <div class="welcome-title" id="welcomeTitle">${agent.name}</div>
         <div class="welcome-sub" id="welcomeSub">${agent.desc}</div>
       </div>`;
@@ -2296,10 +2417,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.title = agent.name + ' - MedAgent Hub';
     const topbarAvatarEl = document.getElementById('topbarAvatar');
     // 豆豆使用专属表情图而非 SVG
-    if (agentId === 'doudou' || agentId === 'douding' || agentId === 'douya') {
-      const _dailyImg = getAgentDefaultImg(agentId) || '/mascot-default.png';
-      const _altName = agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽';
-      topbarAvatarEl.innerHTML = `<img src="${_dailyImg}" alt="${_altName}">`;
+    if (agentId === 'doudou') {
+      topbarAvatarEl.innerHTML = `<img src="/mascot-default.png" alt="豆豆">`;
     } else {
       topbarAvatarEl.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     }
@@ -2314,7 +2433,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const res = await fetch('/api/chat/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId, doudouContext: doudouContext || null })
+        body: JSON.stringify({
+          agentId,
+          doudouContext: doudouContext || null,
+          userProfile: (() => {
+            try { return JSON.parse(localStorage.getItem('medagent_user_profile') || 'null'); } catch(e) { return null; }
+          })()
+        })
       });
       if (!res.ok) throw new Error('init failed');
       const data = await res.json();
@@ -2841,7 +2966,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
     if (agent) {
-      avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = agent.id === 'doudou' ? `<img src="/mascot-default.png" alt="豆豆" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else { avatar.textContent = '🤖'; }
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
@@ -3055,7 +3180,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (role === 'user') {
       avatar.textContent = currentUserName ? currentUserName.charAt(0).toUpperCase() : '我';
     } else if (agent) {
-      avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = agent.id === 'doudou' ? `<img src="/mascot-default.png" alt="豆豆" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else {
       avatar.textContent = '🤖';
     }
@@ -3214,109 +3339,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     container.scrollTop = container.scrollHeight;
   }
 
-  // ===== 豆家族 IP 每日随机表情系统 =====
-  // CDN 图片 URL 映射
-  const IP_IMAGES = {
-    douzai: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aHTfFsvVtSNmsPGo.png',
-      coffee:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/zCByYCPTzNZXSsGV.png',
-      sunglasses: 'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/CxWxesiKLZZwBMQk.png',
-      report:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/RstNUaBuaQGSvokZ.png',
-      sleepy:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/AfJguTRkacmmDWoa.png',
-      happy:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/SFCcKGYBhHkseFsX.png'
-    },
-    douding: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/KuDglFSpdOwuUmna.png',
-      flower:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/UdjUNhIHGezqZZcQ.png',
-      mic:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NqxaisVDpzEuCtJT.png',
-      thumbsup:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/GXzOgUdxAwnYxPLd.png',
-      shy:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/xAuDhYieMnPQmlgT.png',
-      drink:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rhCXFCAagVmamRzL.png'
-    },
-    douya: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NgDFjgWThPLBUAYl.png',
-      think:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/ypWjnTEOjxqptrGW.png',
-      writing:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NAgGJMYKlnacDQAx.png',
-      run:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/kFkbYpYcTUogzmhR.png',
-      flag:       'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/FdmtgQhDAScqlFxq.png',
-      confused:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/ZuiCjUuwNsdvNxnz.png'
-    }
-  };
-
-  // 豆子的情绪→状态映射（兼容旧的 thinking/happy/confused/talking）
-  const DOUZAI_EMOTION_MAP = {
-    default:  'default',
-    thinking: 'report',
-    happy:    'happy',
-    confused: 'sleepy',
-    talking:  'coffee'
-  };
-  // 豆丁的情绪→状态映射
-  const DOUDING_EMOTION_MAP = {
-    default:  'default',
-    thinking: 'mic',
-    happy:    'thumbsup',
-    confused: 'shy',
-    talking:  'drink'
-  };
-  // 豆芽的情绪→状态映射
-  const DOUYA_EMOTION_MAP = {
-    default:  'default',
-    thinking: 'think',
-    happy:    'flag',
-    confused: 'confused',
-    talking:  'writing'
-  };
-
-  // 每日随机变体（基于日期 seed，同一天同一用户看到同一变体）
-  function getDailyVariant(ipName) {
-    const today = new Date();
-    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-    const variants = Object.keys(IP_IMAGES[ipName] || {}).filter(k => k !== 'default');
-    if (!variants.length) return 'default';
-    const idx = seed % variants.length;
-    return variants[idx];
-  }
-
-  // 获取当前 agent 对应的 IP 名称
-  function getIPName(agentId) {
-    if (agentId === 'doudou') return 'douzai';
-    if (agentId === 'douding') return 'douding';
-    if (agentId === 'douya') return 'douya';
-    return null;
-  }
-
-  // 获取当前 agent 的默认（每日随机）图片
-  function getAgentDefaultImg(agentId) {
-    const ipName = getIPName(agentId);
-    if (!ipName) return null;
-    const variant = getDailyVariant(ipName);
-    return IP_IMAGES[ipName][variant] || IP_IMAGES[ipName].default;
-  }
-
-  // 兼容旧的 DOUDOU_EMOTIONS（保留以防其他地方引用）
+  // ===== 豆豆表情切换系统 =====
   const DOUDOU_EMOTIONS = {
-    default:  IP_IMAGES.douzai.default,
-    thinking: IP_IMAGES.douzai.report,
-    happy:    IP_IMAGES.douzai.happy,
-    confused: IP_IMAGES.douzai.sleepy,
-    talking:  IP_IMAGES.douzai.coffee
+    default:  '/mascot-default.png',
+    thinking: '/mascot-thinking.png',
+    happy:    '/mascot-happy.png',
+    confused: '/mascot-confused.png',
+    talking:  '/mascot-talking.png'
   };
-
   function setDoudouEmotion(emotion) {
-    setAgentEmotion(currentAgentId, emotion);
-  }
-
-  function setAgentEmotion(agentId, emotion) {
-    const ipName = getIPName(agentId);
-    if (!ipName) return;
-    const ipImages = IP_IMAGES[ipName];
-    let emotionMap;
-    if (ipName === 'douzai') emotionMap = DOUZAI_EMOTION_MAP;
-    else if (ipName === 'douding') emotionMap = DOUDING_EMOTION_MAP;
-    else emotionMap = DOUYA_EMOTION_MAP;
-    const stateKey = emotionMap[emotion] || 'default';
-    const src = ipImages[stateKey] || ipImages.default;
+    if (currentAgentId !== 'doudou') return;
+    const src = DOUDOU_EMOTIONS[emotion] || DOUDOU_EMOTIONS.default;
     const welcomeImg = document.getElementById('welcomeMascotImg');
     if (welcomeImg) welcomeImg.src = src;
     const topbarAvatar = document.getElementById('topbarAvatar');
@@ -3335,7 +3368,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
     if (agent) {
-      avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = agent.id === 'doudou' ? `<img src="/mascot-default.png" alt="豆豆" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else { avatar.textContent = '🤖'; }
     const dots = document.createElement('div');
     dots.className = 'typing-dots';
