@@ -4734,5 +4734,146 @@ if (_settingsModal) {
 // ===== END Phase 3 函数体 =====
 
 </script>
+<script>
+
+// ===== Phase 4: 档案历史版本 + 自动提取（函数体）=====
+
+async function openProfileHistory() {
+  const modal = document.getElementById('profileHistoryModal');
+  const body = document.getElementById('profileHistoryBody');
+  if (!modal || !body) return;
+  modal.style.display = 'flex';
+  body.innerHTML = '<div style="text-align:center;color:#aaa;padding:2rem;font-size:0.875rem">加载中...</div>';
+  try {
+    const res = await fetch('/api/user/profile/history');
+    const data = await res.json();
+    const history = data.history || [];
+    if (history.length === 0) {
+      body.innerHTML = '<div style="text-align:center;color:#aaa;padding:2rem;font-size:0.875rem">暂无变更记录</div>';
+      return;
+    }
+    const sourceLabels = { manual:'手动保存', auto_extract:'自动提取', before_rollback:'回滚前备份', before_auto_extract:'提取前备份' };
+    body.innerHTML = history.map(function(r) {
+      const fields = [];
+      if (r.role) fields.push('角色：' + r.role);
+      if (r.org_name) fields.push('机构：' + r.org_name);
+      if (r.product_category) fields.push('品类：' + r.product_category);
+      if (r.client_tier) fields.push('客群：' + r.client_tier);
+      const fieldText = fields.length > 0 ? fields.join('　') : '（空档案）';
+      const timeStr = r.created_at ? r.created_at.replace('T',' ').substring(0,16) : '';
+      const sourceLabel = sourceLabels[r.change_source] || r.change_source || '未知';
+      return '<div class="ph-record">' +
+        '<div class="ph-record-meta"><span class="ph-record-time">' + timeStr + '</span>' +
+        '<span class="ph-record-source">' + sourceLabel + '</span></div>' +
+        '<div class="ph-record-fields">' + fieldText + '</div>' +
+        (fields.length > 0 ? '<button class="ph-record-rollback" onclick="rollbackProfile(' + r.id + ')">恢复此版本</button>' : '') +
+        '</div>';
+    }).join('');
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;color:#aaa;padding:2rem;font-size:0.875rem">加载失败，请重试</div>';
+  }
+}
+
+function closeProfileHistory() {
+  const modal = document.getElementById('profileHistoryModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function rollbackProfile(historyId) {
+  if (!confirm('确认恢复到此版本？当前档案将被备份。')) return;
+  try {
+    const res = await fetch('/api/user/profile/rollback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ historyId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (typeof _userProfile !== 'undefined') _userProfile = data.profile;
+      const roleEl = document.getElementById('profileRole');
+      const orgEl = document.getElementById('profileOrg');
+      const catEl = document.getElementById('profileCategory');
+      const tierEl = document.getElementById('profileClientTier');
+      if (roleEl) roleEl.value = (data.profile && data.profile.role) || '';
+      if (orgEl) orgEl.value = (data.profile && data.profile.org_name) || '';
+      if (catEl) catEl.value = (data.profile && data.profile.product_category) || '';
+      if (tierEl) tierEl.value = (data.profile && data.profile.client_tier) || '';
+      if (typeof renderIPCompanionCard === 'function') renderIPCompanionCard();
+      closeProfileHistory();
+      showExtractToast('已恢复到历史版本 ✓');
+    }
+  } catch(e) { alert('回滚失败，请重试'); }
+}
+
+function showExtractToast(msg) {
+  const toast = document.getElementById('profileExtractToast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 3000);
+}
+
+async function triggerProfileExtract() {
+  const statusEl = document.getElementById('profileSaveStatus');
+  if (statusEl) statusEl.textContent = '提取中...';
+  try {
+    const res = await fetch('/api/user/profile/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    if (data.success && data.updated) {
+      if (typeof _userProfile !== 'undefined') _userProfile = data.profile;
+      const roleEl = document.getElementById('profileRole');
+      const orgEl = document.getElementById('profileOrg');
+      const catEl = document.getElementById('profileCategory');
+      const tierEl = document.getElementById('profileClientTier');
+      if (roleEl) roleEl.value = (data.profile && data.profile.role) || '';
+      if (orgEl) orgEl.value = (data.profile && data.profile.org_name) || '';
+      if (catEl) catEl.value = (data.profile && data.profile.product_category) || '';
+      if (tierEl) tierEl.value = (data.profile && data.profile.client_tier) || '';
+      if (typeof renderIPCompanionCard === 'function') renderIPCompanionCard();
+      if (statusEl) { statusEl.textContent = '提取成功 ✓'; setTimeout(function(){ statusEl.textContent=''; }, 2000); }
+    } else {
+      if (statusEl) { statusEl.textContent = '暂无可提取信息'; setTimeout(function(){ statusEl.textContent=''; }, 2000); }
+    }
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '提取失败'; setTimeout(function(){ statusEl.textContent=''; }, 2000); }
+  }
+}
+
+var _msgCountSinceExtract = 0;
+function autoExtractAfterMessages() {
+  _msgCountSinceExtract++;
+  if (_msgCountSinceExtract >= 5) {
+    _msgCountSinceExtract = 0;
+    var ipAgents = ['doudou', 'douding', 'douya'];
+    if (typeof currentAgentId !== 'undefined' && ipAgents.indexOf(currentAgentId) !== -1) {
+      if (typeof _userProfile === 'undefined' || !_userProfile || (!_userProfile.role && !_userProfile.org_name)) {
+        fetch('/api/user/profile/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: typeof sessionId !== 'undefined' ? sessionId : null })
+        }).then(function(r){ return r.json(); }).then(function(data) {
+          if (data.success && data.updated) {
+            if (typeof _userProfile !== 'undefined') _userProfile = data.profile;
+            if (typeof renderIPCompanionCard === 'function') renderIPCompanionCard();
+            showExtractToast('已自动更新档案');
+          }
+        }).catch(function(){});
+      }
+    }
+  }
+}
+
+document.addEventListener('click', function(e) {
+  var modal = document.getElementById('profileHistoryModal');
+  if (modal && e.target === modal) closeProfileHistory();
+});
+
+// ===== END Phase 4 函数体 =====
+
+</script>
 </body>
 </html>
