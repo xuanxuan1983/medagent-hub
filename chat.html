@@ -1316,6 +1316,196 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   margin-top: 2px;
 }
 
+
+/* ===== Phase 3: 建档引导卡片 ===== */
+#profileOnboardCard {
+  margin: 0 16px 12px;
+  background: linear-gradient(135deg, #faf9f7 0%, #f5f3ef 100%);
+  border: 1.5px solid #e8e4de;
+  border-radius: 14px;
+  padding: 16px;
+  animation: fadeInUp 0.3s ease-out;
+}
+#profileOnboardCard .onboard-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+#profileOnboardCard .onboard-sub {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.onboard-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.onboard-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.onboard-field-label {
+  font-size: 12px;
+  color: #666;
+  width: 56px;
+  flex-shrink: 0;
+}
+.onboard-field-input {
+  flex: 1;
+  border: 1px solid #e0dbd4;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.onboard-field-input:focus { border-color: #AEAAA5; }
+.onboard-field-input::placeholder { color: #bbb; }
+.onboard-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.onboard-skip-btn {
+  font-size: 12px;
+  color: #aaa;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 8px;
+  font-family: inherit;
+}
+.onboard-skip-btn:hover { color: #666; }
+.onboard-save-btn {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 18px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.onboard-save-btn:hover { opacity: 0.8; }
+
+/* ===== Phase 3: 个性化推荐快捷入口 ===== */
+#agentRecommendBar {
+  margin: 0 16px 12px;
+  display: none;
+}
+#agentRecommendBar .recommend-title {
+  font-size: 11px;
+  color: #aaa;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.recommend-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.recommend-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: #fff;
+  border: 1.5px solid #e8e4de;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #444;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+.recommend-chip:hover {
+  border-color: #AEAAA5;
+  background: #faf9f7;
+  transform: translateY(-1px);
+}
+.recommend-chip img {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+/* ===== Phase 3: 设置页档案编辑区 ===== */
+.profile-edit-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.profile-edit-title {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+}
+.profile-field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+}
+.profile-field-label {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  width: 72px;
+  flex-shrink: 0;
+}
+.profile-field-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0.4rem 0.625rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.profile-field-input:focus { border-color: var(--text-3); }
+.profile-field-input::placeholder { color: var(--text-3); }
+.profile-save-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+}
+.profile-save-btn {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--text);
+  border: none;
+  border-radius: 7px;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.profile-save-btn:hover { opacity: 0.8; }
+.profile-save-status {
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
 </style>
 </head>
 <body>
@@ -1605,6 +1795,32 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <div class="info-row"><span class="info-row-label">用户</span><span class="info-row-val" id="infoUser">—</span></div>
         <div class="info-row"><span class="info-row-label">套餐</span><span class="info-row-val">免费版</span></div>
         <div class="info-row"><span class="info-row-label">今日使用</span><span class="info-row-val" id="infoUsage">—</span></div>
+        
+        <!-- Phase 3: 档案编辑区 -->
+        <div class="profile-edit-section" id="profileEditSection">
+          <div class="profile-edit-title">我的档案</div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">职位角色</span>
+            <input class="profile-field-input" id="profileRole" placeholder="如：院长、咨询师、品牌经理">
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">机构/公司</span>
+            <input class="profile-field-input" id="profileOrg" placeholder="如：XX 医美、XX 品牌">
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">主营品类</span>
+            <input class="profile-field-input" id="profileCategory" placeholder="如：水光、肉毒、玻尿酸">
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">客群定位</span>
+            <input class="profile-field-input" id="profileClientTier" placeholder="如：轻医美、高端抗衰、学生党">
+          </div>
+          <div class="profile-save-row">
+            <button class="profile-save-btn" onclick="saveProfileFromSettings()">保存档案</button>
+            <span class="profile-save-status" id="profileSaveStatus"></span>
+          </div>
+        </div>
+
         <!-- 管理员专属入口 -->
         <div id="adminEntrySection" style="display:none;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
           <div style="font-size:0.75rem;color:var(--text-3);margin-bottom:0.75rem;font-weight:600;letter-spacing:0.05em">管理员工具</div>
@@ -2550,6 +2766,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (!res.ok) throw new Error('init failed');
       const data = await res.json();
       sessionId = data.sessionId;
+      // Phase 3: 建档引导 + 个性化推荐
+      checkShowProfileOnboard(agentId);
+      if (typeof _userProfile !== 'undefined' && _userProfile && (_userProfile.role || _userProfile.org_name)) {
+        setTimeout(() => showAgentRecommendBar(agentId), 400);
+      }
+
       document.getElementById('chatStatus').style.display = 'flex';
       document.getElementById('messageInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
