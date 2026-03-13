@@ -2940,24 +2940,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       sessionId = data.sessionId;
       
       // Phase 5: 显示个性化欢迎语
-      try {
-        if (typeof showWelcomeGreeting === 'function') {
-          setTimeout(function() {
-            try { showWelcomeGreeting(agentId, typeof _userProfile !== 'undefined' ? _userProfile : null); }
-            catch(e2) { console.error('[showWelcomeGreeting error]', e2); }
-          }, 200);
-        }
-      } catch(e2) { console.error('[Phase5 welcome error]', e2); }
+      if (typeof showWelcomeGreeting === 'function') {
+        setTimeout(function() {
+          showWelcomeGreeting(agentId, typeof _userProfile !== 'undefined' ? _userProfile : null);
+        }, 200);
+      }
 
       // Phase 3: 建档引导 + 个性化推荐
-      try {
-        checkShowProfileOnboard(agentId);
-      } catch(e2) { console.error('[checkShowProfileOnboard error]', e2); }
-      try {
-        if (typeof _userProfile !== 'undefined' && _userProfile && (_userProfile.role || _userProfile.org_name)) {
-          setTimeout(() => { try { showAgentRecommendBar(agentId); } catch(e3) { console.error('[showAgentRecommendBar error]', e3); } }, 400);
-        }
-      } catch(e2) { console.error('[Phase3 recommend error]', e2); }
+      checkShowProfileOnboard(agentId);
+      if (typeof _userProfile !== 'undefined' && _userProfile && (_userProfile.role || _userProfile.org_name)) {
+        setTimeout(() => showAgentRecommendBar(agentId), 400);
+      }
 
       document.getElementById('chatStatus').style.display = 'flex';
       document.getElementById('messageInput').disabled = false;
@@ -2972,7 +2965,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         await sendMessage();
       }
     } catch(e) {
-      console.error('[startChat error]', e);
       showError('无法连接到服务器，请刷新重试');
     }
   }
