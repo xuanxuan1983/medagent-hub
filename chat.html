@@ -4440,5 +4440,180 @@ if (typeof selectIdentity !== 'undefined') {
 // ===== END 用户档案持久化 + IP 形象卡片 =====
 
 </script>
+<script>
+
+// ===== Phase 3: 建档引导 + 推荐栏 + 设置页档案编辑（函数体）=====
+
+// IP Agent 对应的专项 Agent 推荐配置
+const IP_AGENT_RECOMMENDATIONS = {
+  upstream: [
+    { id: 'gtm-strategist', name: 'GTM 策略', icon: '/avatars/gtm-strategist.svg' },
+    { id: 'product-trainer', name: '产品培训', icon: '/avatars/product-trainer.svg' },
+    { id: 'academic-writer', name: '学术推广', icon: '/avatars/academic-writer.svg' },
+    { id: 'sales-coach', name: '销售教练', icon: '/avatars/sales-coach.svg' },
+  ],
+  clinic: [
+    { id: 'consult-coach', name: '咨询话术', icon: '/avatars/consult-coach.svg' },
+    { id: 'aesthetic-designer', name: '美学设计', icon: '/avatars/aesthetic-designer.svg' },
+    { id: 'aftercare-manager', name: '术后管理', icon: '/avatars/aftercare-manager.svg' },
+    { id: 'ops-planner', name: '运营策划', icon: '/avatars/ops-planner.svg' },
+  ],
+  creator: [
+    { id: 'xiaohongshu-writer', name: '小红书', icon: '/avatars/xiaohongshu-writer.svg' },
+    { id: 'video-scriptwriter', name: '短视频脚本', icon: '/avatars/video-scriptwriter.svg' },
+    { id: 'ip-brand-builder', name: 'IP 打造', icon: '/avatars/ip-brand-builder.svg' },
+    { id: 'copywriter', name: '爆款文案', icon: '/avatars/copywriter.svg' },
+  ]
+};
+
+// 检查是否需要显示建档引导
+function checkShowProfileOnboard(agentId) {
+  const ipAgents = ['doudou', 'douding', 'douya'];
+  if (!ipAgents.includes(agentId)) return;
+  if (typeof _userProfile !== 'undefined' && _userProfile && (_userProfile.role || _userProfile.org_name)) return;
+  const skipKey = 'medagent_profile_onboard_skip';
+  const skipTime = localStorage.getItem(skipKey);
+  if (skipTime && Date.now() - parseInt(skipTime) < 30 * 24 * 3600 * 1000) return;
+  setTimeout(() => showProfileOnboardCard(agentId), 800);
+}
+
+// 显示建档引导卡片
+function showProfileOnboardCard(agentId) {
+  const existing = document.getElementById('profileOnboardCard');
+  if (existing) existing.remove();
+  const identity = localStorage.getItem('medagent_identity') || 'clinic';
+  const ipName = identity === 'upstream' ? '豆子' : identity === 'clinic' ? '豆丁' : '豆芽';
+  const card = document.createElement('div');
+  card.id = 'profileOnboardCard';
+  card.innerHTML = '<div class="onboard-title">让 ' + ipName + ' 更了解你</div>' +
+    '<div class="onboard-sub">填写后，' + ipName + ' 会直接引用你的背景，省去每次介绍的麻烦。</div>' +
+    '<div class="onboard-fields">' +
+    '<div class="onboard-field-row"><span class="onboard-field-label">职位角色</span><input class="onboard-field-input" id="onboardRole" placeholder="如：院长、咨询师、品牌经理"></div>' +
+    '<div class="onboard-field-row"><span class="onboard-field-label">机构/公司</span><input class="onboard-field-input" id="onboardOrg" placeholder="如：XX 医美、XX 品牌"></div>' +
+    '<div class="onboard-field-row"><span class="onboard-field-label">主营品类</span><input class="onboard-field-input" id="onboardCategory" placeholder="如：水光、肉毒、玻尿酸"></div>' +
+    '</div>' +
+    '<div class="onboard-actions">' +
+    '<button class="onboard-skip-btn" onclick="skipProfileOnboard()">稍后再说</button>' +
+    '<button class="onboard-save-btn" onclick="saveProfileFromOnboard()">保存并开始</button>' +
+    '</div>';
+  const container = document.getElementById('chatMessages');
+  const welcomeWrap = document.getElementById('welcomeWrap');
+  if (welcomeWrap) {
+    welcomeWrap.insertAdjacentElement('afterend', card);
+  } else if (container) {
+    container.appendChild(card);
+  }
+}
+
+// 从建档引导卡片保存档案
+async function saveProfileFromOnboard() {
+  const role = (document.getElementById('onboardRole') || {}).value || '';
+  const org = (document.getElementById('onboardOrg') || {}).value || '';
+  const category = (document.getElementById('onboardCategory') || {}).value || '';
+  if (!role.trim() && !org.trim() && !category.trim()) { skipProfileOnboard(); return; }
+  if (typeof saveUserProfile === 'function') {
+    await saveUserProfile({
+      identity: localStorage.getItem('medagent_identity') || null,
+      role: role.trim() || null,
+      org_name: org.trim() || null,
+      product_category: category.trim() || null
+    });
+  }
+  const card = document.getElementById('profileOnboardCard');
+  if (card) { card.style.opacity = '0'; card.style.transition = 'opacity 0.3s'; setTimeout(() => card.remove(), 300); }
+  if (typeof currentAgentId !== 'undefined') showAgentRecommendBar(currentAgentId);
+}
+
+// 跳过建档引导
+function skipProfileOnboard() {
+  localStorage.setItem('medagent_profile_onboard_skip', Date.now().toString());
+  const card = document.getElementById('profileOnboardCard');
+  if (card) { card.style.opacity = '0'; card.style.transition = 'opacity 0.3s'; setTimeout(() => card.remove(), 300); }
+}
+
+// 显示个性化推荐快捷入口
+function showAgentRecommendBar(agentId) {
+  const ipAgents = ['doudou', 'douding', 'douya'];
+  if (!ipAgents.includes(agentId)) return;
+  const identity = localStorage.getItem('medagent_identity');
+  if (!identity) return;
+  const recommendations = IP_AGENT_RECOMMENDATIONS[identity] || [];
+  if (recommendations.length === 0) return;
+  const existing = document.getElementById('agentRecommendBar');
+  if (existing) existing.remove();
+  const bar = document.createElement('div');
+  bar.id = 'agentRecommendBar';
+  bar.style.display = 'block';
+  const chipsHtml = recommendations.map(function(rec) {
+    return '<button class="recommend-chip" onclick="startChat('' + rec.id + '')">' +
+      '<img src="' + rec.icon + '" alt="' + rec.name + '" onerror="this.style.display='none'">' +
+      rec.name + '</button>';
+  }).join('');
+  bar.innerHTML = '<div class="recommend-title">专项工具</div><div class="recommend-chips">' + chipsHtml + '</div>';
+  const onboardCard = document.getElementById('profileOnboardCard');
+  const welcomeWrap = document.getElementById('welcomeWrap');
+  const container = document.getElementById('chatMessages');
+  if (onboardCard) { onboardCard.insertAdjacentElement('afterend', bar); }
+  else if (welcomeWrap) { welcomeWrap.insertAdjacentElement('afterend', bar); }
+  else if (container) { container.appendChild(bar); }
+}
+
+// 从设置页保存档案
+async function saveProfileFromSettings() {
+  const role = (document.getElementById('profileRole') || {}).value || '';
+  const org = (document.getElementById('profileOrg') || {}).value || '';
+  const category = (document.getElementById('profileCategory') || {}).value || '';
+  const clientTier = (document.getElementById('profileClientTier') || {}).value || '';
+  const statusEl = document.getElementById('profileSaveStatus');
+  if (statusEl) statusEl.textContent = '保存中...';
+  if (typeof saveUserProfile === 'function') {
+    await saveUserProfile({
+      identity: localStorage.getItem('medagent_identity') || null,
+      role: role.trim() || null,
+      org_name: org.trim() || null,
+      product_category: category.trim() || null,
+      client_tier: clientTier.trim() || null
+    });
+  }
+  if (statusEl) { statusEl.textContent = '已保存 ✓'; setTimeout(() => { statusEl.textContent = ''; }, 2000); }
+}
+
+// 打开设置页时加载档案到表单
+document.addEventListener('DOMContentLoaded', function() {
+  const settingsBtn = document.querySelector('[onclick*="openSettings"], [onclick*="Settings"]');
+  if (settingsBtn) {
+    const origOnclick = settingsBtn.getAttribute('onclick');
+    settingsBtn.setAttribute('onclick', origOnclick);
+  }
+});
+
+// 监听设置弹窗打开，自动填充档案字段
+const _settingsModal = document.getElementById('settingsModal');
+if (_settingsModal) {
+  const _observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.type === 'attributes' && m.attributeName === 'style') {
+        const visible = _settingsModal.style.display !== 'none' && _settingsModal.style.visibility !== 'hidden';
+        if (visible && typeof _userProfile !== 'undefined' && _userProfile) {
+          setTimeout(function() {
+            const roleEl = document.getElementById('profileRole');
+            const orgEl = document.getElementById('profileOrg');
+            const catEl = document.getElementById('profileCategory');
+            const tierEl = document.getElementById('profileClientTier');
+            if (roleEl) roleEl.value = _userProfile.role || '';
+            if (orgEl) orgEl.value = _userProfile.org_name || '';
+            if (catEl) catEl.value = _userProfile.product_category || '';
+            if (tierEl) tierEl.value = _userProfile.client_tier || '';
+          }, 150);
+        }
+      }
+    });
+  });
+  _observer.observe(_settingsModal, { attributes: true });
+}
+
+// ===== END Phase 3 函数体 =====
+
+</script>
 </body>
 </html>
