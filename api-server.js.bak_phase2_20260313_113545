@@ -818,18 +818,6 @@ db.exec(`
 `);
 console.log('\u2705 SQLite \u6570\u636e\u5e93\u521d\u59cb\u5316\u6210\u529f:', DB_PATH);
 
-try { db.exec(`
-  CREATE TABLE IF NOT EXISTS user_profiles (
-    user_code TEXT PRIMARY KEY,
-    identity TEXT,
-    role TEXT,
-    org_name TEXT,
-    product_category TEXT,
-    client_tier TEXT,
-    extra TEXT,
-    updated_at DATETIME DEFAULT (datetime('now'))
-  );`); } catch (e) { /* ignore */ }
-
 // Schema migration: add api_type column if it doesn't exist (for existing databases)
 try { db.exec("ALTER TABLE token_usage ADD COLUMN api_type TEXT DEFAULT 'chat'"); } catch (e) { /* column already exists, ignore */ }
 
@@ -851,20 +839,6 @@ const stmtUpdateImpQueueStatus = db.prepare("UPDATE improvement_queue SET status
 const stmtCountImpQueuePending = db.prepare("SELECT COUNT(*) as cnt FROM improvement_queue WHERE status = 'pending'");
 
 // ===== Conversation Logs SQLite Statements =====
-const stmtGetProfile = db.prepare('SELECT * FROM user_profiles WHERE user_code = ?');
-const stmtUpsertProfile = db.prepare(`
-  INSERT INTO user_profiles (user_code, identity, role, org_name, product_category, client_tier, extra, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-  ON CONFLICT(user_code) DO UPDATE SET
-    identity = excluded.identity,
-    role = excluded.role,
-    org_name = excluded.org_name,
-    product_category = excluded.product_category,
-    client_tier = excluded.client_tier,
-    extra = excluded.extra,
-    updated_at = datetime('now')
-`);
-
 const stmtInsertConvLog = db.prepare('INSERT INTO conversation_logs (ts, type, agent, agent_name, user_code, user_name, user_msg, assistant_msg, feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
 const stmtConvLogStats = db.prepare(`
   SELECT
@@ -2451,52 +2425,6 @@ const server = http.createServer(async (req, res) => {
       }
       return;
     }
-  }
-
-  
-  // ===== 用户档案 API =====
-  if (url.pathname === '/api/user/profile' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const profile = stmtGetProfile.get(userCode) || {};
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, profile }));
-    return;
-  }
-
-  if (url.pathname === '/api/user/profile' && req.method === 'POST') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body);
-        const userCode = getUserCode(req);
-        stmtUpsertProfile.run(
-          userCode,
-          data.identity || null,
-          data.role || null,
-          data.org_name || null,
-          data.product_category || null,
-          data.client_tier || null,
-          data.extra ? JSON.stringify(data.extra) : null
-        );
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      }
-    });
-    return;
   }
 
   if (url.pathname === '/api/auth/me' && req.method === 'GET') {
