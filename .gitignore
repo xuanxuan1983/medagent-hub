@@ -57,3 +57,9 @@ deploy_team_plan.py
 fix_team_api.py
 team_api_addon.js
 node_modules/
+
+# 备份文件
+*.bak_phase*
+*.bak_finalurl*
+data/
+node_modules/

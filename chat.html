@@ -4104,34 +4104,49 @@ async function saveUserProfile(data) {
   }
 }
 
-// 渲染 IP 形象卡片
+// 修复：只在 IP Agent 对话时显示 IP 形象卡片
 function renderIPCompanionCard() {
   const card = document.getElementById('ipCompanionCard');
   if (!card) return;
 
   const identity = localStorage.getItem('medagent_identity');
-  if (!identity || !IP_CONFIG[identity]) {
+  const ipAgents = ['doudou', 'douding', 'douya'];
+  
+  // 如果当前选中的 Agent 不是 IP Agent，隐藏卡片
+  if (typeof currentAgent !== 'undefined' && currentAgent && !ipAgents.includes(currentAgent)) {
     card.style.display = 'none';
     return;
   }
 
-  const config = IP_CONFIG[identity];
+  if (!identity) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const IP_CONFIG_MAP = {
+    upstream: { name: '豆子', desc: '上游厂家专属搭档，整合 GTM、产品策略、学术推广等 12 个专家能力', ipKey: 'douzai' },
+    clinic:   { name: '豆丁', desc: '机构端口专属搭档，整合咨询话术、运营、术后管理等 9 个专家能力', ipKey: 'douding' },
+    creator:  { name: '豆芽', desc: '个人 IP 打造与内容创作操盘手，网感极佳的爆款制造机', ipKey: 'douya' }
+  };
+
+  const config = IP_CONFIG_MAP[identity];
+  if (!config) {
+    card.style.display = 'none';
+    return;
+  }
+
   const avatar = document.getElementById('ipCardAvatar');
   const name = document.getElementById('ipCardName');
   const desc = document.getElementById('ipCardDesc');
   const badge = document.getElementById('ipCardBadge');
 
-  // 设置头像（从 IP_IMAGES 取 default）
-  const ipKey = identity === 'upstream' ? 'douzai' : identity === 'clinic' ? 'douding' : 'douya';
-  if (typeof IP_IMAGES !== 'undefined' && IP_IMAGES[ipKey]) {
-    avatar.src = IP_IMAGES[ipKey].default || '';
+  if (typeof IP_IMAGES !== 'undefined' && IP_IMAGES[config.ipKey]) {
+    avatar.src = IP_IMAGES[config.ipKey].default || '';
   }
-
   name.textContent = config.name;
   desc.textContent = config.desc;
 
-  // 档案徽章
-  if (_userProfile && _userProfile.role) {
+  if (typeof _userProfile !== 'undefined' && _userProfile && _userProfile.role) {
     const parts = [];
     if (_userProfile.role) parts.push(_userProfile.role);
     if (_userProfile.org_name) parts.push(_userProfile.org_name);
@@ -4143,7 +4158,6 @@ function renderIPCompanionCard() {
 
   card.style.display = 'flex';
 }
-
 // 获取用户档案注入到 System Prompt（供 IP Agent 使用）
 function getUserProfilePromptInjection() {
   if (!_userProfile || Object.keys(_userProfile).length === 0) return '';
