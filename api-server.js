@@ -1633,6 +1633,18 @@ function loadSkillPrompt(skillName) {
 }
 
 // Agent ID to skill name mapping
+
+// ===== IP 身份隔离白名单（防止跨 IP 路由污染）=====
+const IP_AGENT_WHITELIST = {
+  'doudou':  new Set(['gtm-strategist','product-expert','medical-liaison','marketing-director','sales-director','operations-director','training-director','anatomy-architect','materials-mentor','visual-translator','material-architect','area-manager','channel-manager','finance-bp','hrbp','procurement-manager','new-media-director','kv-design-director']),
+  'douding': new Set(['senior-consultant','aesthetic-designer','sparring-partner','postop-specialist','xhs-content-creator','wechat-content-creator','anatomy-architect','materials-mentor','material-architect']),
+  'douya':   new Set(['xhs-content-creator','wechat-content-creator','personal-ip-builder','personal-brand-cinematic','super-writer','social-media-creator','cover-image-creator'])
+};
+// IP 路由越界时的重定向规则（将错误路由纠正到正确 Agent）
+const IP_DISPATCH_REDIRECT = {
+  'douding': { 'gtm-strategist': 'sparring-partner', 'sales-director': 'senior-consultant', 'training-director': 'sparring-partner', 'product-expert': 'materials-mentor', 'medical-liaison': 'anatomy-architect' },
+  'douya':   { 'gtm-strategist': 'personal-ip-builder', 'senior-consultant': 'personal-ip-builder', 'sparring-partner': 'personal-ip-builder' }
+};
 const agentSkillMap = {
   'gtm-strategist': 'gtm-strategist',
   'product-expert': 'product-strategist',
@@ -3424,11 +3436,25 @@ ${convText}
               console.warn(`⚠️ [skill_dispatch] 模型传入空 skill_id，跳过专家路由，走普通回答`);
               toolResultText = "请根据已有的知识库内容和搜索结果，直接回答用户的问题。";
             } else {
+            // ===== IP 身份隔离校验（硬防护：防止跨 IP 路由污染）=====
+            let resolvedSkillId = skillId;
+            const ipWhitelist = IP_AGENT_WHITELIST[agentId];
+            if (ipWhitelist && !ipWhitelist.has(skillId)) {
+              const redirect = IP_DISPATCH_REDIRECT[agentId]?.[skillId];
+              if (redirect) {
+                console.warn(`🚫 [IP隔离] ${agentId} 试图调用越界 Agent "${skillId}"，已重定向到 "${redirect}"`);
+                resolvedSkillId = redirect;
+              } else {
+                console.warn(`🚫 [IP隔离] ${agentId} 试图调用越界 Agent "${skillId}"，已拦截，走普通回答`);
+                toolResultText = "请根据你的专业能力直接回答用户的问题，不要调用其他专家。";
+                // 跳过 skill_dispatch，直接走 stream2
+              }
+            }
             // 立即向前端发送 skill_dispatch 事件（提前显示，不等工具执行完毕）
-            const previewName = toolRegistry.SKILL_DISPLAY_NAMES?.[skillId] || skillId;
+            const previewName = toolRegistry.SKILL_DISPLAY_NAMES?.[resolvedSkillId] || resolvedSkillId;
             res.write(`data: ${JSON.stringify({ type: 'skill_dispatch', skill_id: skillId, displayName: previewName })}\n\n`);
             try {
-              const toolResult = await toolRegistry.executeTool('skill_dispatch', toolArgs, {
+              const toolResult = await toolRegistry.executeTool('skill_dispatch', { skill_id: resolvedSkillId, reason }, {
                 message, nmpaSearch, detectNmpaProduct, bochaSearch
               });
               const displayName = toolResult.skillDisplayName || skillId;
