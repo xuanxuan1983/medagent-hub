@@ -1616,6 +1616,51 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 }
 .profile-extract-toast.show { opacity: 1; }
 
+
+/* ===== Phase 5: 档案完整度进度条 ===== */
+.ip-completeness-bar {
+  margin-top: 6px;
+  cursor: pointer;
+}
+.ip-completeness-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #bbb;
+  margin-bottom: 3px;
+}
+.ip-completeness-label span:last-child {
+  font-weight: 600;
+  color: #AEAAA5;
+}
+.ip-completeness-track {
+  height: 3px;
+  background: #f0ede8;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ip-completeness-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #AEAAA5, #7a7570);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.ip-completeness-bar:hover .ip-completeness-label {
+  color: #888;
+}
+
+/* ===== Phase 5: 动态欢迎语 ===== */
+.welcome-greeting {
+  font-size: 13px;
+  color: #888;
+  margin-top: 6px;
+  line-height: 1.6;
+  max-width: 280px;
+  text-align: center;
+  animation: fadeInUp 0.4s ease-out 0.2s both;
+}
+
 </style>
 </head>
 <body>
@@ -1815,6 +1860,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <div class="ip-name" id="ipCardName">我的 AI 搭档</div>
         <div class="ip-desc" id="ipCardDesc"></div>
         <div class="ip-profile-badge" id="ipCardBadge"></div>
+
+        <div class="ip-completeness-bar" onclick="openSettings()" title="点击完善档案">
+          <div class="ip-completeness-label">
+            <span>档案完整度</span>
+            <span id="ipCompletenessText">0%</span>
+          </div>
+          <div class="ip-completeness-track">
+            <div class="ip-completeness-fill" id="ipCompletenessFill" style="width:0%"></div>
+          </div>
+        </div>
+
       </div>
       <button class="ip-switch-btn" onclick="showIdentityModal(true)">切换身份</button>
     </div>
@@ -2882,6 +2938,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (!res.ok) throw new Error('init failed');
       const data = await res.json();
       sessionId = data.sessionId;
+      
+      // Phase 5: 显示个性化欢迎语
+      if (typeof showWelcomeGreeting === 'function') {
+        setTimeout(function() {
+          showWelcomeGreeting(agentId, typeof _userProfile !== 'undefined' ? _userProfile : null);
+        }, 200);
+      }
+
       // Phase 3: 建档引导 + 个性化推荐
       checkShowProfileOnboard(agentId);
       if (typeof _userProfile !== 'undefined' && _userProfile && (_userProfile.role || _userProfile.org_name)) {
@@ -4498,6 +4562,11 @@ function renderIPCompanionCard() {
   const desc = document.getElementById('ipCardDesc');
   const badge = document.getElementById('ipCardBadge');
 
+  // Phase 5: 更新完整度进度条
+  if (typeof updateIPCompletenessBar === 'function') {
+    updateIPCompletenessBar(typeof _userProfile !== 'undefined' ? _userProfile : null);
+  }
+
   if (typeof IP_IMAGES !== 'undefined' && IP_IMAGES[config.ipKey]) {
     avatar.src = IP_IMAGES[config.ipKey].default || '';
   }
@@ -4873,6 +4942,92 @@ document.addEventListener('click', function(e) {
 });
 
 // ===== END Phase 4 函数体 =====
+
+</script>
+<script>
+
+// ===== Phase 5: 档案完整度 + 动态欢迎语 =====
+
+// 计算档案完整度（4 个字段各 25%）
+function calcProfileCompleteness(profile) {
+  if (!profile) return 0;
+  var fields = ['role', 'org_name', 'product_category', 'client_tier'];
+  var filled = fields.filter(function(f) { return profile[f] && profile[f].trim(); }).length;
+  return Math.round(filled / fields.length * 100);
+}
+
+// 更新 IP 卡片完整度进度条
+function updateIPCompletenessBar(profile) {
+  var pct = calcProfileCompleteness(profile);
+  var fillEl = document.getElementById('ipCompletenessFill');
+  var textEl = document.getElementById('ipCompletenessText');
+  if (fillEl) fillEl.style.width = pct + '%';
+  if (textEl) textEl.textContent = pct + '%';
+}
+
+// 生成个性化欢迎语
+function generateWelcomeGreeting(agentId, profile) {
+  var ipAgents = ['doudou', 'douding', 'douya'];
+  if (!ipAgents.includes(agentId)) return null;
+
+  var ipName = agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽';
+
+  if (!profile || (!profile.role && !profile.org_name)) {
+    // 档案为空，引导建档
+    var emptyGreetings = [
+      '第一次见面，还不太了解你～告诉我你在做什么，我可以帮你更精准。',
+      '嗨！我是' + ipName + '，先聊聊你的工作背景？这样我能给你更有用的建议。',
+      '你好！直接说需求也行，不过如果告诉我你的角色，我能给你更定制的方案。'
+    ];
+    return emptyGreetings[Math.floor(Math.random() * emptyGreetings.length)];
+  }
+
+  // 档案有内容，生成个性化问候
+  var role = profile.role || '';
+  var org = profile.org_name || '';
+  var cat = profile.product_category || '';
+
+  var greetings = [];
+
+  if (agentId === 'doudou') {
+    // 豆子：上游厂家风格
+    if (org && cat) greetings.push(org + ' 的 ' + cat + ' 项目，我来帮你想想怎么打。');
+    else if (role) greetings.push(role + '，今天要搞定什么？');
+    else greetings.push('老朋友，今天要搞什么动作？');
+  } else if (agentId === 'douding') {
+    // 豆丁：机构端风格
+    if (role && org) greetings.push(org + ' 的' + role + '，今天有什么要处理的？');
+    else if (cat) greetings.push(cat + ' 这块有什么问题，说吧。');
+    else greetings.push('今天想从哪里开始？话术、方案还是内容？');
+  } else {
+    // 豆芽：个人 IP 风格
+    if (role) greetings.push(role + '，今天想打造什么内容？');
+    else if (cat) greetings.push(cat + ' 方向的内容，今天想做什么？');
+    else greetings.push('今天想做什么内容？小红书、短视频还是 IP 策划？');
+  }
+
+  return greetings.length > 0 ? greetings[0] : null;
+}
+
+// 在欢迎区显示个性化问候语
+function showWelcomeGreeting(agentId, profile) {
+  var welcomeWrap = document.getElementById('welcomeWrap');
+  if (!welcomeWrap) return;
+
+  // 移除旧的问候语
+  var oldGreeting = welcomeWrap.querySelector('.welcome-greeting');
+  if (oldGreeting) oldGreeting.remove();
+
+  var greeting = generateWelcomeGreeting(agentId, profile);
+  if (!greeting) return;
+
+  var el = document.createElement('div');
+  el.className = 'welcome-greeting';
+  el.textContent = greeting;
+  welcomeWrap.appendChild(el);
+}
+
+// ===== END Phase 5 =====
 
 </script>
 </body>

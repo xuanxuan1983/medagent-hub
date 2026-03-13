@@ -4832,6 +4832,61 @@ ${convText}
   }
 
   // Admin: get stats from conversations.jsonl
+
+  // ===== 管理员：用户群体画像分布 =====
+  if (url.pathname === '/api/admin/user-profiles' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    try {
+      // 身份分布
+      const identityDist = db.prepare(
+        "SELECT identity, COUNT(*) as cnt FROM user_profiles WHERE identity IS NOT NULL GROUP BY identity ORDER BY cnt DESC"
+      ).all();
+
+      // 角色分布（TOP 10）
+      const roleDist = db.prepare(
+        "SELECT role, COUNT(*) as cnt FROM user_profiles WHERE role IS NOT NULL AND role != '' GROUP BY role ORDER BY cnt DESC LIMIT 10"
+      ).all();
+
+      // 品类分布（TOP 10）
+      const categoryDist = db.prepare(
+        "SELECT product_category, COUNT(*) as cnt FROM user_profiles WHERE product_category IS NOT NULL AND product_category != '' GROUP BY product_category ORDER BY cnt DESC LIMIT 10"
+      ).all();
+
+      // 档案完整度分布
+      const allProfiles = db.prepare("SELECT role, org_name, product_category, client_tier FROM user_profiles").all();
+      const completenessGroups = { '0%': 0, '25%': 0, '50%': 0, '75%': 0, '100%': 0 };
+      allProfiles.forEach(function(p) {
+        const filled = [p.role, p.org_name, p.product_category, p.client_tier].filter(Boolean).length;
+        const pct = Math.round(filled / 4 * 100);
+        const key = pct + '%';
+        if (completenessGroups.hasOwnProperty(key)) completenessGroups[key]++;
+        else completenessGroups['0%']++;
+      });
+
+      // 总用户数 & 有档案用户数
+      const totalUsers = db.prepare("SELECT COUNT(DISTINCT user_code) as cnt FROM user_profiles").get().cnt;
+      const profiledUsers = db.prepare("SELECT COUNT(*) as cnt FROM user_profiles WHERE (role IS NOT NULL AND role != '') OR (org_name IS NOT NULL AND org_name != '')").get().cnt;
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        totalUsers,
+        profiledUsers,
+        identityDist,
+        roleDist,
+        categoryDist,
+        completenessGroups
+      }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
   if (url.pathname === '/api/admin/stats' && req.method === 'GET') {
     if (!isAdmin(req)) {
       res.writeHead(403, { 'Content-Type': 'application/json' });

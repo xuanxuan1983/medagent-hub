@@ -937,5 +937,117 @@ function copyText(text) {
 // Init
 loadDashboard();
 </script>
+
+<!-- Phase 5: 用户画像面板 -->
+<div id="tab-user-profiles" class="tab-panel" style="display:none">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem">
+    <div class="stat-card">
+      <div class="stat-label">有档案用户</div>
+      <div class="stat-value" id="profiledUsersCount">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">档案填写率</div>
+      <div class="stat-value" id="profileFillRate">—</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem">
+    <!-- 身份分布 -->
+    <div class="panel-card">
+      <div class="panel-title">身份分布</div>
+      <div id="identityDistChart" style="padding:0.5rem 0"></div>
+    </div>
+
+    <!-- 档案完整度 -->
+    <div class="panel-card">
+      <div class="panel-title">档案完整度分布</div>
+      <div id="completenessDistChart" style="padding:0.5rem 0"></div>
+    </div>
+
+    <!-- 角色 TOP 10 -->
+    <div class="panel-card">
+      <div class="panel-title">职位角色 TOP 10</div>
+      <div id="roleDistChart" style="padding:0.5rem 0"></div>
+    </div>
+
+    <!-- 品类 TOP 10 -->
+    <div class="panel-card">
+      <div class="panel-title">主营品类 TOP 10</div>
+      <div id="categoryDistChart" style="padding:0.5rem 0"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Phase 5: 用户画像面板逻辑
+async function loadUserProfilesPanel() {
+  try {
+    const res = await fetch('/api/admin/user-profiles');
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // 更新统计卡片
+    const profiledEl = document.getElementById('profiledUsersCount');
+    const rateEl = document.getElementById('profileFillRate');
+    if (profiledEl) profiledEl.textContent = data.profiledUsers || 0;
+    if (rateEl && data.totalUsers > 0) {
+      rateEl.textContent = Math.round(data.profiledUsers / data.totalUsers * 100) + '%';
+    }
+
+    // 渲染身份分布
+    renderBarChart('identityDistChart', data.identityDist || [], 'identity', 'cnt', {
+      upstream: '上游厂家', clinic: '下游机构', creator: '个人 IP'
+    });
+
+    // 渲染档案完整度分布
+    const completenessData = Object.entries(data.completenessGroups || {}).map(function([k, v]) {
+      return { label: k, cnt: v };
+    });
+    renderBarChart('completenessDistChart', completenessData, 'label', 'cnt', {});
+
+    // 渲染角色分布
+    renderBarChart('roleDistChart', data.roleDist || [], 'role', 'cnt', {});
+
+    // 渲染品类分布
+    renderBarChart('categoryDistChart', data.categoryDist || [], 'product_category', 'cnt', {});
+  } catch(e) {
+    console.error('[UserProfiles] Load error:', e);
+  }
+}
+
+function renderBarChart(containerId, data, labelKey, valueKey, labelMap) {
+  const container = document.getElementById(containerId);
+  if (!container || !data.length) {
+    if (container) container.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem">暂无数据</div>';
+    return;
+  }
+  const maxVal = Math.max.apply(null, data.map(function(d) { return d[valueKey]; }));
+  container.innerHTML = data.map(function(d) {
+    const label = labelMap[d[labelKey]] || d[labelKey] || '未知';
+    const val = d[valueKey];
+    const pct = maxVal > 0 ? Math.round(val / maxVal * 100) : 0;
+    return '<div style="margin-bottom:8px">' +
+      '<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;margin-bottom:3px">' +
+      '<span>' + label + '</span><span style="color:#888">' + val + '</span></div>' +
+      '<div style="height:6px;background:#f0ede8;border-radius:3px;overflow:hidden">' +
+      '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#AEAAA5,#7a7570);border-radius:3px;transition:width 0.4s"></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+// 监听 Tab 切换
+var _origSwitchAdminTab = typeof switchAdminTab === 'function' ? switchAdminTab : null;
+function switchAdminTab(tabName) {
+  // 显示/隐藏面板
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.style.display = 'none'; });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  var panel = document.getElementById('tab-' + tabName);
+  if (panel) panel.style.display = 'block';
+  var btn = document.querySelector('[data-tab="' + tabName + '"]');
+  if (btn) btn.classList.add('active');
+  if (tabName === 'user-profiles') loadUserProfilesPanel();
+}
+</script>
+
 </body>
 </html>
