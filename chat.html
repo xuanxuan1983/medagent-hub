@@ -1507,6 +1507,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <button class="chat-topbar-btn" onclick="clearChat()"><span class="btn-label">清空对话</span></button>
       <button class="chat-topbar-btn" onclick="openSettings('api')">⚙<span class="btn-label"> 设置</span></button>
     </div>
+    
+    <!-- IP 形象卡片 -->
+    <div id="ipCompanionCard" style="display:none;">
+      <img id="ipCardAvatar" class="ip-avatar" src="" alt="IP">
+      <div class="ip-info">
+        <div class="ip-name" id="ipCardName">我的 AI 搭档</div>
+        <div class="ip-desc" id="ipCardDesc"></div>
+        <div class="ip-profile-badge" id="ipCardBadge"></div>
+      </div>
+      <button class="ip-switch-btn" onclick="showIdentityModal(true)">切换身份</button>
+    </div>
+
     <div class="chat-messages" id="chatMessages">
       <div class="welcome-wrap" id="welcomeWrap">
         <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
@@ -2483,6 +2495,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       startChat(agentId, null, doudouContext);
     }
   async function startChat(agentId, initialMsg, doudouContext) {
+  // Phase 2: 更新 IP 形象卡片显示状态
+  if (typeof renderIPCompanionCard === 'function') {
+    setTimeout(renderIPCompanionCard, 50);
+  }
+
     loadGuidedQuestions(agentId);
     currentAgentId = agentId;
     switchView('chat');
