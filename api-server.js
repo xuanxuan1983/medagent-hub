@@ -827,6 +827,8 @@ try { db.exec(`
     product_category TEXT,
     client_tier TEXT,
     extra TEXT,
+    long_term_memory TEXT,
+    memory_updated_at DATETIME,
     updated_at DATETIME DEFAULT (datetime('now'))
   );`); } catch (e) { /* ignore */ }
 
@@ -851,6 +853,8 @@ try { db.exec("ALTER TABLE token_usage ADD COLUMN api_type TEXT DEFAULT 'chat'")
 try { db.exec("ALTER TABLE user_profiles ADD COLUMN org_name TEXT"); } catch (e) { /* column already exists, ignore */ }
 try { db.exec("ALTER TABLE user_profiles ADD COLUMN product_category TEXT"); } catch (e) { /* column already exists, ignore */ }
 try { db.exec("ALTER TABLE user_profiles ADD COLUMN client_tier TEXT"); } catch (e) { /* column already exists, ignore */ }
+try { db.exec("ALTER TABLE user_profiles ADD COLUMN long_term_memory TEXT"); } catch (e) { /* column already exists, ignore */ }
+try { db.exec("ALTER TABLE user_profiles ADD COLUMN memory_updated_at DATETIME"); } catch (e) { /* column already exists, ignore */ }
 
 // Prepared statements for performance
 const stmtInsertSession = db.prepare('INSERT INTO chat_sessions (id, user_code, user_name, agent_id, agent_name) VALUES (?, ?, ?, ?, ?)');
@@ -878,6 +882,13 @@ const stmtGetProfileHistory = db.prepare('SELECT * FROM user_profile_history WHE
 const stmtGetProfileHistoryById = db.prepare('SELECT * FROM user_profile_history WHERE id = ? AND user_code = ?');
 
 const stmtGetProfile = db.prepare('SELECT * FROM user_profiles WHERE user_code = ?');
+const stmtUpdateLongTermMemory = db.prepare(
+  `UPDATE user_profiles SET long_term_memory = ?, memory_updated_at = datetime('now'), updated_at = datetime('now') WHERE user_code = ?`
+);
+const stmtUpsertProfileWithMemory = db.prepare(
+  `INSERT INTO user_profiles (user_code, long_term_memory, memory_updated_at, updated_at) VALUES (?, ?, datetime('now'), datetime('now'))
+  ON CONFLICT(user_code) DO UPDATE SET long_term_memory = excluded.long_term_memory, memory_updated_at = datetime('now'), updated_at = datetime('now')`
+);
 const stmtUpsertProfile = db.prepare(`
   INSERT INTO user_profiles (user_code, identity, role, org_name, product_category, client_tier, extra, updated_at)
   VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
@@ -2686,6 +2697,24 @@ ${convText}
     return;
   }
 
+  // ===== 用户长期记忆 API =====
+  if (url.pathname === '/api/user/memory' && req.method === 'GET') {
+    if (!isAuthenticated(req)) { res.writeHead(401); res.end(JSON.stringify({ error: 'Unauthorized' })); return; }
+    const memUC = getUserCode(req);
+    const memP = stmtGetProfile.get(memUC) || {};
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, memory: memP.long_term_memory || null, memoryUpdatedAt: memP.memory_updated_at || null, profile: { role: memP.role, org_name: memP.org_name, product_category: memP.product_category, client_tier: memP.client_tier, identity: memP.identity } }));
+    return;
+  }
+  if (url.pathname === '/api/user/memory' && req.method === 'DELETE') {
+    if (!isAuthenticated(req)) { res.writeHead(401); res.end(JSON.stringify({ error: 'Unauthorized' })); return; }
+    const memUC = getUserCode(req);
+    stmtUpdateLongTermMemory.run(null, memUC);
+    console.log(`[Memory] 用户清除记忆 user=${memUC}`);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, message: '记忆已清除' }));
+    return;
+  }
   // ===== 用户档案 API =====
   if (url.pathname === '/api/user/profile' && req.method === 'GET') {
     if (!isAuthenticated(req)) {
@@ -2982,6 +3011,24 @@ ${convText}
       const sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
       const userCode = getUserCode(req);
       const userName = getUserName(req);
+      // ===== 注入用户长期记忆 =====
+      try {
+        const userProfile = stmtGetProfile.get(userCode) || {};
+        const memParts = [];
+        if (userProfile.role) memParts.push(`职位/角色：${userProfile.role}`);
+        if (userProfile.org_name) memParts.push(`所在机构：${userProfile.org_name}`);
+        if (userProfile.product_category) memParts.push(`关注品类：${userProfile.product_category}`);
+        if (userProfile.client_tier) memParts.push(`客户层级：${userProfile.client_tier}`);
+        if (userProfile.identity) memParts.push(`身份标签：${userProfile.identity}`);
+        if (userProfile.long_term_memory) memParts.push(`历史对话摘要：${userProfile.long_term_memory}`);
+        if (memParts.length > 0) {
+          systemPrompt += `\n\n---\n**[用户长期记忆]**\n以下是该用户的历史信息，请充分利用，无需重复询问已知信息：\n${memParts.join('\n')}\n---`;
+          console.log(`[Memory] 注入用户记忆 user=${userCode} 字段数=${memParts.length}`);
+        }
+      } catch (memErr) {
+        console.warn('[Memory] 记忆注入失败（非致命）:', memErr.message);
+      }
+      // ===========================
       sessions.set(sessionId, {
         agentId,
         agentName: agentNames[agentId],
@@ -3737,6 +3784,31 @@ ${convText}
       // Send done event
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
       res.end();
+      // ===== 异步提取用户长期记忆（每5轮对话更新一次）=====
+      try {
+        const memSession = session;
+        const memUserCode = userCode;
+        const msgCount = memSession.messages.length;
+        if (msgCount >= 5 && msgCount % 10 === 0) {
+          setImmediate(async () => {
+            try {
+              const existingProfile = stmtGetProfile.get(memUserCode) || {};
+              const existingMemory = existingProfile.long_term_memory || '';
+              const recentMsgs = memSession.messages.slice(-10).map(m => `${m.role === 'user' ? '用户' : 'AI'}：${m.content.slice(0, 300)}`).join('\n');
+              const extractPrompt = '你是用户信息提取助手。请提取职位、机构名称、关注品类、核心需求（80字内）。如无新信息请回复「无新信息」。';
+              const memExtract = await callLLM([{ role: 'user', content: extractPrompt }], {
+                model: 'gpt-4.1-mini', maxTokens: 300,
+                systemPrompt: '你是精简的信息提取助手，只输出摘要文本。'
+              });
+              if (memExtract && memExtract.trim() && !memExtract.includes('无新信息')) {
+                stmtUpsertProfileWithMemory.run(memUserCode, memExtract.trim());
+                console.log(`[Memory] 记忆更新 user=${memUserCode} len=${memExtract.length}`);
+              }
+            } catch (e) { console.warn('[Memory] 异步提取失败:', e.message); }
+          });
+        }
+      } catch (e) { console.warn('[Memory] 触发失败:', e.message); }
+      // ===================================================
     } catch (error) {
       console.error('Stream error:', error);
       try {
