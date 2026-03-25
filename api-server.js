@@ -6255,6 +6255,101 @@ server.listen(PORT, () => {
     });
   };
   scheduleNmpaSync();
+
+  // ===== Ima 医美文献知识库每小时定时同步 =====
+  const IMA_SHARE_ID = '88bf9558ed199d42e82b081b31a35e27e2ef271b0225e8c022dc89be351af552';
+  const IMA_STATE_FILE = path.join(DATA_DIR, 'data/ima_sync_state.json');
+
+  const loadImaState = () => {
+    try {
+      if (fs.existsSync(IMA_STATE_FILE)) return JSON.parse(fs.readFileSync(IMA_STATE_FILE, 'utf8'));
+    } catch {}
+    return { lastUpdateTimestamp: '0', lastSyncAt: null };
+  };
+
+  const saveImaState = (state) => {
+    const dir = path.dirname(IMA_STATE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(IMA_STATE_FILE, JSON.stringify(state, null, 2));
+  };
+
+  const syncImaKb = async () => {
+    try {
+      console.log('[Ima Sync] 检查 Ima 医美文献知识库更新...');
+      const imaResp = await new Promise((resolve, reject) => {
+        const body = JSON.stringify({ shareId: IMA_SHARE_ID, limit: 20 });
+        const req = https.request({
+          hostname: 'ima.qq.com',
+          path: '/cgi-bin/knowledge_share_get/get_share_info',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'MedAgent-Hub-Sync/1.0',
+            'Referer': `https://ima.qq.com/wiki/?shareId=${IMA_SHARE_ID}`,
+            'Origin': 'https://ima.qq.com',
+            'Content-Length': Buffer.byteLength(body),
+          }
+        }, (res) => {
+          let data = '';
+          res.on('data', c => data += c);
+          res.on('end', () => { try { resolve(JSON.parse(data)); } catch { reject(new Error('parse error')); } });
+        });
+        req.on('error', reject);
+        req.write(body);
+        req.end();
+      });
+
+      if (imaResp.code !== 0) {
+        console.warn('[Ima Sync] API 返回错误:', imaResp.msg);
+        return;
+      }
+
+      const basic = imaResp.knowledge_base_info && imaResp.knowledge_base_info.basic_info || {};
+      const newTs = basic.update_timestamp_sec || '0';
+      const state = loadImaState();
+
+      if (newTs === state.lastUpdateTimestamp) {
+        console.log('[Ima Sync] 无更新，跳过。');
+        return;
+      }
+
+      console.log(`[Ima Sync] 检测到更新！${state.lastUpdateTimestamp} -> ${newTs}`);
+
+      const memberCount = (imaResp.knowledge_base_info && imaResp.knowledge_base_info.member_info && imaResp.knowledge_base_info.member_info.member_count) || 3435;
+      const sizeGB = (parseInt(basic.size || 0) / 1024 / 1024 / 1024).toFixed(1);
+      const syncTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+      const updateTime = new Date(newTs.length > 10 ? parseInt(newTs) : parseInt(newTs) * 1000).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+
+      const docContent = `# Ima 医美文献知识库 - 外部资源索引\n\n> **数据来源**：腾讯 ima.copilot 平台「医美文献」知识库（马骏创建）\n> **同步时间**：${syncTime}\n> **知识库链接**：https://ima.qq.com/wiki/?shareId=${IMA_SHARE_ID}\n\n---\n\n## 知识库概况\n\n| 字段 | 数据 |\n|------|------|\n| 知识库名称 | ${basic.name || '医美文献'} |\n| 创建者 | 马骏 |\n| 成员数量 | ${memberCount.toLocaleString()} 人 |\n| 内容总量 | 18,375+ 个文献/文件 |\n| 存储大小 | 约 ${sizeGB} GB |\n| 最新更新 | ${updateTime} |\n| 访问方式 | 需申请加入（管理员审核制） |\n\n---\n\n## 加入方式\n\n该知识库为需要申请加入的私有知识库，加入步骤如下：\n\n1. 添加管理员微信：13916459684\n2. 备注说明：公司名称 + 职位/业务方向（简要说明即可）\n3. 管理员核实后邀请加入\n4. 注意：下载功能暂停（防止滥用），仅支持在线查阅和 AI 问答\n\n---\n\n## 内容类型与覆盖范围\n\n该知识库主要包含以下类型内容：临床研究与学术文献（注射类产品、激光光电类设备的临床试验报告、SCI 论文等）、产品注册与监管文件（NMPA 医疗器械注册证相关技术文件、FDA/CE 等境外注册资料）、行业报告与市场研究（医美市场规模与趋势分析报告、各细分品类深度报告）、操作规范与培训材料（注射技术操作规范、并发症处理指南、解剖学图谱）。\n\n---\n\n## 重点覆盖品类\n\n| 品类 | 代表产品/技术 |\n|------|-------------|\n| 透明质酸填充剂 | 瑞蓝、乔雅登、海薇、润百颜等 |\n| 肉毒素 | 保妥适、衡力、吉适、乐提葆等 |\n| PLLA 童颜针 | 艾维岚、童颜针、舒颜萃等（14款已获批） |\n| PCL 线雕 | 美丽线等 |\n| 激光光电 | 皮秒、热玛吉、超声刀、热拉提等 |\n| 再生类材料 | 胶原蛋白、PCL、PDLLA 等 |\n\n---\n\n## 使用提示\n\n当用户询问以下内容时，可推荐访问 Ima 医美文献知识库：\n- 有没有关于 XXX 产品的临床研究数据？\n- PLLA 的作用机制有哪些文献支持？\n- 透明质酸降解动力学的学术研究\n- 医美行业最新市场报告\n\n推荐话术：您可以访问 Ima 医美文献知识库（https://ima.qq.com/wiki/?shareId=${IMA_SHARE_ID}），这是目前国内最大的医美专业文献平台，收录了 18,000+ 篇专业文献。需要申请加入，添加微信 13916459684 并说明身份即可。\n\n---\n\n*最后同步：${syncTime}*\n`;
+
+      const os = require('os');
+      const tmpFile = path.join(os.tmpdir(), `ima_kb_sync_${Date.now()}.md`);
+      fs.writeFileSync(tmpFile, docContent);
+
+      const sfKey = process.env.SILICONFLOW_API_KEY;
+      const result = await kb.addDocument(tmpFile, 'global', sfKey, (p) => {
+        if (p.step === 'complete' || p.step === 'error') console.log('[Ima Sync]', JSON.stringify(p));
+      });
+      try { fs.unlinkSync(tmpFile); } catch {}
+
+      saveImaState({
+        lastUpdateTimestamp: newTs,
+        lastSyncAt: new Date().toISOString(),
+        lastFileId: result && result.fileId,
+        memberCount,
+        sizeGB,
+      });
+      console.log(`[Ima Sync] 同步完成！fileId=${result && result.fileId}`);
+    } catch (err) {
+      console.error('[Ima Sync] 同步失败:', err.message);
+    }
+  };
+
+  // 启动时立即执行一次，之后每小时检查
+  syncImaKb();
+  setInterval(syncImaKb, 60 * 60 * 1000);
+  console.log('[Ima Sync] 已启动 Ima 医美文献知识库定时同步（每小时）');
+  // ==============================================
   // ==============================================
   console.log(`   - POST /api/auth/login      - Login with invite code`);
   console.log(`   - GET  /api/auth/code-status - Check invite code usage`);
