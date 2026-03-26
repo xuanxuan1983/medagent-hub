@@ -2968,6 +2968,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
       injectAgentLinks(bubble);
+      // 解剖图片骨架屏 + 懒加载
+      injectAnatomyImgSkeleton(bubble);
     } else {
       bubble.textContent = mainContent;
     }
@@ -3796,12 +3798,74 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   });
 </script>
 
+<!-- 解剖图片骨架屏 CSS -->
+<style>
+  .anatomy-img-wrapper {
+    position: relative;
+    display: block;
+    margin: 0.75rem auto;
+    max-width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(90deg, #f0ede8 25%, #e8e4df 50%, #f0ede8 75%);
+    background-size: 200% 100%;
+    animation: anatomySkeleton 1.4s infinite;
+    min-height: 120px;
+  }
+  .anatomy-img-wrapper.loaded {
+    background: none;
+    animation: none;
+    min-height: unset;
+  }
+  .anatomy-img-wrapper img {
+    display: block;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    margin: 0;
+  }
+  .anatomy-img-wrapper.loaded img {
+    opacity: 1;
+  }
+  @keyframes anatomySkeleton {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+</style>
+
 <!-- 解剖图片点击放大模态框 -->
 <div id="anatomyImgModal">
   <span id="anatomyImgModalClose">&times;</span>
   <img id="anatomyImgModalImg" src="" alt="解剖图">
 </div>
 <script>
+  // 解剖图片骨架屏 + 懒加载函数
+  function injectAnatomyImgSkeleton(bubble) {
+    var imgs = bubble.querySelectorAll('img');
+    imgs.forEach(function(img) {
+      // 已经包裹过的跳过
+      if (img.parentNode.classList && img.parentNode.classList.contains('anatomy-img-wrapper')) return;
+      // 创建包裹容器
+      var wrapper = document.createElement('span');
+      wrapper.className = 'anatomy-img-wrapper';
+      img.parentNode.insertBefore(wrapper, img);
+      wrapper.appendChild(img);
+      // 添加 loading="lazy"
+      img.setAttribute('loading', 'lazy');
+      // 图片加载完成后移除骨架屏
+      if (img.complete && img.naturalWidth > 0) {
+        wrapper.classList.add('loaded');
+      } else {
+        img.addEventListener('load', function() {
+          wrapper.classList.add('loaded');
+        });
+        img.addEventListener('error', function() {
+          wrapper.classList.add('loaded');
+          wrapper.style.minHeight = '0';
+        });
+      }
+    });
+  }
+
   // 解剖图片点击放大
   document.addEventListener('click', function(e) {
     if (e.target.tagName === 'IMG' && e.target.closest('.msg-bubble')) {
