@@ -618,6 +618,47 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     /* 链接 */
     .msg-bubble a { color: #5a7fa8; text-decoration: none; border-bottom: 1px solid rgba(90,127,168,0.3); }
     .msg-bubble a:hover { border-bottom-color: #5a7fa8; }
+    /* 解剖图库图片样式 - 提升专业体验 */
+    .msg-bubble img {
+      max-width: 100%;
+      width: auto;
+      max-height: 420px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      display: block;
+      margin: 0.75rem auto;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      cursor: zoom-in;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+      loading: lazy;
+    }
+    .msg-bubble img:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transform: scale(1.01);
+    }
+    /* 图片点击放大模态框 */
+    #anatomyImgModal {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.88); align-items: center; justify-content: center;
+      cursor: zoom-out; animation: fadeIn 0.18s ease;
+    }
+    #anatomyImgModal.active { display: flex; }
+    #anatomyImgModal img {
+      max-width: 92vw; max-height: 92vh;
+      border-radius: 12px; border: 2px solid rgba(255,255,255,0.15);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      margin: 0; cursor: zoom-out;
+      transition: none;
+    }
+    #anatomyImgModal img:hover { transform: none; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+    #anatomyImgModalClose {
+      position: fixed; top: 1.2rem; right: 1.5rem;
+      color: white; font-size: 1.8rem; cursor: pointer;
+      background: rgba(0,0,0,0.4); border-radius: 50%;
+      width: 2.2rem; height: 2.2rem; display: flex;
+      align-items: center; justify-content: center;
+      line-height: 1; z-index: 10000;
+    }
     /* 用户消息内容不渲染 Markdown */
     .msg-row.user .msg-bubble strong { color: white; }
     .msg-row.user .msg-bubble a { color: rgba(255,255,255,0.85); border-bottom-color: rgba(255,255,255,0.4); }
@@ -3752,6 +3793,41 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   // Close history modal on overlay click
   document.getElementById('historyModal').addEventListener('click', function(e) {
     if (e.target === this) closeHistory();
+  });
+</script>
+
+<!-- 解剖图片点击放大模态框 -->
+<div id="anatomyImgModal">
+  <span id="anatomyImgModalClose">&times;</span>
+  <img id="anatomyImgModalImg" src="" alt="解剖图">
+</div>
+<script>
+  // 解剖图片点击放大
+  document.addEventListener('click', function(e) {
+    if (e.target.tagName === 'IMG' && e.target.closest('.msg-bubble')) {
+      var modal = document.getElementById('anatomyImgModal');
+      var modalImg = document.getElementById('anatomyImgModalImg');
+      modalImg.src = e.target.src;
+      modalImg.alt = e.target.alt || '解剖图';
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  });
+  document.getElementById('anatomyImgModal').addEventListener('click', function(e) {
+    this.classList.remove('active');
+    document.body.style.overflow = '';
+  });
+  document.getElementById('anatomyImgModalClose').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('anatomyImgModal').classList.remove('active');
+    document.body.style.overflow = '';
+  });
+  // ESC 键关闭
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.getElementById('anatomyImgModal').classList.remove('active');
+      document.body.style.overflow = '';
+    }
   });
 </script>
 </body>
