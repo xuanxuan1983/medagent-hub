@@ -5832,6 +5832,45 @@ server.listen(PORT, () => {
   console.log(`🤖 AI Provider: ${AI_PROVIDER.toUpperCase()}`);
   console.log(`📋 Available endpoints:`);
 
+  // ===== 自动修复 nginx 大文件上传超时配置 =====
+  try {
+    const nginxConfPaths = [
+      '/etc/nginx/sites-enabled/default',
+      '/etc/nginx/sites-enabled/medagent',
+      '/etc/nginx/conf.d/default.conf',
+      '/etc/nginx/nginx.conf'
+    ];
+    let patched = false;
+    for (const confPath of nginxConfPaths) {
+      if (fs.existsSync(confPath)) {
+        let content = fs.readFileSync(confPath, 'utf8');
+        if (!content.includes('auto-patched-upload-timeout')) {
+          // 在第一个 location / 块内插入超时配置
+          const patch = `\n        # auto-patched-upload-timeout\n        client_max_body_size 50m;\n        proxy_read_timeout 300s;\n        proxy_send_timeout 300s;\n        proxy_connect_timeout 60s;\n`;
+          const newContent = content.replace(/(location\s*\/\s*\{)/, `$1${patch}`);
+          if (newContent !== content) {
+            fs.writeFileSync(confPath, newContent);
+            try {
+              execSync('nginx -t && nginx -s reload', { timeout: 10000 });
+              console.log(`✅ nginx 大文件上传超时配置已更新并重载: ${confPath}`);
+            } catch(nr) {
+              console.log(`⚠️  nginx reload 失败: ${nr.message}`);
+            }
+          }
+          patched = true;
+        } else {
+          console.log(`ℹ️  nginx 超时配置已是最新: ${confPath}`);
+          patched = true;
+        }
+        break;
+      }
+    }
+    if (!patched) console.log('⚠️  未找到 nginx 配置文件，跳过自动修复');
+  } catch(nginxErr) {
+    console.log(`⚠️  nginx 自动修复异常: ${nginxErr.message}`);
+  }
+  // ===== nginx 配置修复结束 =====
+
   // ===== NMPA 药监局每月定时同步 =====
   // 每月 1 日凌晨 2:00 自动执行
   const scheduleNmpaSync = () => {
