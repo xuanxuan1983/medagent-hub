@@ -5894,8 +5894,18 @@ ${convText}
         res.end(JSON.stringify({ error: '支付功能暂不可用，请联系客服' }));
         return;
       }
-      const { plan } = await parseRequestBody(req);
+      const { plan, buyerName, buyerPhone } = await parseRequestBody(req);
       const out_trade_no = `medagent_${Date.now()}`;
+      // 保存购买者信息，支付成功后用于生成邀请码
+      if (buyerName) {
+        try {
+          const pendingFile = path.join(DATA_DIR, 'pending-orders.json');
+          let pending = {};
+          try { pending = JSON.parse(fs.readFileSync(pendingFile, 'utf8')); } catch(e) {}
+          pending[out_trade_no] = { buyerName: buyerName.trim(), buyerPhone: buyerPhone || '', planName: plan.name, createdAt: new Date().toISOString() };
+          fs.writeFileSync(pendingFile, JSON.stringify(pending, null, 2));
+        } catch(e) { console.error('保存购买者信息失败:', e.message); }
+      }
       const params = {
         appid: 'wx10951656e9a582db',
         mchid: '1684977594',
@@ -5966,6 +5976,34 @@ ${convText}
           saveProfiles(profiles);
           console.log(`✅ 用户 ${userCode} 已升级为 ${newPlan}，${months}个月，到期: ${expires.toISOString()}`);
         } catch (e) { console.error('升级用户套餐失败:', e.message); }
+        // 支付成功后自动生成邀请码（供定价页面新用户使用）
+        let newInviteCode = null;
+        try {
+          const pendingFile = path.join(DATA_DIR, 'pending-orders.json');
+          let pending = {};
+          try { pending = JSON.parse(fs.readFileSync(pendingFile, 'utf8')); } catch(e) {}
+          const orderInfo = pending[tradeNo];
+          if (orderInfo && !orderInfo.inviteCode) {
+            const buyerLabel = orderInfo.buyerName || '付费用户';
+            const inviteCode = 'ma' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+            const codes = loadCodes();
+            codes[inviteCode] = `${buyerLabel}（${orderInfo.planName || newPlan}）`;
+            saveCodes(codes);
+            const usageLimits = loadUsageLimits();
+            usageLimits[inviteCode] = 1;
+            saveUsageLimits(usageLimits);
+            // 标记邀请码已生成，避免重复
+            pending[tradeNo] = { ...orderInfo, inviteCode, generatedAt: new Date().toISOString() };
+            fs.writeFileSync(pendingFile, JSON.stringify(pending, null, 2));
+            newInviteCode = inviteCode;
+            console.log(`🎟️ 支付成功自动生成邀请码: ${inviteCode} for ${buyerLabel}`);
+          } else if (orderInfo && orderInfo.inviteCode) {
+            newInviteCode = orderInfo.inviteCode; // 已生成过，返回已有的
+          }
+        } catch(e) { console.error('自动生成邀请码失败:', e.message); }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ paid, trade_state: tradeState, inviteCode: newInviteCode }));
+        return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ paid, trade_state: tradeState }));
