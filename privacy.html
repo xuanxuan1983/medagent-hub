@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light only">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>隐私政策 - MedAgent Hub</title>
+  <meta name="description" content="MedAgent Hub 隐私政策，了解我们如何收集、使用和保护您的个人信息。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --text: #191919;
+      --text-2: #5a5a5a;
+      --text-3: #767676;
+      --bg: #FFFFFF;
+      --bg-warm: #FAF8F5;
+      --border: #E8E5E0;
+      --border-light: #F0EDEA;
+      --coral: #E8715A;
+      --font-serif: 'Noto Serif SC', 'Georgia', serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --max: 800px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.7; }
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-light);
+      padding: 0 2rem;
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 0.625rem;
+      font-weight: 700; font-size: 1.05rem;
+      color: var(--text); text-decoration: none;
+    }
+    .nav-logo-badge {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 900; font-size: 0.95rem;
+    }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a { font-size: 0.875rem; font-weight: 500; color: var(--text-2); text-decoration: none; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--text); }
+    .btn-nav-primary {
+      padding: 0.5rem 1.125rem; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      border: none; font-family: var(--font-sans);
+      background: var(--text); color: white; transition: opacity 0.15s;
+    }
+    .btn-nav-primary:hover { opacity: 0.85; }
+    .page-wrap { max-width: var(--max); margin: 0 auto; padding: 3rem 2rem 5rem; }
+    .page-header { margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+    .page-header h1 { font-family: var(--font-serif); font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
+    .page-header .meta { font-size: 0.85rem; color: var(--text-3); }
+    .doc-body h2 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 2rem 0 0.75rem; }
+    .doc-body h3 { font-size: 0.95rem; font-weight: 600; color: var(--text); margin: 1.25rem 0 0.5rem; }
+    .doc-body p { font-size: 0.9rem; color: var(--text-2); margin-bottom: 0.75rem; line-height: 1.8; }
+    .doc-body ul { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+    .doc-body ul li { font-size: 0.9rem; color: var(--text-2); margin-bottom: 0.375rem; line-height: 1.8; }
+    .doc-body a { color: var(--coral); text-decoration: none; }
+    .doc-body a:hover { text-decoration: underline; }
+    .highlight-box {
+      background: var(--bg-warm); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1rem 1.25rem; margin: 1.5rem 0;
+      font-size: 0.875rem; color: var(--text-2); line-height: 1.7;
+    }
+    .data-table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.875rem; }
+    .data-table th { background: var(--bg-warm); padding: 0.625rem 0.875rem; text-align: left; font-weight: 600; color: var(--text); border: 1px solid var(--border); }
+    .data-table td { padding: 0.625rem 0.875rem; color: var(--text-2); border: 1px solid var(--border); vertical-align: top; }
+    footer { border-top: 1px solid var(--border); padding: 2rem; text-align: center; font-size: 0.8rem; color: var(--text-3); }
+    footer a { color: var(--text-3); text-decoration: none; margin: 0 0.75rem; }
+    footer a:hover { color: var(--text); }
+    @media (max-width: 640px) { .nav-links { display: none; } .page-wrap { padding: 2rem 1.25rem 4rem; } .data-table { font-size: 0.8rem; } }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-badge">M</div>
+      MedAgent Hub
+    </a>
+    <div class="nav-links">
+      <a href="/#features">特性</a>
+      <a href="/#agents">助手</a>
+      <a href="/pricing.html">定价</a>
+    </div>
+    <button class="btn-nav-primary" onclick="window.location.href='/login.html'">开始使用</button>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>隐私政策</h1>
+    <div class="meta">最后更新：2026年3月29日 &nbsp;·&nbsp; 生效日期：2026年3月29日</div>
+  </div>
+
+  <div class="doc-body">
+
+    <div class="highlight-box">
+      我们非常重视您的隐私。本政策说明 MedAgent Hub 如何收集、使用、存储和保护您的个人信息。请在使用本平台前仔细阅读。
+    </div>
+
+    <h2>一、我们收集的信息</h2>
+    <h3>1.1 您主动提供的信息</h3>
+    <ul>
+      <li><strong>邀请码</strong>：用于身份验证和账户识别。</li>
+      <li><strong>手机号</strong>（选填）：用于账户找回，不用于营销推送。</li>
+      <li><strong>用户档案</strong>：您在平台中填写的职位角色、机构名称、产品品类等信息，用于个性化 AI 回答。</li>
+      <li><strong>对话内容</strong>：您与 AI 助手的聊天记录，用于提供服务和改善回答质量。</li>
+      <li><strong>反馈内容</strong>：您提交的功能建议和 Bug 反馈。</li>
+    </ul>
+    <h3>1.2 自动收集的信息</h3>
+    <ul>
+      <li><strong>使用数据</strong>：访问时间、使用的 Agent、对话轮次等匿名统计数据。</li>
+      <li><strong>设备信息</strong>：浏览器类型、操作系统、IP 地址（仅用于安全防护）。</li>
+      <li><strong>Cookie</strong>：用于保持登录状态的会话 Cookie（medagent_auth），不用于跨站追踪。</li>
+    </ul>
+
+    <h2>二、信息的使用方式</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>信息类型</th><th>使用目的</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>邀请码 / 账户标识</td><td>身份验证、权限管理、使用量统计</td></tr>
+        <tr><td>手机号</td><td>账户找回（仅在您请求时使用）</td></tr>
+        <tr><td>用户档案</td><td>个性化 AI 回答、用户画像优化</td></tr>
+        <tr><td>对话记录</td><td>提供服务、AI 质量改善（脱敏后）</td></tr>
+        <tr><td>支付信息</td><td>订单处理（由微信支付处理，我们不存储银行卡信息）</td></tr>
+        <tr><td>使用统计</td><td>产品改进、功能优化</td></tr>
+      </tbody>
+    </table>
+
+    <h2>三、信息共享</h2>
+    <p>我们不会出售您的个人信息。在以下有限情况下，我们可能共享您的信息：</p>
+    <ul>
+      <li><strong>AI 模型服务商</strong>：您的对话内容会发送至 AI 模型 API（如 OpenAI、SiliconFlow 等）以生成回答，受其各自隐私政策约束。</li>
+      <li><strong>微信支付</strong>：支付相关信息由腾讯微信支付处理，我们仅接收支付结果通知。</li>
+      <li><strong>法律要求</strong>：依法律规定或政府要求必须披露时。</li>
+    </ul>
+
+    <h2>四、数据存储与安全</h2>
+    <p>您的数据存储在中国大陆的服务器上。我们采取以下措施保护您的数据：</p>
+    <ul>
+      <li>全站 HTTPS 加密传输；</li>
+      <li>会话 Cookie 设置 HttpOnly 标志，防止 XSS 攻击；</li>
+      <li>定期备份，防止数据丢失；</li>
+      <li>最小权限原则，限制内部人员数据访问。</li>
+    </ul>
+    <p>对话记录默认保留 90 天，之后自动清除。用户档案在账户有效期内保留。</p>
+
+    <h2>五、您的权利</h2>
+    <p>根据《个人信息保护法》，您享有以下权利：</p>
+    <ul>
+      <li><strong>查阅权</strong>：您可以在平台设置中查看您的个人档案信息。</li>
+      <li><strong>更正权</strong>：您可以随时修改您的用户档案。</li>
+      <li><strong>删除权</strong>：您可以联系客服申请删除您的账户及相关数据。</li>
+      <li><strong>记忆清除</strong>：您可以在平台内随时清除 AI 对您的长期记忆。</li>
+    </ul>
+
+    <h2>六、未成年人保护</h2>
+    <p>本平台面向 18 周岁及以上的成年用户。我们不会故意收集未成年人的个人信息。如发现未成年人使用本平台，请联系我们处理。</p>
+
+    <h2>七、Cookie 政策</h2>
+    <p>本平台仅使用必要的功能性 Cookie（<code>medagent_auth</code>）用于保持您的登录状态，有效期为 30 天。我们不使用第三方追踪 Cookie 或广告 Cookie。</p>
+
+    <h2>八、政策更新</h2>
+    <p>我们可能不定期更新本隐私政策。重大变更将通过平台公告提前通知。继续使用本平台即表示您接受更新后的政策。</p>
+
+    <h2>九、联系我们</h2>
+    <p>如对本隐私政策有任何疑问，或需要行使您的数据权利，请联系：</p>
+    <ul>
+      <li>微信客服：xuanyi9747</li>
+      <li>平台官网：<a href="https://medagent.filldmy.com">medagent.filldmy.com</a></li>
+    </ul>
+
+  </div>
+</div>
+
+<footer>
+  <div>
+    <a href="/terms.html">服务条款</a>
+    <a href="/privacy.html">隐私政策</a>
+    <a href="/">返回首页</a>
+  </div>
+  <div style="margin-top:0.5rem">© 2026 MedAgent Hub. All rights reserved.</div>
+</footer>
+</body>
+</html>
