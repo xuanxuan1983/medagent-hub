@@ -8,6 +8,9 @@ tags: [个人IP, 个人品牌, 内容策略, 平台运营, 变现, 一人公司]
 access: pro
 nmpa: false
 material_level: none
+agent_id: personal-ip-builder
+display_name: 个人IP打造指南
+ip_owner: douya
 ---
 
 # 个人IP打造指南 — 从0到1构建高价值个人品牌
