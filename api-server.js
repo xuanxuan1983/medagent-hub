@@ -1704,6 +1704,67 @@ try {
 // Store conversation sessions
 const sessions = new Map();
 
+// IM 频道会话管理（每个用户独立上下文）
+const imSessions = new Map(); // key: conversationKey, value: { messages: [], lastActive }
+const IM_SESSION_TTL = 30 * 60 * 1000; // 30 分钟无消息后清除上下文
+
+/**
+ * IM 频道 AI 回复函数（非流式，直接返回完整文本）
+ * @param {string} text - 用户消息
+ * @param {string} agentId - Agent ID（默认 doudou）
+ * @param {string} conversationKey - 会话唯一标识（如 feishu:user123）
+ * @returns {Promise<string>} AI 回复文本
+ */
+async function imGetAIResponse(text, agentId, conversationKey) {
+  // 获取或创建会话上下文
+  const now = Date.now();
+  let imSession = imSessions.get(conversationKey);
+  if (!imSession || (now - imSession.lastActive) > IM_SESSION_TTL) {
+    // 新建或重置会话
+    const skillName = agentSkillMap[agentId] || 'doudou';
+    const systemPrompt = loadSkillPrompt(skillName);
+    imSession = {
+      agentId,
+      systemPrompt: systemPrompt || '你是一个医美行业 AI 助手。',
+      messages: [],
+      lastActive: now
+    };
+    imSessions.set(conversationKey, imSession);
+    console.log(`[IM] 新建会话: ${conversationKey} | agent=${agentId}`);
+  }
+  imSession.lastActive = now;
+
+  // 加入用户消息
+  imSession.messages.push({ role: 'user', content: text });
+
+  // 保持最近 10 轮对话（防止 token 过多）
+  if (imSession.messages.length > 20) {
+    imSession.messages = imSession.messages.slice(-20);
+  }
+
+  try {
+    const result = await aiProvider.chat(imSession.systemPrompt, imSession.messages);
+    const reply = result.message || '抱歉，暂时无法回复。';
+    imSession.messages.push({ role: 'assistant', content: reply });
+    console.log(`[IM] AI 回复: ${reply.substring(0, 60)}...`);
+    return reply;
+  } catch (e) {
+    console.error('[IM] AI 调用失败:', e.message);
+    return '抱歉，AI 服务暂时不可用，请稍后再试。';
+  }
+}
+
+// 定期清理过期 IM 会话
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, session] of imSessions.entries()) {
+    if (now - session.lastActive > IM_SESSION_TTL) {
+      imSessions.delete(key);
+      console.log(`[IM] 清理过期会话: ${key}`);
+    }
+  }
+}, 10 * 60 * 1000); // 每 10 分钟清理一次
+
 // AI Provider adapters
 class GeminiProvider {
   constructor() {
@@ -2470,6 +2531,168 @@ const server = http.createServer(async (req, res) => {
     }));
     return;
   }
+
+  // ===== IM 频道路由 =====
+
+  // GET /api/im/config — 获取当前用户的 IM 配置
+  if (url.pathname === '/api/im/config' && req.method === 'GET') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    try {
+      const imChannels = require('./im-channels');
+      const config = imChannels.loadImConfig();
+      // 返回时隐藏敏感字段
+      const safeConfig = {
+        feishu: {
+          enabled: !!(config.feishu && config.feishu.appId),
+          appId: config.feishu?.appId || '',
+          agentId: config.feishu?.agentId || 'doudou',
+          webhookUrl: `${url.protocol || 'https:'}//${req.headers.host}/api/im/feishu/webhook`
+        },
+        wecom: {
+          enabled: !!(config.wecom && config.wecom.webhookUrl),
+          webhookUrl: config.wecom?.webhookUrl || '',
+          agentId: config.wecom?.agentId || 'doudou',
+          receiveUrl: `${url.protocol || 'https:'}//${req.headers.host}/api/im/wecom/webhook`
+        },
+        dingtalk: {
+          enabled: !!(config.dingtalk && config.dingtalk.webhookUrl),
+          webhookUrl: config.dingtalk?.webhookUrl || '',
+          agentId: config.dingtalk?.agentId || 'doudou',
+          receiveUrl: `${url.protocol || 'https:'}//${req.headers.host}/api/im/dingtalk/webhook`
+        }
+      };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, config: safeConfig }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // POST /api/im/config — 保存 IM 配置（管理员专用）
+  if (url.pathname === '/api/im/config' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden: admin only' }));
+      return;
+    }
+    try {
+      const body = await parseRequestBody(req);
+      const imChannels = require('./im-channels');
+      const config = imChannels.loadImConfig();
+      // 合并配置（不覆盖未提供的字段）
+      if (body.feishu) Object.assign(config.feishu = config.feishu || {}, body.feishu);
+      if (body.wecom) Object.assign(config.wecom = config.wecom || {}, body.wecom);
+      if (body.dingtalk) Object.assign(config.dingtalk = config.dingtalk || {}, body.dingtalk);
+      imChannels.saveImConfig(config);
+      console.log('[IM] 配置已保存');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // POST /api/im/feishu/webhook — 飞书事件接收端点
+  if (url.pathname === '/api/im/feishu/webhook') {
+    try {
+      const body = await parseRequestBody(req);
+      const imChannels = require('./im-channels');
+
+      // Challenge 验证（飞书首次配置时）
+      if (body.challenge) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ challenge: body.challenge }));
+        return;
+      }
+
+      // 异步处理，先返回 200（飞书要求 3 秒内响应）
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+
+      // 异步调用 AI 并回复
+      imChannels.handleFeishuWebhook(body, async (text, agentId, conversationKey) => {
+        return await imGetAIResponse(text, agentId, conversationKey);
+      }).catch(e => console.error('[IM 飞书] 处理异常:', e.message));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // POST /api/im/wecom/webhook — 企业微信消息接收端点
+  if (url.pathname === '/api/im/wecom/webhook') {
+    try {
+      const body = await parseRequestBody(req);
+      const imChannels = require('./im-channels');
+
+      // 先返回 200
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+
+      imChannels.handleWecomWebhook(body, async (text, agentId, conversationKey) => {
+        return await imGetAIResponse(text, agentId, conversationKey);
+      }).catch(e => console.error('[IM 企微] 处理异常:', e.message));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // POST /api/im/dingtalk/webhook — 钉钉消息接收端点
+  if (url.pathname === '/api/im/dingtalk/webhook') {
+    try {
+      const body = await parseRequestBody(req);
+      const imChannels = require('./im-channels');
+
+      const result = await imChannels.handleDingtalkWebhook(body, async (text, agentId, conversationKey) => {
+        return await imGetAIResponse(text, agentId, conversationKey);
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // POST /api/im/wecom/send — 主动推送消息到企微群
+  if (url.pathname === '/api/im/wecom/send' && req.method === 'POST') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    try {
+      const { content } = await parseRequestBody(req);
+      const imChannels = require('./im-channels');
+      const config = imChannels.loadImConfig();
+      if (!config.wecom?.webhookUrl) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '企微群机器人未配置' }));
+        return;
+      }
+      const ok = await imChannels.sendWecomMessage(config.wecom.webhookUrl, content);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // ===== IM 路由结束 =====
 
   // Login
   if (url.pathname === '/api/auth/login' && req.method === 'POST') {

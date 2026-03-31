@@ -1665,6 +1665,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         反馈有礼
       </div>
+      <div class="modal-tab" id="tab-im" onclick="switchTab('im')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
+        IM 频道
+      </div>
     </div>
     <div class="modal-content">
       <!-- Account -->
@@ -1877,6 +1881,111 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           <button id="btnSubmitFeedback" onclick="submitBetaFeedback()" style="width:100%;padding:0.625rem;background:var(--text);color:white;border:none;border-radius:6px;font-size:0.875rem;font-weight:600;cursor:pointer">提交反馈，解锁内容创作工具 🎁</button>
           <div id="feedbackSubmitMsg" style="display:none;margin-top:0.75rem;font-size:0.8rem;text-align:center"></div>
         </div>
+      </div>
+
+      <!-- IM 频道 -->
+      <div class="modal-pane" id="pane-im">
+        <div class="modal-pane-title">IM 频道配置</div>
+        <p style="font-size:0.8rem;color:var(--text-3);margin-bottom:1.25rem;line-height:1.6">配置后，团队成员可在飞书、企业微信群里直接与 AI 对话，无需切换应用。</p>
+
+        <!-- 飞书配置卡 -->
+        <div style="border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem">
+          <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.875rem">
+            <div style="width:28px;height:28px;border-radius:7px;background:#1456F0;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:0.875rem;font-weight:600;color:var(--text)">飞书机器人</div>
+              <div style="font-size:0.7rem;color:var(--text-3)">接收飞书群消息，自动回复</div>
+            </div>
+            <span id="feishuStatusBadge" style="font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:4px;background:#f3f4f6;color:var(--text-3)">未配置</span>
+          </div>
+          <div id="feishuConfigArea">
+            <label class="modal-label">App ID</label>
+            <input class="modal-input" id="imFeishuAppId" placeholder="cli_xxxxxxxxxxxxxxxx">
+            <label class="modal-label">App Secret</label>
+            <input class="modal-input" id="imFeishuAppSecret" type="password" placeholder="不修改则留空">
+            <label class="modal-label">绑定 Agent</label>
+            <select class="modal-select" id="imFeishuAgent">
+              <option value="doudou">豆子（上游用户导航）</option>
+              <option value="douding">豆丁（机构从业者）</option>
+              <option value="senior-consultant">金牌咒询师</option>
+              <option value="sparring-partner">实战陪练</option>
+            </select>
+            <div style="background:var(--bg-warm);border-radius:8px;padding:0.75rem;margin-top:0.75rem;font-size:0.75rem;color:var(--text-3);line-height:1.8">
+              <div style="font-weight:600;color:var(--text-2);margin-bottom:0.25rem">配置步骤</div>
+              <div>1. 在飞书开放平台创建自建应用</div>
+              <div>2. 开启「接收消息」权限</div>
+              <div>3. 订阅事件 <code style="background:rgba(0,0,0,0.06);padding:0 3px;border-radius:3px">im.message.receive_v1</code></div>
+              <div>4. 请求地址设为：<code id="feishuWebhookUrl" style="background:rgba(0,0,0,0.06);padding:0 3px;border-radius:3px;user-select:all">加载中...</code></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:0.75rem">
+            <button class="btn-save" style="font-size:0.8rem;padding:0.4rem 1rem" onclick="saveImChannelConfig('feishu')">保存飞书配置</button>
+          </div>
+        </div>
+
+        <!-- 企业微信配置卡 -->
+        <div style="border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem">
+          <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.875rem">
+            <div style="width:28px;height:28px;border-radius:7px;background:#07C160;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:0.875rem;font-weight:600;color:var(--text)">企业微信群机器人</div>
+              <div style="font-size:0.7rem;color:var(--text-3)">推送消息到企微群</div>
+            </div>
+            <span id="wecomStatusBadge" style="font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:4px;background:#f3f4f6;color:var(--text-3)">未配置</span>
+          </div>
+          <label class="modal-label">群机器人 Webhook URL</label>
+          <input class="modal-input" id="imWecomWebhook" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...">
+          <label class="modal-label">绑定 Agent</label>
+          <select class="modal-select" id="imWecomAgent">
+            <option value="doudou">豆子（上游用户导航）</option>
+            <option value="douding">豆丁（机构从业者）</option>
+            <option value="senior-consultant">金牌咒询师</option>
+            <option value="sparring-partner">实战陪练</option>
+          </select>
+          <div style="background:var(--bg-warm);border-radius:8px;padding:0.75rem;margin-top:0.75rem;font-size:0.75rem;color:var(--text-3);line-height:1.8">
+            <div style="font-weight:600;color:var(--text-2);margin-bottom:0.25rem">配置说明</div>
+            <div>企微群机器人仅支持推送消息，不支持接收。</div>
+            <div>配置后，可在这里主动向群发送 AI 摘要、日报等内容。</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;gap:0.5rem">
+            <button class="btn-cancel" style="font-size:0.8rem;padding:0.4rem 0.875rem" onclick="testWecomMessage()">发送测试消息</button>
+            <button class="btn-save" style="font-size:0.8rem;padding:0.4rem 1rem" onclick="saveImChannelConfig('wecom')">保存配置</button>
+          </div>
+        </div>
+
+        <!-- 钉钉配置卡 -->
+        <div style="border:1px solid var(--border);border-radius:10px;padding:1rem">
+          <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.875rem">
+            <div style="width:28px;height:28px;border-radius:7px;background:#1677FF;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3" stroke="white" stroke-width="2" fill="none"/></svg>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:0.875rem;font-weight:600;color:var(--text)">钉钉机器人</div>
+              <div style="font-size:0.7rem;color:var(--text-3)">接收钉钉群消息，自动回复</div>
+            </div>
+            <span id="dingtalkStatusBadge" style="font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:4px;background:#f3f4f6;color:var(--text-3)">未配置</span>
+          </div>
+          <label class="modal-label">Webhook URL</label>
+          <input class="modal-input" id="imDingtalkWebhook" placeholder="https://oapi.dingtalk.com/robot/send?access_token=...">
+          <label class="modal-label">加签密钥 <span style="font-size:0.7rem;color:var(--text-3);font-weight:400">(可选)</span></label>
+          <input class="modal-input" id="imDingtalkSecret" type="password" placeholder="SEC...（选择加签方式时填写）">
+          <label class="modal-label">绑定 Agent</label>
+          <select class="modal-select" id="imDingtalkAgent">
+            <option value="doudou">豆子（上游用户导航）</option>
+            <option value="douding">豆丁（机构从业者）</option>
+            <option value="senior-consultant">金牌咒询师</option>
+            <option value="sparring-partner">实战陪练</option>
+          </select>
+          <div style="display:flex;justify-content:flex-end;margin-top:0.75rem">
+            <button class="btn-save" style="font-size:0.8rem;padding:0.4rem 1rem" onclick="saveImChannelConfig('dingtalk')">保存钉钉配置</button>
+          </div>
+        </div>
+
+        <div id="imSaveMsg" style="display:none;margin-top:0.75rem;font-size:0.8rem;text-align:center;color:#15803d"></div>
       </div>
     </div>
   </div>
@@ -4402,6 +4511,155 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   // 页面加载时初始化 IM 状态
   updateImChannelStatus();
+
+  // ===== 设置页面 IM 频道配置 JS =====
+
+  /**
+   * 加载服务端 IM 配置并填充到设置页面
+   */
+  async function loadImChannelConfig() {
+    try {
+      const resp = await fetch('/api/im/config', { credentials: 'include' });
+      if (!resp.ok) return;
+      const { config } = await resp.json();
+      if (!config) return;
+
+      // 飞书
+      if (config.feishu) {
+        document.getElementById('imFeishuAppId').value = config.feishu.appId || '';
+        const agentSel = document.getElementById('imFeishuAgent');
+        if (agentSel && config.feishu.agentId) agentSel.value = config.feishu.agentId;
+        const badge = document.getElementById('feishuStatusBadge');
+        if (badge) {
+          badge.textContent = config.feishu.enabled ? '✅ 已启用' : '未配置';
+          badge.style.background = config.feishu.enabled ? '#dcfce7' : '';
+          badge.style.color = config.feishu.enabled ? '#15803d' : '';
+        }
+        const urlEl = document.getElementById('feishuWebhookUrl');
+        if (urlEl && config.feishu.webhookUrl) urlEl.textContent = config.feishu.webhookUrl;
+      }
+
+      // 企微
+      if (config.wecom) {
+        document.getElementById('imWecomWebhook').value = config.wecom.webhookUrl || '';
+        const agentSel = document.getElementById('imWecomAgent');
+        if (agentSel && config.wecom.agentId) agentSel.value = config.wecom.agentId;
+        const badge = document.getElementById('wecomStatusBadge');
+        if (badge) {
+          badge.textContent = config.wecom.enabled ? '✅ 已启用' : '未配置';
+          badge.style.background = config.wecom.enabled ? '#dcfce7' : '';
+          badge.style.color = config.wecom.enabled ? '#15803d' : '';
+        }
+      }
+
+      // 钉钉
+      if (config.dingtalk) {
+        document.getElementById('imDingtalkWebhook').value = config.dingtalk.webhookUrl || '';
+        const agentSel = document.getElementById('imDingtalkAgent');
+        if (agentSel && config.dingtalk.agentId) agentSel.value = config.dingtalk.agentId;
+        const badge = document.getElementById('dingtalkStatusBadge');
+        if (badge) {
+          badge.textContent = config.dingtalk.enabled ? '✅ 已启用' : '未配置';
+          badge.style.background = config.dingtalk.enabled ? '#dcfce7' : '';
+          badge.style.color = config.dingtalk.enabled ? '#15803d' : '';
+        }
+      }
+    } catch (e) {
+      console.warn('[IM] 加载配置失败:', e.message);
+    }
+  }
+
+  /**
+   * 保存 IM 频道配置到服务端
+   */
+  async function saveImChannelConfig(platform) {
+    const msgEl = document.getElementById('imSaveMsg');
+    try {
+      let payload = {};
+
+      if (platform === 'feishu') {
+        const appId = document.getElementById('imFeishuAppId').value.trim();
+        const appSecret = document.getElementById('imFeishuAppSecret').value.trim();
+        const agentId = document.getElementById('imFeishuAgent').value;
+        payload.feishu = { agentId };
+        if (appId) payload.feishu.appId = appId;
+        if (appSecret) payload.feishu.appSecret = appSecret;
+      } else if (platform === 'wecom') {
+        const webhookUrl = document.getElementById('imWecomWebhook').value.trim();
+        const agentId = document.getElementById('imWecomAgent').value;
+        payload.wecom = { webhookUrl, agentId };
+      } else if (platform === 'dingtalk') {
+        const webhookUrl = document.getElementById('imDingtalkWebhook').value.trim();
+        const secret = document.getElementById('imDingtalkSecret').value.trim();
+        const agentId = document.getElementById('imDingtalkAgent').value;
+        payload.dingtalk = { webhookUrl, agentId };
+        if (secret) payload.dingtalk.secret = secret;
+      }
+
+      const resp = await fetch('/api/im/config', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (resp.status === 403) {
+        if (msgEl) { msgEl.style.display = 'block'; msgEl.style.color = '#dc2626'; msgEl.textContent = '仅管理员可修改 IM 配置'; }
+        return;
+      }
+      if (!resp.ok) throw new Error('保存失败');
+
+      if (msgEl) {
+        msgEl.style.display = 'block';
+        msgEl.style.color = '#15803d';
+        const names = { feishu: '飞书', wecom: '企业微信', dingtalk: '钉钉' };
+        msgEl.textContent = `✅ ${names[platform] || platform}配置已保存`;
+        setTimeout(() => { if (msgEl) msgEl.style.display = 'none'; }, 3000);
+      }
+
+      // 重新加载配置以更新状态徽章
+      await loadImChannelConfig();
+    } catch (e) {
+      if (msgEl) { msgEl.style.display = 'block'; msgEl.style.color = '#dc2626'; msgEl.textContent = '保存失败：' + e.message; }
+    }
+  }
+
+  /**
+   * 向企微群发送测试消息
+   */
+  async function testWecomMessage() {
+    const webhookUrl = document.getElementById('imWecomWebhook').value.trim();
+    if (!webhookUrl) { showToast('请先填写 Webhook URL'); return; }
+    const msgEl = document.getElementById('imSaveMsg');
+    try {
+      // 先保存配置
+      await saveImChannelConfig('wecom');
+      // 再发送测试
+      const resp = await fetch('/api/im/wecom/send', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: '🤖 MedAgent Hub 企微群机器人测试消息，配置成功！' })
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        if (msgEl) { msgEl.style.display = 'block'; msgEl.style.color = '#15803d'; msgEl.textContent = '✅ 测试消息已发送到群'; }
+        showToast('测试消息已发送 ✅');
+      } else {
+        throw new Error(data.error || '发送失败');
+      }
+    } catch (e) {
+      if (msgEl) { msgEl.style.display = 'block'; msgEl.style.color = '#dc2626'; msgEl.textContent = '发送失败：' + e.message; }
+      showToast('发送失败：' + e.message);
+    }
+  }
+
+  // 切换到 IM 页签时加载配置
+  const _origSwitchTab = switchTab;
+  switchTab = function(tab) {
+    _origSwitchTab(tab);
+    if (tab === 'im') loadImChannelConfig();
+  };
 </script>
 <!-- IM 配置弹窗容器 -->
 <div class="im-config-modal" id="imConfigModal" onclick="if(event.target===this)closeImConfig()">
