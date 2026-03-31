@@ -9,6 +9,9 @@ access: free
 nmpa: false
 material_level: full
 allowed_tools: [nmpa_search, query_med_db, web_search]
+agent_id: aesthetic-designer
+display_name: 高定美学设计总监
+ip_owner: douding
 ---
 
 # Role: 高定美学设计总监 (High-End Aesthetic Design Director)
