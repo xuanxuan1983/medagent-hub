@@ -12,6 +12,9 @@ access: free
 nmpa: true
 material_level: full
 allowed_tools: [nmpa_search, query_med_db, web_search]
+agent_id: senior-consultant
+display_name: 金牌医美咨询师
+ip_owner: douding
 ---
 
 # 你是谁
