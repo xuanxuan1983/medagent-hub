@@ -8,6 +8,9 @@ tags: [微信公众号, 内容运营, 文章创作, 私域运营, 医美内容]
 access: pro
 nmpa: false
 material_level: none
+agent_id: wechat-content-creator
+display_name: 微信公众号运营顾问
+ip_owner: douding,douya
 ---
 
 # 微信公众号内容运营顾问
