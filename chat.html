@@ -1186,6 +1186,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       40% { transform: scale(1); opacity: 1; }
     }
         .msg-feedback { display: flex; align-items: center; gap: 0.375rem; margin-top: 0.625rem; padding-top: 0.5rem; border-top: 1px solid var(--border-light); }
+        .msg-export-bar { display: flex; align-items: center; gap: 0.375rem; margin-top: 0.375rem; }
+        .export-hint { font-size: 0.72rem; color: var(--text-3); }
+        .export-btn { font-size: 0.72rem; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text-2); cursor: pointer; transition: all 0.15s; }
+        .export-btn:hover { background: var(--bg-warm); border-color: var(--coral); color: var(--coral); }
+        .export-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .feedback-hint { font-size: 0.72rem; color: var(--text-muted); margin-right: 0.25rem; }
     .feedback-btn {
       padding: 0.2rem 0.5rem; border-radius: 5px;
@@ -3940,6 +3945,27 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     feedback.innerHTML = '<span class="feedback-hint">有帮助吗？</span><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">👍 有用</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">👎 不准</button>';
     bubble.appendChild(feedback);
 
+    // 导出按钮（回复超过 300 字时显示）
+    if (mainContent && mainContent.length > 300) {
+      const exportBar = document.createElement('div');
+      exportBar.className = 'msg-export-bar';
+      const exportTitle = document.createElement('span');
+      exportTitle.className = 'export-hint';
+      exportTitle.textContent = '导出：';
+      exportBar.appendChild(exportTitle);
+      const pdfBtn = document.createElement('button');
+      pdfBtn.className = 'export-btn';
+      pdfBtn.innerHTML = '📄 PDF';
+      pdfBtn.onclick = () => exportMessage(mainContent, 'pdf', pdfBtn);
+      exportBar.appendChild(pdfBtn);
+      const wordBtn = document.createElement('button');
+      wordBtn.className = 'export-btn';
+      wordBtn.innerHTML = '📝 Word';
+      wordBtn.onclick = () => exportMessage(mainContent, 'word', wordBtn);
+      exportBar.appendChild(wordBtn);
+      bubble.appendChild(exportBar);
+    }
+
     // Suggested questions
     if (suggestedQuestions.length > 0) {
       const chips = document.createElement('div');
@@ -5770,8 +5796,59 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 </script>
 <!-- IM 配置弹窗容器 -->
 <div class="im-config-modal" id="imConfigModal" onclick="if(event.target===this)closeImConfig()">
-  <!-- 内容由 openImConfig() 动态注入 -->
+   <!-- 内容由 openImConfig() 动态注入 -->
 </div>
+
+<script>
+  // ===== 产出物导出（PDF / Word）=====
+  async function exportMessage(content, format, btn) {
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ 导出中...';
+    try {
+      const token = localStorage.getItem('medagent_token');
+      const resp = await fetch('/api/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          format,
+          content,
+          filename: 'MedAgent_' + new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')
+        })
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || resp.statusText);
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ext = format === 'pdf' ? 'pdf' : 'docx';
+      a.href = url;
+      a.download = 'MedAgent_' + new Date().toLocaleDateString('zh-CN').replace(/\//g, '-') + '.' + ext;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+      btn.innerHTML = '✅ 已导出';
+      btn.style.color = '#16a34a';
+      btn.style.borderColor = '#16a34a';
+      // 同时添加到任务监控产物区块
+      if (typeof tmAddArtifact === 'function') {
+        tmAddArtifact('MedAgent_' + new Date().toLocaleDateString('zh-CN').replace(/\//g, '-') + '.' + ext, url);
+      }
+    } catch (e) {
+      btn.innerHTML = '❌ 失败';
+      btn.style.color = '#dc2626';
+      console.error('[Export] 导出失败:', e.message);
+      setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
+      return;
+    }
+    setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; btn.style.color = ''; btn.style.borderColor = ''; }, 3000);
+  }
+</script>
 
 </body>
 </html>

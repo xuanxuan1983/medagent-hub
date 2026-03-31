@@ -3248,50 +3248,100 @@ const server = http.createServer(async (req, res) => {
 
       if (useToolCalling) {
         const tools = agentToolDefs.length > 0 ? agentToolDefs : [NMPA_TOOL_DEFINITION];
-        const stream1 = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, session.messages, tools);
 
-        let toolCallId = null;
-        let toolCallName = null;
-        let toolCallArgsBuf = '';
-        let firstRoundContent = '';
-        let assistantMsg1 = null;
+        // ===== Agentic Loop（最多 MAX_TOOL_TURNS 轮工具调用）=====
+        const MAX_TOOL_TURNS = 5;
+        let agentMessages = [...session.messages]; // 工作消息列表，每轮追加
+        let agentTurn = 0;
+        let agentDone = false;
 
-        for await (const parsed of parseSSEStream(stream1)) {
-          const choice = parsed.choices?.[0];
-          if (!choice) continue;
-          const delta = choice.delta || {};
-          if (delta.content) {
-            firstRoundContent += delta.content;
-            // ★ 不在 stream1 阶段直接发送 delta（避免伪函数调用文本泄露给前端）
-            // delta 文本会在 stream1 结束后统一处理
+        while (!agentDone && agentTurn < MAX_TOOL_TURNS) {
+          agentTurn++;
+          console.log(`[AgenticLoop] 第 ${agentTurn} 轮 | messages=${agentMessages.length}`);
+
+          // 向前端发送当前轮次事件
+          if (agentTurn > 1) {
+            res.write(`data: ${JSON.stringify({ type: 'agent_turn', turn: agentTurn })}\n\n`);
           }
-          if (delta.tool_calls) {
-            for (const tc of delta.tool_calls) {
-              if (tc.id) toolCallId = tc.id;
-              if (tc.function?.name) toolCallName = tc.function.name;
-              if (tc.function?.arguments) toolCallArgsBuf += tc.function.arguments;
+
+          const loopStream = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, agentMessages, tools);
+
+          let toolCallId = null;
+          let toolCallName = null;
+          let toolCallArgsBuf = '';
+          let firstRoundContent = '';
+          let assistantMsg1 = null;
+          let loopFinishReason = null;
+
+          for await (const parsed of parseSSEStream(loopStream)) {
+            const choice = parsed.choices?.[0];
+            if (!choice) continue;
+            const delta = choice.delta || {};
+            if (delta.content) {
+              firstRoundContent += delta.content;
+              // 不在工具调用阶段直接发送 delta（避免伪函数调用文本泄露给前端）
+            }
+            if (delta.tool_calls) {
+              for (const tc of delta.tool_calls) {
+                if (tc.id) toolCallId = tc.id;
+                if (tc.function?.name) toolCallName = tc.function.name;
+                if (tc.function?.arguments) toolCallArgsBuf += tc.function.arguments;
+              }
+            }
+            if (choice.finish_reason) loopFinishReason = choice.finish_reason;
+            if (choice.finish_reason === 'tool_calls') {
+              assistantMsg1 = {
+                role: 'assistant',
+                content: firstRoundContent || null,
+                tool_calls: [{ id: toolCallId, type: 'function', function: { name: toolCallName, arguments: toolCallArgsBuf } }]
+              };
             }
           }
-          if (choice.finish_reason === 'tool_calls') {
-            assistantMsg1 = {
-              role: 'assistant',
-              content: firstRoundContent || null,
-              tool_calls: [{ id: toolCallId, type: 'function', function: { name: toolCallName, arguments: toolCallArgsBuf } }]
-            };
-          }
-        }
 
-        if (assistantMsg1 && toolCallName) {
-          // ===== 动态多工具路由（工具箱架构 v2）=====
+          // ── 没有工具调用 → 直接输出文本，结束循环 ──
+          if (!assistantMsg1 || !toolCallName) {
+            // 检测伪函数调用（DeepSeek-V3 有时不走 tool_calls 而直接输出文本）
+            const pseudoMatch = firstRoundContent.match(/skill_dispatch\(["']([\w-]+)["']\)/);
+            if (pseudoMatch) {
+              const pseudoSkillId = pseudoMatch[1];
+              console.log('[PseudoToolCall] 检测到文本中的伪函数调用，转为工具执行:', pseudoSkillId);
+              res.write(`data: ${JSON.stringify({ type: 'clear' })}\n\n`);
+              res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'skill_dispatch', skill_id: pseudoSkillId })}\n\n`);
+              let pseudoToolResult = '专家技能暂不可用。';
+              try {
+                const pseudoSkillPrompt = extractSkillPrompt(pseudoSkillId, session.agentId);
+                if (pseudoSkillPrompt) pseudoToolResult = pseudoSkillPrompt;
+              } catch (e) {
+                console.warn('[PseudoToolCall] skill加载失败:', e.message);
+              }
+              agentMessages = [
+                ...agentMessages,
+                { role: 'assistant', content: '（正在查询数据）' },
+                { role: 'user', content: '工具查询结果：' + pseudoToolResult }
+              ];
+              // 继续下一轮，让 AI 用工具结果生成最终回复
+              continue;
+            }
+
+            // 正常文本回复
+            let finalText = firstRoundContent;
+            finalText = finalText.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
+            if (finalText) {
+              res.write(`data: ${JSON.stringify({ type: 'delta', content: finalText })}\n\n`);
+              fullMessage += finalText;
+            }
+            agentDone = true;
+            break;
+          }
+
+          // ── 有工具调用 → 执行工具，追加结果，继续循环 ──
           let toolArgs = {};
           try { toolArgs = JSON.parse(toolCallArgsBuf); } catch (e) {}
-
-          console.log(`🔧 [FunctionCall] ${toolCallName} | args: ${JSON.stringify(toolArgs)}`);
+          console.log(`🔧 [AgenticLoop] Turn ${agentTurn} | ${toolCallName} | args: ${JSON.stringify(toolArgs)}`);
 
           let toolResultText = '工具执行完成。';
 
           if (toolCallName === 'nmpa_search') {
-            // NMPA 药监局查询
             const products = toolArgs.products || (toolArgs.keyword ? [toolArgs.keyword] : null) || detectNmpaProduct(message) || [];
             const toolQuery = toolArgs.query || toolArgs.keyword || message;
             res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'nmpa_search', products })}\n\n`);
@@ -3302,19 +3352,15 @@ const server = http.createServer(async (req, res) => {
                 toolResultText = nmpaData.results.map(r =>
                   `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
                 ).join('\n\n');
-                console.log(`✅ [FunctionCall] nmpa_search 返回 ${nmpaData.results.length} 条结果`);
               } else {
-                toolResultText = '药监局实时搜索未找到匹配结果。【重要】请优先使用上方系统提示词中的《知识库参考资料》来回答，这些资料包含了最新的内部知识库数据。严禁使用训练数据中的老旧注册证号，必须以知识库中的具体数据为准。';
+                toolResultText = '药监局实时搜索未找到匹配结果。请优先使用系统提示词中的知识库参考资料回答。';
               }
             } catch (e) {
-              console.warn('[FunctionCall] nmpa_search 执行失败:', e.message);
               toolResultText = `NMPA 查询失败：${e.message}`;
             }
 
           } else if (toolCallName === 'web_search') {
-            // 联网搜索（Bocha）
             const query = toolArgs.query || toolArgs.keyword || message;
-            const freshness = toolArgs.freshness || 'noLimit';
             res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'web_search', query })}\n\n`);
             try {
               const webData = await bochaSearch(query, 8);
@@ -3323,17 +3369,14 @@ const server = http.createServer(async (req, res) => {
                 toolResultText = webData.results.slice(0, 5).map(r =>
                   `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
                 ).join('\n\n');
-                console.log(`✅ [FunctionCall] web_search 返回 ${webData.results.length} 条结果`);
               } else {
                 toolResultText = '联网搜索未找到相关结果，请基于已有知识回答。';
               }
             } catch (e) {
-              console.warn('[FunctionCall] web_search 执行失败:', e.message);
               toolResultText = `联网搜索失败：${e.message}，请基于已有知识回答。`;
             }
 
           } else if (toolCallName === 'query_med_db') {
-            // 本地医美价格数据库
             const keyword = toolArgs.keyword || message;
             res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'query_med_db', keyword })}\n\n`);
             try {
@@ -3341,101 +3384,83 @@ const server = http.createServer(async (req, res) => {
                 message, nmpaSearch, detectNmpaProduct, bochaSearch
               });
               toolResultText = toolResult.text || '数据库查询无结果。';
-              console.log(`✅ [FunctionCall] query_med_db 查询"${keyword}"完成`);
             } catch (e) {
-              console.warn('[FunctionCall] query_med_db 执行失败:', e.message);
               toolResultText = `价格数据库查询失败：${e.message}`;
             }
 
           } else if (toolCallName === 'skill_dispatch') {
-            // ===== Skill 路由调度：切换专家 system prompt 直接回答 =====
             const skillId = toolArgs.skill_id;
             const reason = toolArgs.reason || '';
-            // ★ 防御：模型传入空 skill_id 时，跳过专家路由，走普通 stream2 回答
             if (!skillId) {
-              console.warn(`⚠️ [skill_dispatch] 模型传入空 skill_id，跳过专家路由，走普通回答`);
-              toolResultText = "请根据已有的知识库内容和搜索结果，直接回答用户的问题。";
+              toolResultText = '请根据已有的知识库内容和搜索结果，直接回答用户的问题。';
             } else {
-            // 立即向前端发送 skill_dispatch 事件（提前显示，不等工具执行完毕）
-            const previewName = toolRegistry.SKILL_DISPLAY_NAMES?.[skillId] || skillId;
-            res.write(`data: ${JSON.stringify({ type: 'skill_dispatch', skill_id: skillId, displayName: previewName })}\n\n`);
-            try {
-              const toolResult = await toolRegistry.executeTool('skill_dispatch', toolArgs, {
-                message, nmpaSearch, detectNmpaProduct, bochaSearch
-              });
-              const displayName = toolResult.skillDisplayName || skillId;
-              // 向前端发送 skill_dispatch 事件（用于显示"正在调用 XX 专家..."）
+              const previewName = toolRegistry.SKILL_DISPLAY_NAMES?.[skillId] || skillId;
+              res.write(`data: ${JSON.stringify({ type: 'skill_dispatch', skill_id: skillId, displayName: previewName })}\n\n`);
+              try {
+                const toolResult = await toolRegistry.executeTool('skill_dispatch', toolArgs, {
+                  message, nmpaSearch, detectNmpaProduct, bochaSearch
+                });
+                const displayName = toolResult.skillDisplayName || skillId;
 
-              if (toolResult.skillPrompt) {
-                // 用专家 system prompt 替换豆豆的 system prompt，直接发起第二轮调用
-                // ★ 知识库透传：将主 Agent 已检索到的 RAG 知识库内容追加到专家 prompt 中
-                const kbSection = (() => {
-                  const marker = '--- 知识库参考资料（请优先基于以下内容回答）---';
-                  const idx = enrichedSystemPrompt.indexOf(marker);
-                  return idx >= 0 ? '\n\n' + enrichedSystemPrompt.slice(idx) : '';
-                })();
-                const expertSystemPrompt = toolResult.skillPrompt + kbSection;
-                const messagesForExpert = [
-                  ...session.messages
-                ];
-                console.log(`🎯 [skill_dispatch] 使用专家 prompt 直接回答 | skill: ${skillId} | prompt长度: ${expertSystemPrompt.length}`);
-                const stream2Expert = await activeProvider.chatStreamWithTools(expertSystemPrompt, messagesForExpert, []);
-                let expertDeltaCount = 0;
-                try {
-                  for await (const parsed of parseSSEStream(stream2Expert)) {
-                    const delta = parsed.choices?.[0]?.delta?.content || '';
-                    const reasoning = parsed.choices?.[0]?.delta?.reasoning_content || '';
-                    if (reasoning) {
-                      res.write(`event: reasoning\ndata: ${JSON.stringify({ content: reasoning })}\n\n`);
-                    }
-                    if (delta) {
-                      expertDeltaCount++;
-                      // ★ 过滤专家回复中的伪工具调用和过渡语
-                      let filteredDelta = delta
-                        .replace(/skill_dispatch\([^)]*\)/g, '')
-                        .replace(/nmpa_search\([^)]*\)/g, '')
-                        .replace(/[（(]正在调用[^)）]*[)）]/g, '')
-                        .replace(/[（(]正在连接[^)）]*[)）]/g, '')
-                        .replace(/[（(]正在查询[^)）]*[)）]/g, '')
-                        .replace(/##([^\s#])/g, '## $1');
-                      fullMessage += filteredDelta;
-                      if (filteredDelta.trim()) {
-                        res.write(`data: ${JSON.stringify({ type: 'delta', content: filteredDelta })}\n\n`);
+                if (toolResult.skillPrompt) {
+                  // ★ 专家路由：切换 system prompt，直接流式输出，提前返回
+                  const kbSection = (() => {
+                    const marker = '--- 知识库参考资料（请优先基于以下内容回答）---';
+                    const idx = enrichedSystemPrompt.indexOf(marker);
+                    return idx >= 0 ? '\n\n' + enrichedSystemPrompt.slice(idx) : '';
+                  })();
+                  const expertSystemPrompt = toolResult.skillPrompt + kbSection;
+                  const messagesForExpert = [...agentMessages];
+                  console.log(`🎯 [skill_dispatch] 使用专家 prompt 直接回答 | skill: ${skillId} | prompt长度: ${expertSystemPrompt.length}`);
+                  const stream2Expert = await activeProvider.chatStreamWithTools(expertSystemPrompt, messagesForExpert, []);
+                  let expertDeltaCount = 0;
+                  try {
+                    for await (const parsed of parseSSEStream(stream2Expert)) {
+                      const delta = parsed.choices?.[0]?.delta?.content || '';
+                      const reasoning = parsed.choices?.[0]?.delta?.reasoning_content || '';
+                      if (reasoning) {
+                        res.write(`event: reasoning\ndata: ${JSON.stringify({ content: reasoning })}\n\n`);
+                      }
+                      if (delta) {
+                        expertDeltaCount++;
+                        let filteredDelta = delta
+                          .replace(/skill_dispatch\([^)]*\)/g, '')
+                          .replace(/nmpa_search\([^)]*\)/g, '')
+                          .replace(/[（(]正在调用[^)）]*[)）]/g, '')
+                          .replace(/[（(]正在连接[^)）]*[)）]/g, '')
+                          .replace(/[（(]正在查询[^)）]*[)）]/g, '')
+                          .replace(/##([^\s#])/g, '## $1');
+                        fullMessage += filteredDelta;
+                        if (filteredDelta.trim()) {
+                          res.write(`data: ${JSON.stringify({ type: 'delta', content: filteredDelta })}\n\n`);
+                        }
                       }
                     }
+                  } catch (streamErr) {
+                    console.error(`❌ [skill_dispatch] stream2Expert error | skill=${skillId} | err=${streamErr.message}`);
+                    if (fullMessage.length === 0) {
+                      fullMessage = '抱歉，专家响应异常，请重新发送。';
+                      res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
+                    }
                   }
-                } catch (streamErr) {
-                  console.error(`❌ [skill_dispatch] stream2Expert error | skill=${skillId} | err=${streamErr.message}`);
-                  if (fullMessage.length === 0) {
-                    fullMessage = '抱歉，专家响应异常，请重新发送。';
+                  if (expertDeltaCount === 0 && fullMessage.length === 0) {
+                    fullMessage = '抱歉，专家暂时无法响应，请稍后重试。';
                     res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
                   }
+                  fullMessage = fullMessage.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在调用[^)）]*[)）]/g, '').replace(/（正在连接[^）]*）/g, '').trim();
+                  fullMessage = fullMessage.replace(/(\S)---/g, '$1\n---').replace(/---(?=\s*-)/g, '---\n').replace(/([^\n])(- [\u4e00-\u9fff])/g, '$1\n$2').replace(/([^\n])(-[\u4e00-\u9fff])/g, '$1\n$2');
+                  if (searchResults) {
+                    res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
+                  }
+                  res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+                  return; // 专家路径提前返回
+                } else {
+                  toolResultText = `专家 Skill "${skillId}" 暂时不可用，请稍后再试。`;
                 }
-                console.log(`📤 [skill_dispatch] expert stream done | skill=${skillId} | deltaCount=${expertDeltaCount} | msgLen=${fullMessage.length}`);
-                // 保护：如果专家没有输出任何内容，发送错误提示
-                if (expertDeltaCount === 0 && fullMessage.length === 0) {
-                  console.error(`❌ [skill_dispatch] expert returned empty response | skill=${skillId}`);
-                  fullMessage = '抱歉，专家暂时无法响应，请稍后重试。';
-                  res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
-                }
-                // ★ 专家路径最终清洗：过滤 tool_calls 文本泄露（保证存入DB的内容干净）
-                fullMessage = fullMessage.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在调用[^)）]*[)）]/g, '').replace(/（正在连接[^）]*）/g, '').trim();
-
-                // ★ 标准化引导问题格式：确保 --- 前后有换行，每个问题独占一行
-                fullMessage = fullMessage.replace(/(\S)---/g, '$1\n---').replace(/---(?=\s*-)/g, '---\n').replace(/([^\n])(- [\u4e00-\u9fff])/g, '$1\n$2').replace(/([^\n])(-[\u4e00-\u9fff])/g, '$1\n$2');
-                // skill_dispatch 已完成流式输出，直接跳过后续的 stream2
-                if (searchResults) {
-                  res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
-                }
-                res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-                return; // 提前返回，不再执行下方的 stream2
-              } else {
-                toolResultText = `专家 Skill "${skillId}" 暂时不可用，请稍后再试。`;
+              } catch (e) {
+                console.warn('[FunctionCall] skill_dispatch 执行失败:', e.message);
+                toolResultText = `专家调度失败：${e.message}`;
               }
-            } catch (e) {
-              console.warn('[FunctionCall] skill_dispatch 执行失败:', e.message);
-              toolResultText = `专家调度失败：${e.message}`;
-            }
             }
 
           } else {
@@ -3454,8 +3479,9 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          const messagesWithTool = [
-            ...session.messages,
+          // 追加工具结果到消息列表，继续下一轮
+          agentMessages = [
+            ...agentMessages,
             assistantMsg1,
             { role: 'tool', tool_call_id: toolCallId, content: toolResultText }
           ];
@@ -3464,85 +3490,30 @@ const server = http.createServer(async (req, res) => {
             res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
           }
 
-          // stream2：使用不带工具的 chatStream，避免 DeepSeek-V3 在第二轮仍输出 tool_calls
-          // 将 tool 角色消息转换为 user 消息（chatStream 不支持 tool 角色）
-          const stream2SystemPrompt = enrichedSystemPrompt + '\n\n【重要指令】你现在处于纯文本回答模式。禁止输出任何函数调用、工具调用、代码格式内容。禁止输出类似 skill_dispatch()、nmpa_search() 等内容。禁止输出"正在调用""正在连接"等过渡语。请直接用自然语言详细回答用户的问题，给出有价值的专业信息。\n\n【知识库优先原则】如果上方系统提示词中包含《知识库参考资料》或《胶原III类注册证库》等内部数据，必须优先使用这些内部数据回答，包括具体的国械注准20XXXXXXXX格式的注册证号、注册人、适应症等。严禁使用训练数据中的旧注册证号。如果知识库中没有相关数据，才可以说"知识库中暂无此产品的注册证信息，建议通过NMPA官网核验"。';  // KB优先指令已注入
-          const messagesForStream2 = messagesWithTool.map(m => {
-            if (m.role === 'tool') {
-              return { role: 'user', content: '工具查询结果：' + m.content };
+          // 如果已达到最大轮次，强制用 chatStream 生成最终回复
+          if (agentTurn >= MAX_TOOL_TURNS) {
+            console.log(`[AgenticLoop] 达到最大轮次 ${MAX_TOOL_TURNS}，强制生成最终回复`);
+            const finalSystemPrompt = enrichedSystemPrompt + '\n\n【重要指令】你现在处于纯文本回答模式。请直接用自然语言详细回答用户的问题，给出有价值的专业信息。禁止输出任何函数调用。';
+            const finalMessages = agentMessages.map(m => {
+              if (m.role === 'tool') return { role: 'user', content: '工具查询结果：' + m.content };
+              if (m.role === 'assistant' && m.tool_calls) return { role: 'assistant', content: '（正在查询数据）' };
+              return m;
+            });
+            const finalStream = await activeProvider.chatStream(finalSystemPrompt, finalMessages);
+            for await (const parsed of parseSSEStream(finalStream)) {
+              let delta = parsed.choices?.[0]?.delta?.content || '';
+              if (delta) {
+                delta = delta.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
+              }
+              if (delta) {
+                fullMessage += delta;
+                res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+              }
             }
-            if (m.role === 'assistant' && m.tool_calls) {
-              // ★ 清除 stream1 中的过渡语和推荐问题，避免误导 stream2
-              return { role: 'assistant', content: '（正在查询数据）' };
-            }
-            return m;
-          });
-          console.log('[stream2] 开始执行 | toolCallName=' + toolCallName + ' | toolResultText长度=' + toolResultText.length + ' | systemPrompt长度=' + stream2SystemPrompt.length + ' | messagesCount=' + messagesForStream2.length);
-          const stream2Raw = await activeProvider.chatStream(stream2SystemPrompt, messagesForStream2);
-          for await (const parsed of parseSSEStream(stream2Raw)) {
-            const choice2 = parsed.choices?.[0];
-            if (!choice2) continue;
-            if (choice2.finish_reason === 'tool_calls') continue;
-            if (choice2.delta?.tool_calls) continue;
-            let delta = choice2.delta?.content || '';
-            // ★ 过滤 tool_calls 文本泄露（DeepSeek-V3 偶尔在纯文本中输出伪函数调用）
-            if (delta) {
-              delta = delta.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
-            }
-            if (delta) {
-              fullMessage += delta;
-              res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
-            }
+            agentDone = true;
           }
-        } else {
-          // ★ 检测 stream1 文本中的伪函数调用（DeepSeek-V3 有时不走 tool_calls 而直接输出文本）
-          const pseudoMatch = firstRoundContent.match(/skill_dispatch\(["']([\w-]+)["']\)/);
-          if (pseudoMatch) {
-            const pseudoSkillId = pseudoMatch[1];
-            console.log('[PseudoToolCall] 检测到文本中的伪函数调用，转为工具执行:', pseudoSkillId);
-            // 清除已发送的伪函数调用文本，发送清屏信号
-            res.write(`data: ${JSON.stringify({ type: 'clear' })}\n\n`);
-            res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'skill_dispatch', skill_id: pseudoSkillId })}\n\n`);
-            // 执行 skill_dispatch
-            let pseudoToolResult = '专家技能暂不可用。';
-            try {
-              const pseudoSkillPrompt = extractSkillPrompt(pseudoSkillId, session.agentId);
-              if (pseudoSkillPrompt) {
-                pseudoToolResult = pseudoSkillPrompt;
-              }
-            } catch (e) {
-              console.warn('[PseudoToolCall] skill加载失败:', e.message);
-            }
-            // 构建 stream2 消息
-            const pseudoMessages = [
-              ...session.messages,
-              { role: 'assistant', content: '（正在查询数据）' },
-              { role: 'user', content: '工具查询结果：' + pseudoToolResult }
-            ];
-            const pseudoStream2Prompt = enrichedSystemPrompt + '\n\n【重要指令】你现在处于纯文本回答模式。禁止输出任何函数调用、工具调用、代码格式内容。禁止输出类似 skill_dispatch()、nmpa_search() 等内容。禁止输出"正在调用""正在连接"等过渡语。请直接用自然语言详细回答用户的问题，给出有价值的专业信息。';
-            const pseudoStream2 = await activeProvider.chatStream(pseudoStream2Prompt, pseudoMessages);
-            for await (const parsed of parseSSEStream(pseudoStream2)) {
-              const c2 = parsed.choices?.[0];
-              if (!c2) continue;
-              if (c2.finish_reason === 'tool_calls') continue;
-              if (c2.delta?.tool_calls) continue;
-              let d2 = c2.delta?.content || '';
-              if (d2) {
-                d2 = d2.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').trim();
-              }
-              if (d2) {
-                fullMessage += d2;
-                res.write(`data: ${JSON.stringify({ type: 'delta', content: d2 })}\n\n`);
-              }
-            }
-          } else {
-            // 正常文本回复：将缓冲的 stream1 内容发送给前端
-            if (firstRoundContent) {
-              res.write(`data: ${JSON.stringify({ type: 'delta', content: firstRoundContent })}\n\n`);
-            }
-            fullMessage = firstRoundContent;
-          }
-        }
+        } // end while agentLoop
+
       } else {
         // 降级兜底：原有流式路径
         const stream = await activeProvider.chatStream(enrichedSystemPrompt, session.messages);
@@ -4201,6 +4172,53 @@ const server = http.createServer(async (req, res) => {
     }
     const handled = await scheduledTasks.handleRequest(url, req.method, body, userCode, res);
     if (handled) return;
+  }
+
+  // ===== 文档导出 API（PDF / Word）=====
+  if (url.pathname === '/api/export' && req.method === 'POST') {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    try {
+      let body = {};
+      try { body = await parseRequestBody(req); } catch(e) {}
+      const { format, content, filename } = body; // format: 'pdf' | 'word'
+      if (!format || !content) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing format or content' }));
+        return;
+      }
+      const crypto = require('crypto');
+      const tmpId = crypto.randomBytes(8).toString('hex');
+      const ext = format === 'pdf' ? 'pdf' : 'docx';
+      const outPath = path.join(DATA_DIR, `export_${tmpId}.${ext}`);
+      const b64 = Buffer.from(content, 'utf8').toString('base64');
+      const { execFileSync } = require('child_process');
+      execFileSync('python3', [
+        path.join(__dirname, 'export_doc.py'),
+        format,
+        b64,
+        outPath
+      ], { timeout: 30000 });
+      const mimeType = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      const safeFilename = (filename || `medagent_export_${tmpId}`).replace(/[^a-zA-Z0-9\u4e00-\u9fff_\-]/g, '_');
+      const fileData = fs.readFileSync(outPath);
+      res.writeHead(200, {
+        'Content-Type': mimeType,
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(safeFilename + '.' + ext)}`,
+        'Content-Length': fileData.length
+      });
+      res.end(fileData);
+      // 异步清理临时文件
+      setTimeout(() => { try { fs.unlinkSync(outPath); } catch(e) {} }, 5000);
+    } catch (e) {
+      console.error('[Export] 导出失败:', e.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: '导出失败：' + e.message }));
+    }
+    return;
   }
 
   // ===== 内测反馈表单提交（提交有价値建议自动解锁内容创作类Agent）=====
