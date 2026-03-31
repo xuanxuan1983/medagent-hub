@@ -11,6 +11,9 @@ evolution_enabled: true
 access: free
 nmpa: false
 material_level: brief
+agent_id: gtm-strategist
+display_name: GTM战略大师
+ip_owner: doudou
 ---
 
 # Role: 医美上游GTM策略专家 (Upstream Medical Aesthetics GTM Strategist)
