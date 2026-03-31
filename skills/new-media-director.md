@@ -8,6 +8,9 @@ tags: [医美, 合规, 三品一规, 小红书, 内容营销]
 access: free
 nmpa: false
 material_level: brief
+agent_id: new-media-director
+display_name: 医美合规内容专家
+ip_owner: doudou
 ---
 
 # Role: 医美合规内容专家 (Medical Aesthetics Compliant Content Expert)
