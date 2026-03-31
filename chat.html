@@ -535,6 +535,158 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     .desktop-input-wrap { position: relative; }
     .chat-input-area { position: relative; }
 
+    /* ===== SCHEDULED TASKS VIEW ===== */
+    .schedule-view {
+      flex: 1; display: none; flex-direction: column; overflow: hidden; background: var(--bg-warm);
+    }
+    .schedule-view.active { display: flex; }
+    .schedule-header {
+      padding: 1.5rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: white;
+      flex-shrink: 0;
+    }
+    .schedule-header h2 { font-size: 1.25rem; font-weight: 700; margin: 0 0 0.25rem; color: var(--text); }
+    .schedule-header p  { font-size: 0.8rem; color: var(--text-3); margin: 0; }
+    .schedule-toolbar {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: white;
+      flex-shrink: 0;
+    }
+    .schedule-tab-btn {
+      padding: 0.35rem 0.85rem; border-radius: 6px; border: none; background: transparent;
+      font-size: 0.82rem; color: var(--text-2); cursor: pointer; font-weight: 500;
+    }
+    .schedule-tab-btn.active { background: var(--bg-warm); color: var(--text); font-weight: 600; }
+    .schedule-new-btn {
+      margin-left: auto; display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.45rem 1rem; border-radius: 8px;
+      background: var(--text); color: white; border: none; cursor: pointer;
+      font-size: 0.82rem; font-weight: 600;
+    }
+    .schedule-new-btn:hover { opacity: 0.85; }
+    .schedule-body {
+      flex: 1; overflow-y: auto; padding: 1.5rem 2rem;
+    }
+    .schedule-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;
+    }
+    .task-card {
+      background: white; border-radius: 12px; border: 1px solid var(--border);
+      padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.6rem;
+      transition: box-shadow 0.15s;
+    }
+    .task-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+    .task-card-header {
+      display: flex; align-items: flex-start; gap: 0.5rem;
+    }
+    .task-card-toggle {
+      flex-shrink: 0; margin-top: 2px;
+      width: 36px; height: 20px; border-radius: 10px; border: none; cursor: pointer;
+      background: #d1d5db; position: relative; transition: background 0.2s;
+    }
+    .task-card-toggle.on { background: #22c55e; }
+    .task-card-toggle::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%; background: white;
+      transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .task-card-toggle.on::after { left: 18px; }
+    .task-card-info { flex: 1; min-width: 0; }
+    .task-card-title { font-weight: 700; font-size: 0.9rem; color: var(--text); margin-bottom: 0.2rem; }
+    .task-card-desc {
+      font-size: 0.78rem; color: var(--text-3); line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .task-card-menu-btn {
+      flex-shrink: 0; background: none; border: none; cursor: pointer;
+      color: var(--text-3); padding: 0.2rem; border-radius: 4px;
+    }
+    .task-card-menu-btn:hover { background: var(--bg-warm); color: var(--text); }
+    .task-card-footer {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.75rem; color: var(--text-3);
+    }
+    .task-card-cron { display: flex; align-items: center; gap: 0.3rem; }
+    .task-card-next { margin-left: auto; color: var(--text-2); }
+    .task-card-actions {
+      display: flex; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.6rem;
+    }
+    .task-action-btn {
+      flex: 1; padding: 0.35rem 0; border-radius: 6px; border: 1px solid var(--border);
+      background: white; font-size: 0.75rem; color: var(--text-2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+    }
+    .task-action-btn:hover { background: var(--bg-warm); color: var(--text); }
+    .task-action-btn.danger:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+    .task-empty {
+      text-align: center; padding: 4rem 2rem; color: var(--text-3);
+    }
+    .task-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .task-empty-title { font-weight: 600; font-size: 0.95rem; color: var(--text-2); margin-bottom: 0.4rem; }
+    .task-empty-desc { font-size: 0.8rem; line-height: 1.5; }
+    /* 执行记录 */
+    .log-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .log-item {
+      background: white; border-radius: 10px; border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+    }
+    .log-item-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+    .log-status-badge {
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;
+    }
+    .log-status-badge.success { background: #dcfce7; color: #16a34a; }
+    .log-status-badge.error   { background: #fef2f2; color: #dc2626; }
+    .log-status-badge.running { background: #dbeafe; color: #2563eb; }
+    .log-task-name { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .log-time { margin-left: auto; font-size: 0.72rem; color: var(--text-3); }
+    .log-output {
+      font-size: 0.75rem; color: var(--text-2); line-height: 1.5;
+      max-height: 80px; overflow: hidden; position: relative;
+    }
+    .log-output.expanded { max-height: none; }
+    /* 新建任务弹窗 */
+    .new-task-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 2000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .new-task-modal {
+      background: white; border-radius: 16px; width: 480px; max-width: 95vw;
+      max-height: 90vh; overflow-y: auto; padding: 1.75rem;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    }
+    .new-task-modal h3 { font-size: 1rem; font-weight: 700; margin: 0 0 1.25rem; }
+    .new-task-field { margin-bottom: 1rem; }
+    .new-task-field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-2); margin-bottom: 0.35rem; }
+    .new-task-field input, .new-task-field textarea, .new-task-field select {
+      width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.85rem; color: var(--text);
+      background: var(--bg-warm); outline: none; box-sizing: border-box;
+      font-family: inherit;
+    }
+    .new-task-field input:focus, .new-task-field textarea:focus, .new-task-field select:focus {
+      border-color: var(--coral); background: white;
+    }
+    .new-task-field textarea { resize: vertical; min-height: 80px; }
+    .cron-presets { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+    .cron-preset-btn {
+      padding: 0.25rem 0.6rem; border-radius: 5px; border: 1px solid var(--border);
+      background: var(--bg-warm); font-size: 0.72rem; color: var(--text-2); cursor: pointer;
+    }
+    .cron-preset-btn:hover { border-color: var(--coral); color: var(--coral); }
+    .new-task-footer { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
+    .new-task-cancel-btn {
+      flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);
+      background: white; font-size: 0.85rem; cursor: pointer; color: var(--text-2);
+    }
+    .new-task-submit-btn {
+      flex: 2; padding: 0.6rem; border-radius: 8px; border: none;
+      background: var(--text); color: white; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    }
+    .new-task-submit-btn:hover { opacity: 0.85; }
+
     /* ===== AGENT STORE VIEW ===== */
     .store-view {
       flex: 1; display: none; flex-direction: column; overflow: hidden;
@@ -1549,6 +1701,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       行业日报
       <span class="sidebar-nav-badge" style="margin-left:auto;font-size:0.6rem;background:var(--coral);color:white;padding:0.1rem 0.35rem;border-radius:3px;font-weight:700;">NEW</span>
     </a>
+    <button class="sidebar-nav-btn" id="navSchedule" onclick="switchView('schedule')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      定时任务
+    </button>
   </div>
 
   <!-- 任务 | 频道 双 Tab -->
@@ -1841,7 +1997,72 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     </div>
   </div>
 
+  <!-- 定时任务视图 -->
+  <div class="schedule-view" id="scheduleView">
+    <div class="schedule-header">
+      <h2>定时任务</h2>
+      <p>按计划自动执行任务，也可随时手动触发。在任意对话中描述你想定期做的事，即可快速创建</p>
+    </div>
+    <div class="schedule-toolbar">
+      <button class="schedule-tab-btn active" id="schedTabTasks" onclick="switchScheduleTab('tasks')"> 我的定时任务</button>
+      <button class="schedule-tab-btn" id="schedTabLogs" onclick="switchScheduleTab('logs')"> 执行记录</button>
+      <button class="schedule-new-btn" onclick="openNewTaskModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        新建定时任务
+      </button>
+    </div>
+    <div class="schedule-body" id="scheduleBody">
+      <!-- 内容由 JS 动态渲染 -->
+      <div class="task-empty" id="scheduleLoading">
+        <div class="task-empty-icon">⏳</div>
+        <div class="task-empty-title">加载中...</div>
+      </div>
+    </div>
+  </div>
+
 </main>
+
+<!-- 新建定时任务弹窗 -->
+<div class="new-task-modal-overlay" id="newTaskModal" style="display:none" onclick="if(event.target===this)closeNewTaskModal()">
+  <div class="new-task-modal">
+    <h3>新建定时任务</h3>
+    <div class="new-task-field">
+      <label>任务名称</label>
+      <input type="text" id="newTaskTitle" placeholder="例：AI 医美新闻日报" maxlength="40" />
+    </div>
+    <div class="new-task-field">
+      <label>任务描述（Agent 收到的指令）</label>
+      <textarea id="newTaskDesc" placeholder="例：搜索今日医美行业最新动态，总结前5条重要资讯，包含来源和简要" rows="4"></textarea>
+    </div>
+    <div class="new-task-field">
+      <label>执行 Agent</label>
+      <select id="newTaskAgent">
+        <option value="doudou">豆豆（默认智能助手）</option>
+        <option value="news_reporter">新闻记者</option>
+        <option value="market_analyst">市场分析师</option>
+        <option value="content_creator">内容创作师</option>
+        <option value="senior_consultant">高级顾问</option>
+      </select>
+    </div>
+    <div class="new-task-field">
+      <label>Cron 执行周期</label>
+      <input type="text" id="newTaskCron" placeholder="0 9 * * *" />
+      <div class="cron-presets">
+        <button class="cron-preset-btn" onclick="setCronPreset('0 9 * * *', '每天 09:00')"> 每天 09:00</button>
+        <button class="cron-preset-btn" onclick="setCronPreset('30 9 * * *', '每天 09:30')"> 每天 09:30</button>
+        <button class="cron-preset-btn" onclick="setCronPreset('0 18 * * *', '每天 18:00')"> 每天 18:00</button>
+        <button class="cron-preset-btn" onclick="setCronPreset('0 9 * * 1', '每周一 09:00')"> 每周一</button>
+        <button class="cron-preset-btn" onclick="setCronPreset('0 9 1 * *', '每月 1 日')"> 每月 1 日</button>
+        <button class="cron-preset-btn" onclick="setCronPreset('0 * * * *', '每小时')"> 每小时</button>
+      </div>
+      <div id="cronPreview" style="font-size:0.75rem;color:var(--coral);margin-top:0.35rem;"></div>
+    </div>
+    <div class="new-task-footer">
+      <button class="new-task-cancel-btn" onclick="closeNewTaskModal()">取消</button>
+      <button class="new-task-submit-btn" onclick="submitNewTask()"> 创建任务</button>
+    </div>
+  </div>
+</div>
 
 <!-- HISTORY PANEL -->
 <div class="modal-overlay" id="historyModal" style="display:none">
@@ -2824,8 +3045,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.getElementById('desktopView').classList.toggle('active', view === 'desktop');
     document.getElementById('storeView').classList.toggle('active', view === 'store');
     document.getElementById('chatView').classList.toggle('active', view === 'chat');
+    document.getElementById('scheduleView').classList.toggle('active', view === 'schedule');
     document.getElementById('navDesktop').classList.toggle('active', view === 'desktop');
     document.getElementById('navStore').classList.toggle('active', view === 'store');
+    var navSched = document.getElementById('navSchedule');
+    if (navSched) navSched.classList.toggle('active', view === 'schedule');
+    if (view === 'schedule') loadScheduleTasks();
   }
 
   function quickStart(agentId) {
@@ -5298,6 +5523,250 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       tmAddStep('调用专家：' + displayName, 'running');
     }
   });
+
+  // ===== 定时任务模块 =====
+
+  var scheduleCurrentTab = 'tasks'; // 'tasks' | 'logs'
+  var scheduleTasks = [];
+
+  function loadScheduleTasks() {
+    var body = document.getElementById('scheduleBody');
+    body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⏳</div><div class="task-empty-title">加载中...</div></div>';
+    var token = localStorage.getItem('medagent_token');
+    fetch('/api/scheduled-tasks', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        scheduleTasks = data.tasks || [];
+        renderScheduleTasks();
+      })
+      .catch(function() {
+        body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⚠️</div><div class="task-empty-title">加载失败</div></div>';
+      });
+  }
+
+  function renderScheduleTasks() {
+    if (scheduleCurrentTab === 'logs') { loadScheduleLogs(); return; }
+    var body = document.getElementById('scheduleBody');
+    if (scheduleTasks.length === 0) {
+      body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⏰</div><div class="task-empty-title">暂无定时任务</div><div class="task-empty-desc">点击「新建定时任务」创建你的第一个自动化任务<br>也可在对话中说“每天早上送我医美日报”自动创建</div></div>';
+      return;
+    }
+    var html = '<div class="schedule-grid">';
+    scheduleTasks.forEach(function(task) {
+      var enabled = task.enabled;
+      var nextRun = task.next_run ? formatRelativeTime(task.next_run) : '未设置';
+      html += '<div class="task-card" id="task-card-' + task.id + '">';
+      html += '<div class="task-card-header">';
+      html += '<button class="task-card-toggle ' + (enabled ? 'on' : '') + '" onclick="toggleTask(\'' + task.id + '\', ' + !enabled + ')" title="' + (enabled ? '点击关闭' : '点击开启') + '"></button>';
+      html += '<div class="task-card-info">';
+      html += '<div class="task-card-title">' + escHtml(task.title) + '</div>';
+      html += '<div class="task-card-desc">' + escHtml(task.description) + '</div>';
+      html += '</div>';
+      html += '<button class="task-card-menu-btn" onclick="showTaskMenu(\'' + task.id + '\', this)" title="更多操作">⋯</button>';
+      html += '</div>';
+      html += '<div class="task-card-footer">';
+      html += '<span class="task-card-cron"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + escHtml(task.cronDescription || task.cron_expr) + '</span>';
+      if (enabled && task.next_run) {
+        html += '<span class="task-card-next">下次执行 ' + nextRun + '</span>';
+      }
+      html += '</div>';
+      html += '<div class="task-card-actions">';
+      html += '<button class="task-action-btn" onclick="runTaskNow(\'' + task.id + '\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 立即执行</button>';
+      html += '<button class="task-action-btn" onclick="viewTaskLogs(\'' + task.id + '\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 记录</button>';
+      html += '<button class="task-action-btn danger" onclick="deleteTask(\'' + task.id + '\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg> 删除</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
+  }
+
+  function loadScheduleLogs() {
+    var body = document.getElementById('scheduleBody');
+    body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⏳</div><div class="task-empty-title">加载中...</div></div>';
+    var token = localStorage.getItem('medagent_token');
+    fetch('/api/scheduled-tasks/logs/all', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var logs = data.logs || [];
+        if (logs.length === 0) {
+          body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">📝</div><div class="task-empty-title">暂无执行记录</div></div>';
+          return;
+        }
+        var html = '<div class="log-list">';
+        logs.forEach(function(log) {
+          var statusLabel = { success: '成功', error: '失败', running: '执行中' }[log.status] || log.status;
+          html += '<div class="log-item">';
+          html += '<div class="log-item-header">';
+          html += '<span class="log-status-badge ' + log.status + '">' + statusLabel + '</span>';
+          html += '<span class="log-task-name">' + escHtml(log.task_title || log.task_id) + '</span>';
+          html += '<span class="log-time">' + formatRelativeTime(log.started_at) + '</span>';
+          html += '</div>';
+          if (log.output) {
+            html += '<div class="log-output">' + escHtml(log.output.slice(0, 200)) + (log.output.length > 200 ? '...' : '') + '</div>';
+          }
+          if (log.error) {
+            html += '<div class="log-output" style="color:#dc2626">' + escHtml(log.error) + '</div>';
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+        body.innerHTML = html;
+      })
+      .catch(function() {
+        body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⚠️</div><div class="task-empty-title">加载失败</div></div>';
+      });
+  }
+
+  function switchScheduleTab(tab) {
+    scheduleCurrentTab = tab;
+    document.getElementById('schedTabTasks').classList.toggle('active', tab === 'tasks');
+    document.getElementById('schedTabLogs').classList.toggle('active', tab === 'logs');
+    if (tab === 'tasks') renderScheduleTasks();
+    else loadScheduleLogs();
+  }
+
+  function toggleTask(taskId, enabled) {
+    var token = localStorage.getItem('medagent_token');
+    fetch('/api/scheduled-tasks/' + taskId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ enabled: enabled })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.task) {
+        var idx = scheduleTasks.findIndex(function(t) { return t.id === taskId; });
+        if (idx >= 0) scheduleTasks[idx] = data.task;
+        renderScheduleTasks();
+      }
+    });
+  }
+
+  function runTaskNow(taskId) {
+    var token = localStorage.getItem('medagent_token');
+    var btn = event.target.closest('.task-action-btn');
+    if (btn) { btn.textContent = '执行中...'; btn.disabled = true; }
+    fetch('/api/scheduled-tasks/' + taskId + '/run', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function() {
+      if (btn) { btn.innerHTML = '✓ 已触发'; setTimeout(function() { btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 立即执行'; btn.disabled = false; }, 2000); }
+    });
+  }
+
+  function deleteTask(taskId) {
+    if (!confirm('确定要删除这个定时任务？')) return;
+    var token = localStorage.getItem('medagent_token');
+    fetch('/api/scheduled-tasks/' + taskId, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function() {
+      scheduleTasks = scheduleTasks.filter(function(t) { return t.id !== taskId; });
+      renderScheduleTasks();
+    });
+  }
+
+  function viewTaskLogs(taskId) {
+    switchScheduleTab('logs');
+    document.getElementById('schedTabLogs').classList.add('active');
+    document.getElementById('schedTabTasks').classList.remove('active');
+  }
+
+  function showTaskMenu(taskId, btn) {
+    // 简单实现：直接删除
+    deleteTask(taskId);
+  }
+
+  function openNewTaskModal() {
+    document.getElementById('newTaskModal').style.display = 'flex';
+    document.getElementById('newTaskTitle').value = '';
+    document.getElementById('newTaskDesc').value = '';
+    document.getElementById('newTaskCron').value = '0 9 * * *';
+    document.getElementById('cronPreview').textContent = '每天 09:00 执行';
+    setTimeout(function() { document.getElementById('newTaskTitle').focus(); }, 100);
+  }
+
+  function closeNewTaskModal() {
+    document.getElementById('newTaskModal').style.display = 'none';
+  }
+
+  function setCronPreset(cron, label) {
+    document.getElementById('newTaskCron').value = cron;
+    document.getElementById('cronPreview').textContent = label + ' 执行';
+  }
+
+  // cron 输入实时预览
+  document.addEventListener('DOMContentLoaded', function() {
+    var cronInput = document.getElementById('newTaskCron');
+    if (cronInput) {
+      cronInput.addEventListener('input', function() {
+        var preview = document.getElementById('cronPreview');
+        var val = this.value.trim();
+        if (!val) { preview.textContent = ''; return; }
+        var parts = val.split(/\s+/);
+        if (parts.length === 5) {
+          var hr = parts[1], mn = parts[0], wd = parts[4], dom = parts[2];
+          var desc = '';
+          if (wd !== '*') { var wdMap = {'1':'周一','2':'周二','3':'周三','4':'周四','5':'周五','6':'周六','0':'周日'}; desc = '每' + (wdMap[wd] || '周') + ' ' + hr + ':' + mn.padStart(2,'0'); }
+          else if (dom !== '*') desc = '每月 ' + dom + ' 日 ' + hr + ':' + mn.padStart(2,'0');
+          else if (hr !== '*') desc = '每天 ' + hr + ':' + mn.padStart(2,'0');
+          else desc = '每小时第 ' + mn + ' 分';
+          preview.textContent = desc + ' 执行';
+          preview.style.color = 'var(--coral)';
+        } else {
+          preview.textContent = '格式错误，请使用标准 cron 格式（分 时 日 月 周）';
+          preview.style.color = '#dc2626';
+        }
+      });
+    }
+  });
+
+  async function submitNewTask() {
+    var title = document.getElementById('newTaskTitle').value.trim();
+    var desc  = document.getElementById('newTaskDesc').value.trim();
+    var cron  = document.getElementById('newTaskCron').value.trim();
+    var agent = document.getElementById('newTaskAgent').value;
+    if (!title) { alert('请填写任务名称'); return; }
+    if (!desc)  { alert('请填写任务描述'); return; }
+    if (!cron)  { alert('请设置执行周期'); return; }
+    var btn = document.querySelector('.new-task-submit-btn');
+    btn.textContent = '创建中...';
+    btn.disabled = true;
+    var token = localStorage.getItem('medagent_token');
+    try {
+      var r = await fetch('/api/scheduled-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ title: title, description: desc, cronExpr: cron, agentId: agent })
+      });
+      var data = await r.json();
+      if (!r.ok) { alert(data.message || '创建失败'); return; }
+      scheduleTasks.unshift(data.task);
+      closeNewTaskModal();
+      renderScheduleTasks();
+    } catch(e) {
+      alert('网络错误，请重试');
+    } finally {
+      btn.textContent = ' 创建任务';
+      btn.disabled = false;
+    }
+  }
+
+  function formatRelativeTime(isoStr) {
+    if (!isoStr) return '';
+    var d = new Date(isoStr.replace(' ', 'T') + (isoStr.includes('T') ? '' : 'Z'));
+    var now = Date.now();
+    var diff = d.getTime() - now;
+    var absDiff = Math.abs(diff);
+    if (absDiff < 60000) return '少于1分钟';
+    if (absDiff < 3600000) return Math.round(absDiff/60000) + '分钟' + (diff > 0 ? '后' : '前');
+    if (absDiff < 86400000) return Math.round(absDiff/3600000) + '小时' + (diff > 0 ? '后' : '前');
+    return Math.round(absDiff/86400000) + '天' + (diff > 0 ? '后' : '前');
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
 </script>
 <!-- IM 配置弹窗容器 -->
 <div class="im-config-modal" id="imConfigModal" onclick="if(event.target===this)closeImConfig()">

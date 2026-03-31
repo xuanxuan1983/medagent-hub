@@ -821,6 +821,9 @@ console.log('\u2705 SQLite \u6570\u636e\u5e93\u521d\u59cb\u5316\u6210\u529f:', D
 // Schema migration: add api_type column if it doesn't exist (for existing databases)
 try { db.exec("ALTER TABLE token_usage ADD COLUMN api_type TEXT DEFAULT 'chat'"); } catch (e) { /* column already exists, ignore */ }
 
+// ===== 定时任务模块初始化（require 提前，init 在 sessions 定义后调用）=====
+const scheduledTasks = require('./scheduled-tasks');
+
 // Prepared statements for performance
 const stmtInsertSession = db.prepare('INSERT INTO chat_sessions (id, user_code, user_name, agent_id, agent_name) VALUES (?, ?, ?, ?, ?)');
 const stmtInsertMessage = db.prepare('INSERT INTO chat_messages (session_id, role, content) VALUES (?, ?, ?)');
@@ -1704,6 +1707,11 @@ try {
 // Store conversation sessions
 const sessions = new Map();
 
+// ===== 定时任务模块启动（sessions 已定义）=====
+scheduledTasks.init(db, sessions);
+// AI 执行器：定时任务触发时调用 imGetAIResponse（延迟注入，在 imGetAIResponse 定义后设置）
+scheduledTasks.startScheduler();
+
 // IM 频道会话管理（每个用户独立上下文）
 const imSessions = new Map(); // key: conversationKey, value: { messages: [], lastActive }
 const IM_SESSION_TTL = 30 * 60 * 1000; // 30 分钟无消息后清除上下文
@@ -1753,6 +1761,13 @@ async function imGetAIResponse(text, agentId, conversationKey) {
     return '抱歉，AI 服务暂时不可用，请稍后再试。';
   }
 }
+
+// 定时任务 AI 执行器：复用 imGetAIResponse 实现非流式 AI 调用
+scheduledTasks.setAIExecutor(async ({ userCode, agentId, message, taskId }) => {
+  const conversationKey = `scheduled:${taskId}`;
+  const result = await imGetAIResponse(message, agentId || 'doudou', conversationKey);
+  return result;
+});
 
 // 定期清理过期 IM 会话
 setInterval(() => {
@@ -4172,7 +4187,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ===== 内测反馈表单提交（提交有价值建议自动解锁内容创作类Agent）=====
+  // ===== 定时任务 API =====
+  if (url.pathname.startsWith('/api/scheduled-tasks')) {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+    const userCode = getUserCode(req);
+    let body = {};
+    if (req.method === 'POST' || req.method === 'PATCH') {
+      try { body = await parseRequestBody(req); } catch(e) {}
+    }
+    const handled = await scheduledTasks.handleRequest(url, req.method, body, userCode, res);
+    if (handled) return;
+  }
+
+  // ===== 内测反馈表单提交（提交有价値建议自动解锁内容创作类Agent）=====
   if (url.pathname === '/api/beta-feedback' && req.method === 'POST') {
     try {
       if (!isAuthenticated(req)) {
