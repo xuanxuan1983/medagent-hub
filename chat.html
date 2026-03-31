@@ -249,6 +249,117 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     .sidebar-agent.active .sidebar-agent-dot { background: var(--coral); }
     .sidebar-agent-name { line-height: 1.3; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+    /* 任务/频道 双 Tab */
+    .sidebar-tab-bar {
+      display: flex;
+      padding: 0.375rem 0.5rem 0;
+      gap: 0.25rem;
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
+    }
+    .sidebar-tab {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+      padding: 0.4rem 0.5rem;
+      border: none; background: none; cursor: pointer;
+      font-size: 0.75rem; font-weight: 500; color: var(--text-3);
+      border-radius: 6px 6px 0 0;
+      transition: color 0.12s, background 0.12s;
+    }
+    .sidebar-tab:hover { color: var(--text); background: var(--border-light); }
+    .sidebar-tab.active {
+      color: var(--text);
+      font-weight: 600;
+      background: white;
+      box-shadow: 0 -1px 0 0 white, 0 1px 0 0 white;
+      border-bottom: 2px solid var(--coral);
+    }
+    .sidebar-tab-badge {
+      font-size: 0.55rem; background: var(--coral); color: white;
+      padding: 0.05rem 0.3rem; border-radius: 3px; font-weight: 700;
+    }
+
+    /* IM 频道列表 */
+    .im-channel-item {
+      display: flex; align-items: center; gap: 0.625rem;
+      padding: 0.625rem 0.5rem; border-radius: 8px;
+      margin-bottom: 0.25rem;
+      transition: background 0.12s;
+    }
+    .im-channel-item:hover { background: var(--border-light); }
+    .im-channel-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .im-channel-info { flex: 1; min-width: 0; }
+    .im-channel-name { font-size: 0.78rem; font-weight: 600; color: var(--text); }
+    .im-channel-desc { font-size: 0.65rem; color: var(--text-3); margin-top: 0.1rem; }
+    .im-channel-action { flex-shrink: 0; }
+    .im-btn-config {
+      font-size: 0.7rem; padding: 0.25rem 0.6rem;
+      border: 1px solid var(--border); border-radius: 5px;
+      background: white; color: var(--text); cursor: pointer;
+      transition: background 0.12s;
+    }
+    .im-btn-config:hover { background: var(--border-light); }
+    .im-btn-connected {
+      font-size: 0.7rem; padding: 0.25rem 0.6rem;
+      border: 1px solid #10B981; border-radius: 5px;
+      background: #ECFDF5; color: #10B981; cursor: pointer;
+    }
+
+    /* IM 配置弹窗 */
+    .im-config-modal {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.4);
+      align-items: center; justify-content: center;
+    }
+    .im-config-modal.open { display: flex; }
+    .im-config-box {
+      background: white; border-radius: 14px;
+      padding: 1.5rem; width: 420px; max-width: 90vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .im-config-title {
+      font-size: 1rem; font-weight: 700; color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .im-config-desc {
+      font-size: 0.78rem; color: var(--text-3); margin-bottom: 1rem; line-height: 1.5;
+    }
+    .im-config-label {
+      font-size: 0.78rem; font-weight: 600; color: var(--text);
+      margin-bottom: 0.375rem; display: block;
+    }
+    .im-config-input {
+      width: 100%; padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.82rem; color: var(--text);
+      background: var(--bg-warm); margin-bottom: 0.75rem;
+      box-sizing: border-box;
+    }
+    .im-config-input:focus { outline: none; border-color: var(--coral); }
+    .im-config-steps {
+      background: var(--bg-warm); border-radius: 8px;
+      padding: 0.75rem; margin-bottom: 1rem;
+      font-size: 0.75rem; color: var(--text-2); line-height: 1.8;
+    }
+    .im-config-steps ol { margin: 0; padding-left: 1.25rem; }
+    .im-config-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+    .im-config-cancel {
+      padding: 0.45rem 1rem; border: 1px solid var(--border);
+      border-radius: 7px; background: white; color: var(--text);
+      font-size: 0.82rem; cursor: pointer;
+    }
+    .im-config-save {
+      padding: 0.45rem 1rem; border: none;
+      border-radius: 7px; background: var(--coral); color: white;
+      font-size: 0.82rem; cursor: pointer; font-weight: 600;
+    }
+    .im-config-save:hover { opacity: 0.9; }
+
     .sidebar-bottom {
       padding: 0.75rem 0.875rem;
       border-top: 1px solid var(--border-light);
@@ -1272,6 +1383,20 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     </a>
   </div>
 
+  <!-- 任务 | 频道 双 Tab -->
+  <div class="sidebar-tab-bar">
+    <button class="sidebar-tab active" id="tabTask" onclick="switchSidebarTab('task')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><line x1="13" y1="8" x2="21" y2="8"/><line x1="13" y1="16" x2="21" y2="16"/></svg>
+      任务
+    </button>
+    <button class="sidebar-tab" id="tabChannel" onclick="switchSidebarTab('channel')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      频道
+      <span class="sidebar-tab-badge" id="channelBadge" style="display:none">Beta</span>
+    </button>
+  </div>
+
+  <!-- 任务面板 -->
   <div class="sidebar-scroll" id="sidebarScroll">
     <!-- Favorites Section -->
     <div class="sidebar-section-label">
@@ -1301,6 +1426,57 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     <!-- Agent Groups -->
     <div id="agentGroupsSection">
       <!-- Groups injected by JS -->
+    </div>
+  </div>
+
+  <!-- 频道面板 -->
+  <div class="sidebar-scroll" id="panelChannel" style="display:none">
+    <div class="sidebar-section-label" style="margin-top:0.25rem">
+      <span>IM 频道</span>
+    </div>
+    <div style="padding:0.25rem 0.5rem 0.5rem">
+      <!-- 飞书 -->
+      <div class="im-channel-item" id="imFeishu">
+        <div class="im-channel-icon" style="background:#1456F0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="im-channel-info">
+          <div class="im-channel-name">飞书</div>
+          <div class="im-channel-desc" id="feishuStatus">通过飞书机器人接收并回复消息</div>
+        </div>
+        <div class="im-channel-action">
+          <button class="im-btn-config" onclick="openImConfig('feishu')">配置</button>
+        </div>
+      </div>
+      <!-- 企业微信 -->
+      <div class="im-channel-item" id="imWecom">
+        <div class="im-channel-icon" style="background:#07C160">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div class="im-channel-info">
+          <div class="im-channel-name">企业微信</div>
+          <div class="im-channel-desc" id="wecomStatus">通过企业微信群机器人接收消息</div>
+        </div>
+        <div class="im-channel-action">
+          <button class="im-btn-config" onclick="openImConfig('wecom')">配置</button>
+        </div>
+      </div>
+      <!-- 钉钉 -->
+      <div class="im-channel-item" id="imDingtalk">
+        <div class="im-channel-icon" style="background:#1677FF">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3" stroke="white" stroke-width="2" fill="none"/></svg>
+        </div>
+        <div class="im-channel-info">
+          <div class="im-channel-name">钉钉</div>
+          <div class="im-channel-desc" id="dingtalkStatus">通过钉钉机器人接收并回复消息</div>
+        </div>
+        <div class="im-channel-action">
+          <button class="im-btn-config" onclick="openImConfig('dingtalk')">配置</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0.5rem 0.625rem;font-size:0.7rem;color:var(--text-3);line-height:1.5">
+      配置 IM 频道后，可在飞书/企业微信/钉钉群里直接与 AI 专家对话。频道配置信息仅存储在本地。
     </div>
   </div>
 
@@ -4077,8 +4253,160 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (e.key === 'Escape') {
       document.getElementById('anatomyImgModal').classList.remove('active');
       document.body.style.overflow = '';
+      // 同时关闭 IM 配置弹窗
+      document.querySelectorAll('.im-config-modal').forEach(m => m.classList.remove('open'));
     }
   });
+
+  // ===== 任务 | 频道 双 Tab =====
+  function switchSidebarTab(tab) {
+    const isTask = tab === 'task';
+    document.getElementById('tabTask').classList.toggle('active', isTask);
+    document.getElementById('tabChannel').classList.toggle('active', !isTask);
+    document.getElementById('sidebarScroll').style.display = isTask ? '' : 'none';
+    document.getElementById('panelChannel').style.display = isTask ? 'none' : '';
+    // 显示 Beta 标记
+    document.getElementById('channelBadge').style.display = isTask ? 'none' : 'inline';
+  }
+
+  // ===== IM 配置 =====
+  const IM_CONFIGS = {
+    feishu: {
+      name: '飞书',
+      color: '#1456F0',
+      desc: '配置飞书自定义机器人，将 Webhook 地址填入下方。',
+      steps: [
+        '在飞书开放平台创建自定义机器人应用',
+        '开启「接收消息」权限，获取 App ID 和 App Secret',
+        '配置订阅事件：接收消息 (im.message.receive_v1)',
+        '将请求地址设为下方填写的 Webhook URL'
+      ],
+      fields: [
+        { key: 'webhook', label: 'Webhook URL', placeholder: 'https://open.feishu.cn/open-apis/...' },
+        { key: 'appId', label: 'App ID (可选)', placeholder: 'cli_xxxxxxxx' },
+        { key: 'appSecret', label: 'App Secret (可选)', placeholder: 'xxxxxxxxxxxxxxxx' }
+      ]
+    },
+    wecom: {
+      name: '企业微信',
+      color: '#07C160',
+      desc: '配置企业微信群机器人，将群机器人的 Webhook 地址填入下方。',
+      steps: [
+        '在企业微信群里添加群机器人',
+        '复制机器人的 Webhook 地址',
+        '将地址填入下方即可完成配置'
+      ],
+      fields: [
+        { key: 'webhook', label: 'Webhook URL', placeholder: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...' }
+      ]
+    },
+    dingtalk: {
+      name: '钉钉',
+      color: '#1677FF',
+      desc: '配置钉钉自定义机器人，将 Webhook 地址和加签密钥填入下方。',
+      steps: [
+        '在钉钉群里添加自定义机器人',
+        '选择加签方式（建议选「加签密钥」）',
+        '复制 Webhook 地址和加签密钥'
+      ],
+      fields: [
+        { key: 'webhook', label: 'Webhook URL', placeholder: 'https://oapi.dingtalk.com/robot/send?access_token=...' },
+        { key: 'secret', label: '加签密钥 (可选)', placeholder: 'SEC...' }
+      ]
+    }
+  };
+
+  let currentImPlatform = null;
+
+  function openImConfig(platform) {
+    currentImPlatform = platform;
+    const cfg = IM_CONFIGS[platform];
+    const saved = JSON.parse(localStorage.getItem('imConfig_' + platform) || '{}');
+
+    // 构建弹窗
+    const stepsHtml = cfg.steps.map((s, i) => `<li>${i+1}. ${s}</li>`).join('');
+    const fieldsHtml = cfg.fields.map(f => `
+      <label class="im-config-label">${f.label}</label>
+      <input class="im-config-input" id="imField_${f.key}" placeholder="${f.placeholder}" value="${saved[f.key] || ''}">
+    `).join('');
+
+    const connected = saved.webhook && saved.webhook.length > 10;
+
+    document.getElementById('imConfigModal').innerHTML = `
+      <div class="im-config-box">
+        <div class="im-config-title">配置 ${cfg.name}机器人</div>
+        <div class="im-config-desc">${cfg.desc}</div>
+        <div class="im-config-steps"><ol style="margin:0;padding-left:1.25rem">${stepsHtml}</ol></div>
+        ${fieldsHtml}
+        ${connected ? `<div style="font-size:0.72rem;color:#10B981;margin-bottom:0.75rem">✓ 已配置，将于下一次连接时生效</div>` : ''}
+        <div class="im-config-actions">
+          ${connected ? `<button class="im-config-cancel" onclick="clearImConfig('${platform}')" style="color:#dc2626;border-color:#dc2626">断开连接</button>` : ''}
+          <button class="im-config-cancel" onclick="closeImConfig()"> 取消</button>
+          <button class="im-config-save" onclick="saveImConfig('${platform}')"> 保存</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('imConfigModal').classList.add('open');
+  }
+
+  function closeImConfig() {
+    document.getElementById('imConfigModal').classList.remove('open');
+  }
+
+  function saveImConfig(platform) {
+    const cfg = IM_CONFIGS[platform];
+    const data = {};
+    cfg.fields.forEach(f => {
+      const el = document.getElementById('imField_' + f.key);
+      if (el) data[f.key] = el.value.trim();
+    });
+    localStorage.setItem('imConfig_' + platform, JSON.stringify(data));
+    closeImConfig();
+    updateImChannelStatus();
+  }
+
+  function clearImConfig(platform) {
+    localStorage.removeItem('imConfig_' + platform);
+    closeImConfig();
+    updateImChannelStatus();
+  }
+
+  function updateImChannelStatus() {
+    const platforms = ['feishu', 'wecom', 'dingtalk'];
+    const statusIds = { feishu: 'feishuStatus', wecom: 'wecomStatus', dingtalk: 'dingtalkStatus' };
+    const btnIds = { feishu: 'imFeishu', wecom: 'imWecom', dingtalk: 'imDingtalk' };
+    const defaultDesc = {
+      feishu: '通过飞书机器人接收并回复消息',
+      wecom: '通过企业微信群机器人接收消息',
+      dingtalk: '通过钉钉机器人接收并回复消息'
+    };
+    platforms.forEach(p => {
+      const saved = JSON.parse(localStorage.getItem('imConfig_' + p) || '{}');
+      const connected = saved.webhook && saved.webhook.length > 10;
+      const statusEl = document.getElementById(statusIds[p]);
+      const itemEl = document.getElementById(btnIds[p]);
+      if (!statusEl || !itemEl) return;
+      if (connected) {
+        statusEl.textContent = '✓ 已连接';
+        statusEl.style.color = '#10B981';
+        const btn = itemEl.querySelector('button');
+        if (btn) { btn.className = 'im-btn-connected'; btn.textContent = '已连接'; }
+      } else {
+        statusEl.textContent = defaultDesc[p];
+        statusEl.style.color = '';
+        const btn = itemEl.querySelector('button');
+        if (btn) { btn.className = 'im-btn-config'; btn.textContent = '配置'; }
+      }
+    });
+  }
+
+  // 页面加载时初始化 IM 状态
+  updateImChannelStatus();
 </script>
+<!-- IM 配置弹窗容器 -->
+<div class="im-config-modal" id="imConfigModal" onclick="if(event.target===this)closeImConfig()">
+  <!-- 内容由 openImConfig() 动态注入 -->
+</div>
+
 </body>
 </html>
