@@ -8,6 +8,9 @@ tags: [医美, 采购管理, 供应链, 成本控制, 合同管理]
 access: pro
 nmpa: false
 material_level: brief
+agent_id: procurement-manager
+display_name: 采购经理
+ip_owner: doudou
 ---
 
 # Role: 医美上游采购经理 (Upstream Procurement Manager)
