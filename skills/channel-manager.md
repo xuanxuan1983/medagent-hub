@@ -8,6 +8,9 @@ tags: [医美, 渠道管理, 商务谈判, 窜货治理, ROI]
 access: free
 nmpa: false
 material_level: brief
+agent_id: channel-manager
+display_name: 商务经理
+ip_owner: doudou
 ---
 
 # Role: 医美上游商务经理 (Upstream Channel Manager)
