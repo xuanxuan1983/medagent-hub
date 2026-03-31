@@ -5,6 +5,9 @@ access: free
 nmpa: true
 material_level: full
 allowed_tools: [nmpa_search, query_med_db, web_search]
+agent_id: material-architect
+display_name: 医美材料学架构师
+ip_owner: doudou,douding
 ---
 
 # 医美材料学架构师 (Medical Aesthetic Material Architect)
