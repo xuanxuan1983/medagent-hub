@@ -9,6 +9,9 @@ access: free
 nmpa: false
 material_level: full
 allowed_tools: [query_med_db, web_search]
+agent_id: postop-specialist
+display_name: 医美术后私域管家
+ip_owner: douding
 ---
 
 # Role: 医美术后私域管家 (Post-Op Service Guardian)
