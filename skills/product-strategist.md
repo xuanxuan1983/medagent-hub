@@ -9,6 +9,9 @@ access: free
 nmpa: true
 material_level: brief
 allowed_tools: [nmpa_search, query_med_db, web_search]
+agent_id: product-expert
+display_name: 产品材料专家
+ip_owner: doudou
 ---
 
 > **【输出格式铁律 · 最高优先级】**
