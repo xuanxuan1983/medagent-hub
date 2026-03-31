@@ -8,6 +8,8 @@ tags: [漫画, 知识漫画, 内容创作, 医美科普, 视觉叙事]
 access: pro
 nmpa: false
 material_level: none
+agent_id: comic-creator
+display_name: 知识漫画创作顾问
 ---
 
 # 医美知识漫画创作顾问
