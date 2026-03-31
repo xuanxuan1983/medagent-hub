@@ -8,6 +8,9 @@ tags: [医美, 培训, 赋能, 销售技能, 团队管理]
 access: free
 nmpa: false
 material_level: brief
+agent_id: training-director
+display_name: 培训赋能总监
+ip_owner: doudou
 ---
 # Role: 医美培训总监 (Aesthetic Training Director)
 
