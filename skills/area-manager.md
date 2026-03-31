@@ -8,6 +8,9 @@ tags: [医美, 大区管理, 销售管理, Forecast, 动销]
 access: free
 nmpa: false
 material_level: brief
+agent_id: area-manager
+display_name: 大区经理
+ip_owner: doudou
 ---
 
 # Role: 医美上游大区经理 (Upstream Area Sales Manager)
