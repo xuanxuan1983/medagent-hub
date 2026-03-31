@@ -371,6 +371,59 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     .desktop-quick-btn:hover { background: var(--bg-warm); border-color: #AEAAA5; color: var(--text); transform: translateY(-1px); }
 
+    /* ===== SLASH COMMAND POPUP ===== */
+    .slash-popup {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      z-index: 1000;
+      max-height: 320px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+      animation: fadeInUp 0.15s ease-out;
+    }
+    .slash-popup-header {
+      padding: 0.625rem 1rem 0.375rem;
+      font-size: 0.72rem;
+      color: var(--text-3);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .slash-popup-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 1rem;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .slash-popup-item:hover, .slash-popup-item.active {
+      background: var(--bg-warm);
+    }
+    .slash-popup-item:last-child { border-radius: 0 0 12px 12px; }
+    .slash-popup-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--bg-warm);
+      border: 1px solid var(--border-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .slash-popup-info { flex: 1; min-width: 0; }
+    .slash-popup-name { font-size: 0.875rem; font-weight: 600; color: var(--text); }
+    .slash-popup-desc { font-size: 0.75rem; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .slash-popup-cmd { font-size: 0.72rem; color: var(--coral); font-family: monospace; background: var(--coral-light); padding: 1px 6px; border-radius: 4px; flex-shrink: 0; }
+    /* Desktop input wrap needs relative positioning for popup */
+    .desktop-input-wrap { position: relative; }
+    .chat-input-area { position: relative; }
+
     /* ===== AGENT STORE VIEW ===== */
     .store-view {
       flex: 1; display: none; flex-direction: column; overflow: hidden;
@@ -1303,7 +1356,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <div class="desktop-greeting" id="desktopGreeting">你好！我叫小豆豆</div>
       <div class="desktop-sub" id="desktopSub">一颗正在努力学习医美知识的小种子。有什么可以帮到你的吗？<br>也许你的问题，就是我长出第一片新叶的开始。</div>
       <div class="desktop-input-wrap">
-        <textarea class="desktop-input" id="desktopInput" placeholder="向我提问，开始我们的成长之旅..." rows="1" onkeydown="desktopKeydown(event)" oninput="autoResize(this)"></textarea>
+        <div id="desktopSlashPopup" class="slash-popup" style="display:none"></div>
+        <textarea class="desktop-input" id="desktopInput" placeholder="向我提问，或输入 / 直接调用专家..." rows="1" onkeydown="desktopKeydown(event)" oninput="autoResize(this); handleSlashInput(this, 'desktopSlashPopup')"></textarea>
         <div class="desktop-input-footer">
           <div class="desktop-input-left">
             <button class="desktop-input-btn" onclick="openSettings('api')">
@@ -1318,8 +1372,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       </div>
       <div class="desktop-quick-btns" id="quickBtns">
         <button class="desktop-quick-btn" onclick="quickStart('senior-consultant')">🥇 金牌咨询师</button>
-        <button class="desktop-quick-btn" onclick="quickStart('sparring-robot')">🥊 话术陪练</button>
-        <button class="desktop-quick-btn" onclick="quickStart('aesthetic-design')">💎 美学设计</button>
+        <button class="desktop-quick-btn" onclick="quickStart('sparring-partner')">🥊 话术陪练</button>
+        <button class="desktop-quick-btn" onclick="quickStart('aesthetic-designer')">💎 美学设计</button>
         <button class="desktop-quick-btn" onclick="quickStart('trend-setter')">🔥 爆款种草</button>
         <button class="desktop-quick-btn" onclick="quickStart('materials-mentor')">🧬 材料学导师</button>
       </div>
@@ -1370,7 +1424,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <!-- Hidden file input -->
         <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.md,.png,.jpg,.jpeg,.gif,.webp,.bmp" onchange="handleFileSelect(event)">
       <div class="chat-input-box">
-        <textarea class="chat-textarea" id="messageInput" placeholder="输入问题..." rows="1" disabled oninput="autoResize(this)" onkeydown="chatKeydown(event)"></textarea>
+        <div id="chatSlashPopup" class="slash-popup" style="display:none"></div>
+        <textarea class="chat-textarea" id="messageInput" placeholder="输入问题，或用 / 切换专家..." rows="1" disabled oninput="autoResize(this); handleSlashInput(this, 'chatSlashPopup')" onkeydown="chatKeydown(event)"></textarea>
         <div class="chat-input-footer">
           <div class="chat-input-left">
             <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
@@ -1901,6 +1956,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     buildStore();
     loadUserInfo();
     loadSidebarHistory();
+    updateQuickBtns();
 
     const params = new URLSearchParams(window.location.search);
     const agentParam = params.get('agent');
@@ -2282,10 +2338,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (!q) return;
     // Desktop home always uses doudou as the entry agent
     await startChat('doudou', q);
-  }
-
-  function desktopKeydown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); desktopSend(); }
   }
 
   // ===== CHAT =====
@@ -3015,7 +3067,141 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   function chatKeydown(e) {
+    const popup = document.getElementById('chatSlashPopup');
+    if (popup && popup.style.display !== 'none') {
+      if (e.key === 'ArrowDown') { e.preventDefault(); slashPopupMove(popup, 1); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); slashPopupMove(popup, -1); return; }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); slashPopupSelect(popup, e.target); return; }
+      if (e.key === 'Escape') { popup.style.display = 'none'; return; }
+    }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function desktopKeydown(e) {
+    const popup = document.getElementById('desktopSlashPopup');
+    if (popup && popup.style.display !== 'none') {
+      if (e.key === 'ArrowDown') { e.preventDefault(); slashPopupMove(popup, 1); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); slashPopupMove(popup, -1); return; }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); slashPopupSelect(popup, e.target); return; }
+      if (e.key === 'Escape') { popup.style.display = 'none'; return; }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); desktopSend(); }
+  }
+
+  // ===== SLASH COMMAND SYSTEM =====
+  // 所有可直接调用的 Agent（扁平化列表，含中文名和命令别名）
+  const SLASH_AGENTS = [
+    { id: 'senior-consultant',   icon: '🥇', name: '金牌咨询师',       cmd: 'consultant',  desc: '话术成交、SPIN销售、客户异议处理' },
+    { id: 'sparring-partner',    icon: '🥊', name: '话术陪练机器人',   cmd: 'roleplay',    desc: '高压仿真客户场景，实战话术训练' },
+    { id: 'aesthetic-designer',  icon: '💎', name: '高定美学设计总监',   cmd: 'design',      desc: '面部美学设计、高净值客户方案' },
+    { id: 'trend-setter',        icon: '🔥', name: '医美爆款种草官',   cmd: 'content',     desc: '小红书/公众号内容创作，合规种草' },
+    { id: 'materials-mentor',    icon: '🧬', name: '医美材料学导师',   cmd: 'material',    desc: 'PACER深度拆解，产品机理分析' },
+    { id: 'anatomy-architect',   icon: '🏗️', name: '医美解剖建筑师',   cmd: 'anatomy',     desc: '面部解剖、安全预警、注射层次' },
+    { id: 'postop-specialist',   icon: '🛡️', name: '术后私域管家',     cmd: 'postop',      desc: '术后风险分诊，将焦虑转化为复购' },
+    { id: 'gtm-strategist',      icon: '🎯', name: 'GTM战略大师',       cmd: 'gtm',         desc: '入市战略、定位、定价、渠道管理' },
+    { id: 'sales-director',      icon: '⚔️', name: '销售作战总监',     cmd: 'sales',       desc: '大区管理、客户担当、销售战术' },
+    { id: 'training-director',   icon: '📚', name: '培训赋能总监',     cmd: 'training',    desc: 'ASK模型、学术会议、医生教育' },
+    { id: 'xhs-content-creator', icon: '📱', name: '小红书图文创作',   cmd: 'xhs',         desc: '9种风格xd76种布局，高传播力图文' },
+    { id: 'new-media-director',  icon: '📋', name: '医美合规内容专家', cmd: 'compliance',  desc: '三品一规审查，合规替换词库' },
+  ];
+
+  let slashPopupActiveIdx = -1;
+
+  function handleSlashInput(textarea, popupId) {
+    const popup = document.getElementById(popupId);
+    if (!popup) return;
+    const val = textarea.value;
+    const slashIdx = val.lastIndexOf('/');
+    // Only trigger if / is at start or after whitespace
+    if (slashIdx === -1 || (slashIdx > 0 && !/\s/.test(val[slashIdx - 1]))) {
+      popup.style.display = 'none';
+      return;
+    }
+    const query = val.slice(slashIdx + 1).toLowerCase();
+    const filtered = SLASH_AGENTS.filter(a =>
+      !query ||
+      a.name.toLowerCase().includes(query) ||
+      a.cmd.toLowerCase().includes(query) ||
+      a.id.toLowerCase().includes(query)
+    );
+    if (filtered.length === 0) { popup.style.display = 'none'; return; }
+    slashPopupActiveIdx = 0;
+    popup.innerHTML = '<div class="slash-popup-header">直接调用专家 &mdash; 键盘上下选择，回车确认</div>' +
+      filtered.map((a, i) => `
+        <div class="slash-popup-item${i === 0 ? ' active' : ''}" data-agent-id="${a.id}" data-slash-idx="${slashIdx}" onclick="slashSelect('${a.id}', ${slashIdx}, '${popupId}', this.closest('.slash-popup').previousElementSibling || this.closest('.desktop-input-wrap').querySelector('textarea') || document.getElementById('messageInput'))">
+          <div class="slash-popup-icon">${a.icon}</div>
+          <div class="slash-popup-info">
+            <div class="slash-popup-name">${a.name}</div>
+            <div class="slash-popup-desc">${a.desc}</div>
+          </div>
+          <div class="slash-popup-cmd">/${a.cmd}</div>
+        </div>`).join('');
+    popup.style.display = 'block';
+  }
+
+  function slashPopupMove(popup, dir) {
+    const items = popup.querySelectorAll('.slash-popup-item');
+    if (!items.length) return;
+    items[slashPopupActiveIdx]?.classList.remove('active');
+    slashPopupActiveIdx = Math.max(0, Math.min(items.length - 1, slashPopupActiveIdx + dir));
+    items[slashPopupActiveIdx]?.classList.add('active');
+    items[slashPopupActiveIdx]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function slashPopupSelect(popup, textarea) {
+    const items = popup.querySelectorAll('.slash-popup-item');
+    const active = items[slashPopupActiveIdx] || items[0];
+    if (!active) return;
+    const agentId = active.dataset.agentId;
+    const slashIdx = parseInt(active.dataset.slashIdx);
+    popup.style.display = 'none';
+    // Clear the /command from textarea and start chat
+    textarea.value = textarea.value.slice(0, slashIdx).trim();
+    startChat(agentId, textarea.value || null);
+    textarea.value = '';
+  }
+
+  function slashSelect(agentId, slashIdx, popupId, textarea) {
+    const popup = document.getElementById(popupId);
+    if (popup) popup.style.display = 'none';
+    const msg = textarea ? textarea.value.slice(0, slashIdx).trim() : null;
+    if (textarea) textarea.value = '';
+    startChat(agentId, msg || null);
+  }
+
+  // Close slash popup when clicking outside
+  document.addEventListener('click', function(e) {
+    ['desktopSlashPopup', 'chatSlashPopup'].forEach(id => {
+      const popup = document.getElementById(id);
+      if (popup && !popup.contains(e.target) && !e.target.matches('#desktopInput, #messageInput')) {
+        popup.style.display = 'none';
+      }
+    });
+  });
+
+  // Dynamic quick buttons based on user role
+  function updateQuickBtns() {
+    const role = localStorage.getItem('medagent_role') || '';
+    const container = document.getElementById('quickBtns');
+    if (!container) return;
+    const upstream = [
+      { id: 'sales-director',    icon: '⚔️', label: '销售作战' },
+      { id: 'gtm-strategist',    icon: '🎯', label: 'GTM战略' },
+      { id: 'training-director', icon: '📚', label: '培训赋能' },
+      { id: 'product-expert',    icon: '🧪', label: '产品专家' },
+      { id: 'medical-liaison',   icon: '🎓', label: '学术推广' },
+    ];
+    const downstream = [
+      { id: 'senior-consultant', icon: '🥇', label: '金牌咨询师' },
+      { id: 'sparring-partner',  icon: '🥊', label: '话术陪练' },
+      { id: 'aesthetic-designer',icon: '💎', label: '美学设计' },
+      { id: 'trend-setter',      icon: '🔥', label: '爆款种草' },
+      { id: 'materials-mentor',  icon: '🧬', label: '材料学导师' },
+    ];
+    const btns = role === 'upstream' ? upstream : downstream;
+    container.innerHTML = btns.map(b =>
+      `<button class="desktop-quick-btn" onclick="quickStart('${b.id}')">${b.icon} ${b.label}</button>`
+    ).join('');
   }
 
   function clearChat() {
