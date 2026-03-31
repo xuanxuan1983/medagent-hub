@@ -9,6 +9,9 @@ access: free
 nmpa: true
 material_level: brief
 allowed_tools: [nmpa_search, query_med_db, web_search]
+agent_id: materials-mentor
+display_name: 医美材料学硬核导师
+ip_owner: doudou,douding
 ---
 # 医美材料学硬核导师 (Medical Aesthetics Materials Science Mentor)
 
