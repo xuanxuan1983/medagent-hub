@@ -9,6 +9,9 @@ access: free
 nmpa: true
 material_level: full
 allowed_tools: [nmpa_search, query_med_db, web_search]
+agent_id: anatomy-architect
+display_name: 医美解剖决策建筑师
+ip_owner: doudou,douding
 ---
 # 医美解剖决策建筑师 (Aesthetic Anatomy & Decision Architect)
 
