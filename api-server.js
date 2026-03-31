@@ -1707,6 +1707,10 @@ try {
 // Store conversation sessions
 const sessions = new Map();
 
+// ===== P3: Human-in-the-loop 待确认操作队列 =====
+// key: confirmId (string), value: callback(decision)
+const pendingConfirmations = new Map();
+
 // ===== 定时任务模块启动（sessions 已定义）=====
 scheduledTasks.init(db, sessions);
 
@@ -1778,6 +1782,7 @@ scheduledTasks.setAIExecutor(async ({ userCode, agentId, message, taskId }) => {
 });
 
 // 注入 IM 频道模块，用于定时任务执行完成后主动推送结果
+const imChannels = require('./im-channels');
 scheduledTasks.setImChannels(imChannels);
 
 // 定期清理过期 IM 会话
@@ -3305,6 +3310,88 @@ const server = http.createServer(async (req, res) => {
         let agentTurn = 0;
         let agentDone = false;
 
+        // ===== P3: Human-in-the-loop 危险操作确认 =====
+        // 危险操作规则定义
+        const DANGEROUS_OPERATIONS = [
+          {
+            id: 'batch_im_push',
+            tool: 'web_search',
+            condition: (args) => {
+              const q = (args.query || '').toLowerCase();
+              return /发送|推送|通知|群发|广播/.test(q) && /客户|用户|全部|所有/.test(q);
+            },
+            level: 'high',
+            title: '批量 IM 推送',
+            description: (args) => `即将向客户群发消息：「${(args.query || '').slice(0, 60)}」`,
+            consequence: '此操作将向多个客户发送通知，可能影响用户体验，且无法撤回。',
+            alternatives: '可改为仅推送给指定客户，或先预览消息内容再确认。'
+          },
+          {
+            id: 'bulk_web_search',
+            tool: 'web_search',
+            condition: (args, ctx) => (ctx.webSearchCount || 0) >= 2,
+            level: 'medium',
+            title: '高频联网搜索',
+            description: (args, ctx) => `已连续调用联网搜索 ${(ctx.webSearchCount || 0) + 1} 次，当前查询：「${(args.query || '').slice(0, 60)}」`,
+            consequence: '高频联网搜索会消耗 API 配额，可能产生额外费用。',
+            alternatives: '可尝试使用本地知识库或药监局数据库回答，减少联网查询次数。'
+          },
+          {
+            id: 'nmpa_batch_query',
+            tool: 'nmpa_search',
+            condition: (args) => Array.isArray(args.products) && args.products.length >= 5,
+            level: 'medium',
+            title: '批量药监局查询',
+            description: (args) => `即将批量查询 ${(args.products || []).length} 个产品的药监局备案信息`,
+            consequence: '批量查询会产生较多 API 请求，可能影响响应速度。',
+            alternatives: '建议每次查询不超过 3 个产品，分批进行。'
+          },
+          {
+            id: 'sensitive_data_export',
+            tool: 'web_search',
+            condition: (args) => /导出|下载|备份|所有客户|全量数据|客户名单/.test(args.query || ''),
+            level: 'high',
+            title: '敏感数据导出',
+            description: (args) => `检测到数据导出意图：「${(args.query || '').slice(0, 60)}」`,
+            consequence: '导出客户数据涉及隐私合规风险，请确认操作合法性。',
+            alternatives: '请确认已获得数据主体授权，并遵守个人信息保护法相关规定。'
+          }
+        ];
+
+        // HITL 跨轮次上下文
+        const hitlContext = {
+          webSearchCount: 0,
+          nmpaSearchCount: 0,
+          confirmedOps: new Set(), // 已确认过的操作 ID（避免重复询问）
+        };
+
+        // 检测是否为危险操作，返回匹配的规则或 null
+        function checkDangerousOperation(toolName, toolArgs) {
+          for (const rule of DANGEROUS_OPERATIONS) {
+            if (rule.tool !== toolName) continue;
+            if (hitlContext.confirmedOps.has(rule.id)) continue;
+            try {
+              if (rule.condition(toolArgs, hitlContext)) return rule;
+            } catch (e) { /* 规则检测出错，跳过 */ }
+          }
+          return null;
+        }
+
+        // 等待用户确认（Promise + 超时自动拒绝）
+        function waitForConfirmation(confirmId, timeoutMs = 60000) {
+          return new Promise((resolve) => {
+            const timer = setTimeout(() => {
+              pendingConfirmations.delete(confirmId);
+              resolve({ approved: false, reason: 'timeout', message: '操作已超时自动取消（60秒无响应）' });
+            }, timeoutMs);
+            pendingConfirmations.set(confirmId, (decision) => {
+              clearTimeout(timer);
+              pendingConfirmations.delete(confirmId);
+              resolve(decision);
+            });
+          });
+        }
+
         // ===== 自我纠错状态 =====
         const toolFailCount = {};   // { toolName: failCount }
         const toolLastError = {};   // { toolName: errorMessage }
@@ -3424,12 +3511,67 @@ const server = http.createServer(async (req, res) => {
           try { toolArgs = JSON.parse(toolCallArgsBuf); } catch (e) {}
           console.log(`🔧 [AgenticLoop] Turn ${agentTurn} | ${toolCallName} | args: ${JSON.stringify(toolArgs)}`);
 
+          // ===== P3: HITL 危险操作检测 =====
+          const dangerRule = checkDangerousOperation(toolCallName, toolArgs);
+          if (dangerRule) {
+            const confirmId = `hitl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            const descText = typeof dangerRule.description === 'function'
+              ? dangerRule.description(toolArgs, hitlContext)
+              : dangerRule.description;
+            console.log(`⚠️ [HITL] 检测到危险操作: ${dangerRule.id} | confirmId: ${confirmId}`);
+            // 向前端发送确认请求事件，暂停循环
+            res.write(`data: ${JSON.stringify({
+              type: 'confirmation_required',
+              confirmId,
+              rule: {
+                id: dangerRule.id,
+                level: dangerRule.level,
+                title: dangerRule.title,
+                description: descText,
+                consequence: dangerRule.consequence,
+                alternatives: dangerRule.alternatives,
+                tool: toolCallName,
+                args: toolArgs
+              }
+            })}
+
+`);
+            // 等待用户决策（最多 60 秒）
+            const decision = await waitForConfirmation(confirmId, 60000);
+            console.log(`[HITL] 用户决策: approved=${decision.approved} reason=${decision.reason || ''} | confirmId: ${confirmId}`);
+            if (decision.approved) {
+              // 用户批准：记录已确认，继续执行
+              hitlContext.confirmedOps.add(dangerRule.id);
+              res.write(`data: ${JSON.stringify({ type: 'confirmation_result', confirmId, approved: true, message: decision.message || '用户已批准，继续执行…' })}
+
+`);
+            } else {
+              // 用户拒绝：跳过此工具，注入拒绝原因让 AI 调整策略
+              const cancelMsg = decision.message || '用户已取消此操作。';
+              res.write(`data: ${JSON.stringify({ type: 'confirmation_result', confirmId, approved: false, message: cancelMsg })}
+
+`);
+              // 将拒绝信息注入工具结果，让 AI 根据替代方案回答
+              agentMessages = [
+                ...agentMessages,
+                assistantMsg1,
+                {
+                  role: 'tool',
+                  tool_call_id: toolCallId,
+                  content: `[HITL 拒绝] 用户拒绝了危险操作「${dangerRule.title}」。原因：${cancelMsg}。请改用替代方案：${dangerRule.alternatives}`
+                }
+              ];
+              continue; // 跳过工具执行，进入下一轮
+            }
+          }
+
           let toolResultText = '工具执行完成。';
 
           if (toolCallName === 'nmpa_search') {
             const products = toolArgs.products || (toolArgs.keyword ? [toolArgs.keyword] : null) || detectNmpaProduct(message) || [];
             const toolQuery = toolArgs.query || toolArgs.keyword || message;
             res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'nmpa_search', products })}\n\n`);
+            hitlContext.nmpaSearchCount++; // HITL 计数
             try {
               const nmpaData = await nmpaSearch(toolQuery, products);
               if (nmpaData.success && nmpaData.results.length > 0) {
@@ -3464,6 +3606,7 @@ const server = http.createServer(async (req, res) => {
           } else if (toolCallName === 'web_search') {
             const query = toolArgs.query || toolArgs.keyword || message;
             res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'web_search', query })}\n\n`);
+            hitlContext.webSearchCount++; // HITL 计数
             try {
               const webData = await bochaSearch(query, 8);
               if (webData && webData.results && webData.results.length > 0) {
@@ -4044,6 +4187,39 @@ const server = http.createServer(async (req, res) => {
         error: 'Failed to get response',
         details: error.message
       }));
+    }
+    return;
+  }
+
+  // ===== P3: Human-in-the-loop 确认接口 =====
+  if (url.pathname === '/api/confirm-operation' && req.method === 'POST') {
+    try {
+      const body = await parseRequestBody(req);
+      const { confirmId, approved, message: userMsg } = body;
+      if (!confirmId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing confirmId' }));
+        return;
+      }
+      const callback = pendingConfirmations.get(confirmId);
+      if (!callback) {
+        // 可能已超时或重复提交
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Confirmation not found or already resolved (possibly timed out)' }));
+        return;
+      }
+      // 调用回调，唤醒等待中的 Agentic Loop
+      callback({
+        approved: !!approved,
+        reason: approved ? 'user_approved' : 'user_rejected',
+        message: userMsg || (approved ? '用户已批准此操作。' : '用户已取消此操作。')
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, confirmId, approved: !!approved }));
+    } catch (e) {
+      console.error('[HITL] confirm-operation 错误:', e.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
     }
     return;
   }

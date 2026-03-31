@@ -3872,6 +3872,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 if (evt.count > 0) {
                   showToolStatusIndicator('memory', `记忆检索到 ${evt.count} 条相关历史...`);
                 }
+              } else if (evt.type === 'confirmation_required') {
+                // P3: HITL 危险操作确认请求
+                document.dispatchEvent(new CustomEvent('hitl:confirmation_required', { detail: evt }));
+              } else if (evt.type === 'confirmation_result') {
+                // P3: HITL 确认结果回执
+                document.dispatchEvent(new CustomEvent('hitl:confirmation_result', { detail: evt }));
               } else if (evt.type === 'error') {
                 bubble.textContent = '抱歉，遇到了问题：' + (evt.message || '请稍后再试');
                 // ★ 安全网：error 事件时也恢复输入框
@@ -6060,6 +6066,136 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; btn.style.color = ''; btn.style.borderColor = ''; }, 3000);
   }
+</script>
+
+<!-- ===== P3: HITL 危险操作确认弹窗 ===== -->
+<div id="hitlModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;">
+  <div id="hitlCard" style="background:white;border-radius:18px;width:100%;max-width:440px;margin:1rem;box-shadow:0 12px 48px rgba(0,0,0,0.18);overflow:hidden;font-family:'Noto Sans SC','PingFang SC',sans-serif;">
+    <!-- 头部 -->
+    <div id="hitlHeader" style="padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #E8E5E0;display:flex;align-items:center;gap:0.75rem;">
+      <div id="hitlLevelBadge" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;"></div>
+      <div>
+        <div style="font-size:0.75rem;font-weight:600;color:#5a5a5a;letter-spacing:0.04em;text-transform:uppercase;">Agent 请求确认</div>
+        <div id="hitlTitle" style="font-size:1rem;font-weight:700;color:#191919;margin-top:0.1rem;"></div>
+      </div>
+      <div id="hitlCountdown" style="margin-left:auto;font-size:0.8rem;font-weight:600;color:#767676;background:#F5F3EF;padding:0.25rem 0.625rem;border-radius:20px;">60s</div>
+    </div>
+    <!-- 内容 -->
+    <div style="padding:1.25rem 1.5rem;">
+      <div id="hitlDesc" style="font-size:0.875rem;color:#191919;line-height:1.7;margin-bottom:0.875rem;"></div>
+      <div style="background:#FAF8F5;border-radius:10px;padding:0.875rem 1rem;margin-bottom:0.875rem;">
+        <div style="font-size:0.75rem;font-weight:600;color:#5a5a5a;margin-bottom:0.375rem;">风险提示</div>
+        <div id="hitlConsequence" style="font-size:0.8rem;color:#5a5a5a;line-height:1.65;"></div>
+      </div>
+      <div style="background:#F0EDEA;border-radius:10px;padding:0.75rem 1rem;">
+        <div style="font-size:0.75rem;font-weight:600;color:#5a5a5a;margin-bottom:0.25rem;">替代方案</div>
+        <div id="hitlAlternatives" style="font-size:0.8rem;color:#767676;line-height:1.65;"></div>
+      </div>
+    </div>
+    <!-- 操作按钮 -->
+    <div style="padding:0 1.5rem 1.25rem;display:flex;gap:0.75rem;">
+      <button id="hitlRejectBtn" onclick="hitlDecide(false)" style="flex:1;padding:0.65rem;border:1.5px solid #E8E5E0;border-radius:10px;background:white;font-size:0.875rem;font-weight:600;color:#5a5a5a;cursor:pointer;font-family:inherit;transition:all 0.15s;">取消操作</button>
+      <button id="hitlApproveBtn" onclick="hitlDecide(true)" style="flex:1.4;padding:0.65rem;border:none;border-radius:10px;background:#191919;font-size:0.875rem;font-weight:600;color:white;cursor:pointer;font-family:inherit;transition:all 0.15s;">确认执行</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== P3: HITL 前端逻辑 =====
+var hitlCurrentConfirmId = null;
+var hitlCountdownTimer = null;
+var hitlCountdownSec = 60;
+
+function hitlShowModal(evt) {
+  var rule = evt.rule || {};
+  hitlCurrentConfirmId = evt.confirmId;
+  hitlCountdownSec = 60;
+
+  // 设置内容
+  document.getElementById('hitlTitle').textContent = rule.title || '危险操作';
+  document.getElementById('hitlDesc').textContent = rule.description || '';
+  document.getElementById('hitlConsequence').textContent = rule.consequence || '';
+  document.getElementById('hitlAlternatives').textContent = rule.alternatives || '';
+
+  // 风险级别颜色
+  var badge = document.getElementById('hitlLevelBadge');
+  var approveBtn = document.getElementById('hitlApproveBtn');
+  if (rule.level === 'high') {
+    badge.style.background = '#dc2626';
+    approveBtn.style.background = '#dc2626';
+  } else {
+    badge.style.background = '#d97706';
+    approveBtn.style.background = '#191919';
+  }
+
+  // 显示弹窗
+  var modal = document.getElementById('hitlModal');
+  modal.style.display = 'flex';
+
+  // 倒计时
+  hitlUpdateCountdown();
+  hitlCountdownTimer = setInterval(function() {
+    hitlCountdownSec--;
+    hitlUpdateCountdown();
+    if (hitlCountdownSec <= 0) {
+      clearInterval(hitlCountdownTimer);
+      hitlDecide(false, '操作已超时自动取消（60秒无响应）');
+    }
+  }, 1000);
+}
+
+function hitlUpdateCountdown() {
+  var el = document.getElementById('hitlCountdown');
+  if (!el) return;
+  el.textContent = hitlCountdownSec + 's';
+  if (hitlCountdownSec <= 10) {
+    el.style.color = '#dc2626';
+    el.style.background = '#FEF2F2';
+  } else if (hitlCountdownSec <= 20) {
+    el.style.color = '#d97706';
+    el.style.background = '#FFFBEB';
+  } else {
+    el.style.color = '#767676';
+    el.style.background = '#F5F3EF';
+  }
+}
+
+function hitlDecide(approved, customMsg) {
+  if (!hitlCurrentConfirmId) return;
+  clearInterval(hitlCountdownTimer);
+  var confirmId = hitlCurrentConfirmId;
+  hitlCurrentConfirmId = null;
+
+  // 隐藏弹窗
+  document.getElementById('hitlModal').style.display = 'none';
+
+  // 向后端发送决策
+  var token = localStorage.getItem('medagent_token');
+  var msg = customMsg || (approved ? '用户已批准此操作。' : '用户已取消此操作。');
+  fetch('/api/confirm-operation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ confirmId: confirmId, approved: approved, message: msg })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    console.log('[HITL] 决策已发送:', data);
+  }).catch(function(e) {
+    console.error('[HITL] 发送决策失败:', e);
+  });
+}
+
+// 监听 HITL SSE 事件
+document.addEventListener('hitl:confirmation_required', function(e) {
+  hitlShowModal(e.detail || {});
+});
+
+document.addEventListener('hitl:confirmation_result', function(e) {
+  var detail = e.detail || {};
+  // 在任务监控面板显示确认结果
+  var statusText = detail.approved ? '已批准，继续执行' : '已取消，调整策略';
+  if (typeof tmAddStep === 'function') {
+    tmAddStep('确认结果: ' + statusText, detail.approved ? 'done' : 'warning');
+  }
+});
 </script>
 
 </body>
