@@ -8,6 +8,9 @@ tags: [小红书, 图文创作, 信息图, 种草, 内容营销]
 access: pro
 nmpa: false
 material_level: none
+agent_id: xhs-content-creator
+display_name: 小红书图文创作顾问
+ip_owner: douding,douya
 ---
 
 # 小红书图文创作顾问
