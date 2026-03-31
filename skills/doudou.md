@@ -9,6 +9,8 @@ access: free
 nmpa: true
 material_level: none
 allowed_tools: [skill_dispatch, nmpa_search, query_med_db, web_search]
+agent_id: doudou
+display_name: 豆子
 ---
 
 # 小豆豆 — MedAgent Hub 的导航向导与 IP 种子
