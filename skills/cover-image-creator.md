@@ -8,6 +8,9 @@ tags: [封面图, 视觉设计, 内容创作, AI绘图, 品牌视觉]
 access: pro
 nmpa: false
 material_level: none
+agent_id: cover-image-creator
+display_name: 封面图创作顾问
+ip_owner: douya
 ---
 
 # 医美内容封面图创作顾问
