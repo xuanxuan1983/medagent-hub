@@ -8,6 +8,9 @@ tags: [写作, 内容创作, B站, 视频脚本, 工业化写作]
 access: pro
 nmpa: false
 material_level: none
+agent_id: super-writer
+display_name: 超级写作助手
+ip_owner: douya
 ---
 # 超级写作助手
 
