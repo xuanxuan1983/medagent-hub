@@ -108,7 +108,9 @@ const webSearchTool = {
     const { bochaSearch } = context;
     if (!bochaSearch) return { text: '联网搜索功能当前不可用。', searchResults: [], toolEvent: null };
     try {
-      const results = await bochaSearch(query, freshness);
+      // 修复：bochaSearch(query, count) 第二参数是数量，freshness 通过 context 传递
+      const searchResult = await bochaSearch(query, 5);
+      const results = searchResult?.results || (Array.isArray(searchResult) ? searchResult : []);
       if (results && results.length > 0) {
         const text = results.slice(0, 5).map((r, i) => `[${i + 1}] ${r.title}\n来源：${r.url}\n摘要：${r.snippet}`).join('\n\n');
         return { text, searchResults: results, toolEvent: { type: 'tool_call', tool: 'web_search', query } };
@@ -117,6 +119,52 @@ const webSearchTool = {
     } catch (e) {
       return { text: `联网搜索失败：${e.message}`, searchResults: [], toolEvent: null };
     }
+  }
+};
+
+// ===== 用户记忆查询工具 =====
+const getUserMemoryTool = {
+  id: 'get_user_memory',
+  definition: {
+    type: 'function',
+    function: {
+      name: 'get_user_memory',
+      description: '查询当前用户的历史对话记忆档案，获取用户身份、预算、皮肤类型、关注方向、所在城市、年龄段、治疗史等个人信息。当需要了解用户背景以提供个性化建议时调用此工具。',
+      parameters: {
+        type: 'object',
+        properties: {
+          fields: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '需要查询的字段列表，可选值：role/budget/skinType/concerns/city/ageGroup/treatmentHistory/goals。不传则返回全部。'
+          }
+        },
+        required: []
+      }
+    }
+  },
+  async execute(args, context) {
+    const { userMemory } = context;
+    if (!userMemory || Object.keys(userMemory).length === 0) {
+      return { text: '暂无该用户的历史记忆档案，请在对话中了解用户背景。', toolEvent: null };
+    }
+    const { fields } = args;
+    let mem = userMemory;
+    if (fields && fields.length > 0) {
+      mem = {};
+      for (const f of fields) if (userMemory[f] !== undefined) mem[f] = userMemory[f];
+    }
+    const parts = [];
+    if (mem.role) parts.push(`身份：${mem.role}`);
+    if (mem.city) parts.push(`城市：${mem.city}`);
+    if (mem.ageGroup) parts.push(`年龄段：${mem.ageGroup}`);
+    if (mem.budget) parts.push(`预算：${mem.budget >= 10000 ? (mem.budget/10000).toFixed(1)+'万元' : mem.budget+'元'}`);
+    if (mem.skinType) parts.push(`皮肤类型：${mem.skinType}`);
+    if (mem.concerns?.length > 0) parts.push(`关注方向：${mem.concerns.join('、')}`);
+    if (mem.goals) parts.push(`核心诉求：${mem.goals}`);
+    if (mem.treatmentHistory) parts.push(`治疗史：${mem.treatmentHistory}`);
+    const text = parts.length > 0 ? `用户档案：\n${parts.join('\n')}` : '用户档案暂无有效信息。';
+    return { text, toolEvent: { type: 'tool_call', tool: 'get_user_memory' } };
   }
 };
 
@@ -224,6 +272,7 @@ const TOOL_REGISTRY = {
   [queryMedDbTool.id]: queryMedDbTool,
   [webSearchTool.id]: webSearchTool,
   [skillDispatchTool.id]: skillDispatchTool,
+  [getUserMemoryTool.id]: getUserMemoryTool,
 };
 
 function getToolDefinitions(toolIds) {
