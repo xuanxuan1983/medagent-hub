@@ -12,6 +12,9 @@ access: free
 nmpa: true
 material_level: full
 allowed_tools: [nmpa_search, query_med_db, web_search]
+agent_id: sparring-partner
+display_name: 医美实战陪练机器人
+ip_owner: douding
 ---
 
 # Role: 医美实战陪练机器人 (Sales Sparring Partner)
