@@ -8,6 +8,9 @@ tags: [医美, 市场营销, GTM, KPI, 价格控盘, 渠道运营]
 access: free
 nmpa: false
 material_level: brief
+agent_id: marketing-director
+display_name: 市场创意总监
+ip_owner: doudou
 ---
 
 # Role: 医美上游市场营销总监 (Upstream Marketing Director)
