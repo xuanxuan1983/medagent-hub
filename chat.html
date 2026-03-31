@@ -3780,6 +3780,22 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 document.getElementById('uploadBtn').disabled = false;
 
                 document.getElementById('messageInput').focus();
+              } else if (evt.type === 'task_plan') {
+                // 任务规划层：展示规划步骤到任务监控面板
+                document.dispatchEvent(new CustomEvent('tm:task_plan', { detail: { steps: evt.steps } }));
+                // 自动展开任务监控面板
+                const tmPanel = document.getElementById('taskMonitorPanel');
+                if (tmPanel && !tmPanel.classList.contains('open')) {
+                  document.getElementById('toggleTaskMonitor')?.click();
+                }
+              } else if (evt.type === 'task_plan_update') {
+                // 规划步骤状态更新
+                document.dispatchEvent(new CustomEvent('tm:task_plan_update', { detail: { stepId: evt.stepId, status: evt.status } }));
+              } else if (evt.type === 'memory_retrieved') {
+                // 向量记忆检索到相关历史
+                if (evt.count > 0) {
+                  showToolStatusIndicator('memory', `记忆检索到 ${evt.count} 条相关历史...`);
+                }
               } else if (evt.type === 'error') {
                 bubble.textContent = '抱歉，遇到了问题：' + (evt.message || '请稍后再试');
                 // ★ 安全网：error 事件时也恢复输入框
@@ -5492,7 +5508,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       'query_med_db': '医美价格数据库',
       'nmpa_search': '药监局数据库',
       'skill_dispatch': '专家 Skill 调度',
-      'get_user_memory': '用户记忆库'
+      'get_user_memory': '用户记忆库',
+      'memory': '历史记忆检索'
     };
     const displayName = toolNames[tool] || tool;
     const badge = tool === 'skill_dispatch' ? 'skill' : 'tool';
@@ -5541,12 +5558,46 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   // 处理 skill_dispatch 事件：将专家名添加到技能区块
-  // 通过拦截 SSE 处理逻辑中的 skill_dispatch 分支
   document.addEventListener('tm:skill_dispatch', function(e) {
     const { displayName, skill_id } = e.detail || {};
     if (displayName) {
       tmAddSkill(displayName, 'skill', 'active');
       tmAddStep('调用专家：' + displayName, 'running');
+    }
+  });
+
+  // 处理 task_plan 事件：展示 Planner 生成的规划步骤
+  document.addEventListener('tm:task_plan', function(e) {
+    const { steps } = e.detail || {};
+    if (!steps || !steps.length) return;
+    // 先重置面板
+    tmReset();
+    // 添加标题步骤
+    steps.forEach(function(step) {
+      const id = ++_tm.stepCounter;
+      _tm.steps.push({ id: step.id || id, text: step.title + (step.description ? '：' + step.description : ''), status: 'pending' });
+    });
+    // 将第一步标记为 running
+    if (_tm.steps.length > 0) _tm.steps[0].status = 'running';
+    tmRenderTodo();
+    if (!_tm.open) toggleTaskMonitor();
+  });
+
+  // 处理 task_plan_update 事件：更新某个步骤的状态
+  document.addEventListener('tm:task_plan_update', function(e) {
+    const { stepId, status } = e.detail || {};
+    if (!stepId) return;
+    const step = _tm.steps.find(s => s.id === stepId);
+    if (step) {
+      step.status = status;
+      // 如果当前步骤 done，将下一步标记为 running
+      if (status === 'done') {
+        const idx = _tm.steps.indexOf(step);
+        if (idx < _tm.steps.length - 1 && _tm.steps[idx + 1].status === 'pending') {
+          _tm.steps[idx + 1].status = 'running';
+        }
+      }
+      tmRenderTodo();
     }
   });
 

@@ -1709,6 +1709,14 @@ const sessions = new Map();
 
 // ===== 定时任务模块启动（sessions 已定义）=====
 scheduledTasks.init(db, sessions);
+
+// ===== 向量记忆模块初始化 =====
+const vectorMemory = require('./vector-memory');
+vectorMemory.initDB(db);
+console.log('[VectorMemory] 初始化完成');
+
+// ===== 任务规划模块 =====
+const taskPlanner = require('./task-planner');
 // AI 执行器：定时任务触发时调用 imGetAIResponse（延迟注入，在 imGetAIResponse 定义后设置）
 scheduledTasks.startScheduler();
 
@@ -3033,12 +3041,35 @@ const server = http.createServer(async (req, res) => {
         console.warn('[用户记忆] 提取跳过:', e.message);
       }
 
+      // ===== 向量记忆检索（语义检索相关历史对话）=====
+      let vectorMemContext = '';
+      try {
+        const sfKey = process.env.SILICONFLOW_API_KEY || '';
+        if (sfKey && session.messages.length >= 2) { // 至少有一轮历史才检索
+          const relatedMemories = await vectorMemory.retrieveMemories(db, userCode, agentId, message, sfKey);
+          if (relatedMemories.length > 0) {
+            vectorMemContext = vectorMemory.formatMemoriesForPrompt(relatedMemories);
+            // 通知前端检索到的记忆数量
+            res.write(`data: ${JSON.stringify({ type: 'memory_retrieved', count: relatedMemories.length })}
+
+`);
+            console.log(`[VectorMemory] 检索到 ${relatedMemories.length} 条相关记忆`);
+          }
+        }
+      } catch (e) {
+        console.warn('[VectorMemory] 检索跳过:', e.message);
+      }
+
       // ===== 意图感知的多路检索系统 =====
       let searchResults = null;
       let enrichedSystemPrompt = session.systemPrompt;
       // 注入用户记忆上下文
       if (session._memoryContext) {
         enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + session._memoryContext;
+      }
+      // 注入向量记忆上下文
+      if (vectorMemContext) {
+        enrichedSystemPrompt = enrichedSystemPrompt + vectorMemContext;
       }
       const agentId = session.agentId;
 
@@ -3245,6 +3276,22 @@ const server = http.createServer(async (req, res) => {
       }
 
       let fullMessage = '';
+
+      // ===== 任务规划层（Planner）=====
+      // 对于复杂多步骤请求，先生成执行计划并推送到前端
+      let planSteps = null;
+      if (useToolCalling && taskPlanner.needsPlanning(message)) {
+        try {
+          const sfKey = process.env.SILICONFLOW_API_KEY || '';
+          const planModel = 'Qwen/Qwen2.5-7B-Instruct';
+          planSteps = await taskPlanner.generatePlan(message, session.agentName, sfKey, planModel);
+          taskPlanner.pushPlanToClient(res, planSteps);
+          console.log(`[Planner] 生成 ${planSteps.length} 步规划`);
+        } catch (e) {
+          console.warn('[Planner] 规划失败:', e.message);
+          planSteps = null;
+        }
+      }
 
       if (useToolCalling) {
         const tools = agentToolDefs.length > 0 ? agentToolDefs : [NMPA_TOOL_DEFINITION];
@@ -3479,15 +3526,22 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          // 追加工具结果到消息列表，继续下一轮
+            // 追加工具结果到消息列表，继续下一轮
           agentMessages = [
             ...agentMessages,
             assistantMsg1,
             { role: 'tool', tool_call_id: toolCallId, content: toolResultText }
           ];
 
+          // 更新规划步骤状态：将当前轮次对应的步骤标记为 done
+          if (planSteps && planSteps[agentTurn - 1]) {
+            taskPlanner.updatePlanStep(res, planSteps[agentTurn - 1].id, 'done');
+          }
+
           if (searchResults) {
-            res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}
+
+`);
           }
 
           // 如果已达到最大轮次，强制用 chatStream 生成最终回复
@@ -3584,6 +3638,17 @@ const server = http.createServer(async (req, res) => {
         stmtInsertMessage.run(sessionId, 'assistant', fullMessage);
         stmtUpdateSessionTime.run(sessionId);
       } catch (dbErr) { console.error('DB error:', dbErr.message); }
+
+      // ===== 异步保存向量记忆（不阻塞主流程）=====
+      if (fullMessage && fullMessage.length > 50) {
+        const sfKeyForMem = process.env.SILICONFLOW_API_KEY || '';
+        if (sfKeyForMem) {
+          setImmediate(() => {
+            vectorMemory.saveMemory(db, userCode, agentId, message, fullMessage, sfKeyForMem)
+              .catch(e => console.warn('[VectorMemory] 异步保存失败:', e.message));
+          });
+        }
+      }
 
       // Log
       const logTs = new Date().toISOString();
