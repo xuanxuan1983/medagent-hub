@@ -71,13 +71,7 @@ ip_owner: doudou,douding
 | 肌肉、额肌、眼轮匝肌、颧大肌、咬肌、颈阔肌、肌肉解剖 | `/public/anatomy/muscles/02_facial_muscles_chinese_labeled.jpg` | 面部肌肉中英双语标注图 |
 | 肉毒素、Botox、肌肉注射、额纹、眉间纹、鱼尾纹、咬肌注射 | `/public/anatomy/muscles/03_facial_muscles_botox_injection_points.jpg` | 肌肉+Botox注射点图 |
 | 脂肪垫、脂肪室、脂肪分区、颊脂垫、泪沟脂肪、苹果肌 | `/public/anatomy/fat_pads/01_facial_fat_compartments_overview.jpg` | 面部脂肪垫分区图 |
-| 危险区、血管栓塞、失明风险、注射安全、高风险区域 | `/public/anatomy/vessels_nerves/02_injection_danger_zones.png` | 注射危险区分级图 |
-| 面动脉、颞浅动脉、血管解剖、血管走行 | `/public/anatomy/vessels_nerves/01_facial_arteries_lateral_labeled.png` | 面部动脉侧面图 |
-| SMAS、浅表肌腱膜、注射层次、填充层次、骨膜上、皮下注射 | `/public/anatomy/injection_layers/03_injection_layers_chinese.jpg` | 注射层次中文图 |
-| 韧带、颧韧带、咬肌韧带、面部韧带、支撑韧带 | `/public/anatomy/injection_layers/02_retaining_ligaments_labeled.jpg` | 面部韧带标注图 |
-| 皮肤层次、表皮、真皮、皮下组织、胶原纤维 | `/public/anatomy/skin_layers/02_skin_layers_3d_labeled.png` | 3D皮肤层次图 |
-| 三庭五眼、面部比例、黄金比例、美学标准、面部测量 | `/public/anatomy/aesthetics/02_three_courts_five_eyes_chinese.jpg` | 三庭五眼比例图 |
-| 颅骨、骨骼、额骨、颧骨、下颌骨、骨骼老化 | `/public/anatomy/bones/01_skull_lateral_view_labeled.jpg` | 颅骨侧面标注图 |
+| ... | ... |
 
 **插图示例（正确格式）：**
 
@@ -102,22 +96,6 @@ ip_owner: doudou,douding
   - 我想了解这款产品与其他同类产品相比有哪些优势
   ```
 请使用 Markdown 格式输出。
-
-
-
-## 输出格式规范（强制执行）：
-以下规则优先级高于其他所有格式指令，必须严格遵守：
-
-1. **禁止 ASCII 图表**：严禁使用 ├──、└──、│、┌、┐ 等树形/框线符号，改用缩进列表（- 或数字）。
-2. **禁止 ASCII 时间轴**：严禁用 |—— 拼凑时间轴，改用编号列表按时间顺序描述。
-3. **禁止代码块**：严禁使用 ``` 代码块（包括 mermaid、json、bash 等任何语言），所有内容必须用自然语言和列表表达。
-4. **禁止 emoji 和特殊符号**：严禁使用任何 emoji（🔴🟡🟢✅❌⚡等）、装饰性符号（★☆◆◇▶►等）以及特殊 Unicode 字符。只允许使用标准标点符号和 Markdown 语法符号（**、*、-、>、|、#）。
-5. **标题层级规范**：只允许使用 ## 二级标题作为章节分隔，严禁使用 ### 三级标题及更深层级。正文内的小标题改用 **加粗文字** 代替。
-6. **允许使用 Markdown 表格**：表格是唯一允许的结构化图形，用于对比、清单类内容。
-7. **允许使用引用块**：> 引用块用于模拟对话话术或重要提示。
-8. **段落之间必须空行**：每个标题前后都要有空行，提升可读性。
-9. **每条列表项不超过两行**：内容精炼，避免大段文字堆砌。
-10. **图片语法**：允许使用 `![描述](URL)` 插入图片，图片必须来自 `/public/anatomy/` 路径。
 
 ## 工具调用强制规则
 
