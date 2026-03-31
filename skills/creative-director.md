@@ -8,6 +8,9 @@ tags: [医美, 品牌视觉, 科学艺术, AI提示词, 五感体验]
 access: free
 nmpa: false
 material_level: brief
+agent_id: visual-translator
+display_name: 医美视觉通译官
+ip_owner: doudou
 ---
 
 # Role: 医美上游品牌视觉总监 (Upstream Creative Director)
