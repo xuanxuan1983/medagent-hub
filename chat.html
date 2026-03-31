@@ -3708,6 +3708,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 } else {
                   showToolStatusIndicator(evt.tool, '正在调用工具...');
                 }
+              } else if (evt.type === 'tool_retry') {
+                // 自我纠错：工具失败重试/切换备用
+                const retryStatusMap = {
+                  switching: '⚠️ ' + (evt.tool || '') + ' 失败，切换备用工具...',
+                  recovered: '✅ 备用工具恢复成功',
+                  fallback: '知识库模式已启动'
+                };
+                const retryMsg = retryStatusMap[evt.status] || '工具重试中...';
+                showToolStatusIndicator('tool_retry', retryMsg);
+                document.dispatchEvent(new CustomEvent('tm:tool_retry', { detail: evt }));
               } else if (evt.type === 'search') {
                 searchResults = evt.results;
               } else if (evt.type === 'delta') {
@@ -5604,6 +5614,22 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         }
       }
       tmRenderTodo();
+    }
+  });
+
+  // 处理 tool_retry 事件：工具失败重试时在任务监控面板显示重试状态
+  document.addEventListener('tm:tool_retry', function(e) {
+    const { tool, status, fallback_tool } = e.detail || {};
+    const statusLabels = {
+      switching: '工具切换中',
+      recovered: '备用工具成功',
+      fallback: '已切换知识库模式'
+    };
+    const label = statusLabels[status] || '重试中';
+    const stepText = tool ? `⚠️ ${tool} 失败 → ${label}` : `⚠️ 工具失败 → ${label}`;
+    tmAddStep(stepText, status === 'recovered' ? 'done' : 'running');
+    if (fallback_tool) {
+      tmAddSkill(fallback_tool, 'tool', 'active');
     }
   });
 

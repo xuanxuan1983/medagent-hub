@@ -21,6 +21,12 @@ const http = require('http');
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const IM_CONFIG_FILE = path.join(DATA_DIR, 'im-config.json');
 
+// 获取用户独立的 IM 配置文件路径
+function getImConfigFile(userCode) {
+  if (!userCode) return IM_CONFIG_FILE;
+  return path.join(DATA_DIR, `im-config-${userCode}.json`);
+}
+
 // ===== 速率限制（防刷）=====
 const rateLimitMap = new Map(); // key: platform+userId, value: { count, resetAt }
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟
@@ -38,9 +44,14 @@ function checkRateLimit(key) {
 }
 
 // ===== 配置读写 =====
-function loadImConfig() {
+function loadImConfig(userCode) {
+  const configFile = getImConfigFile(userCode);
   try {
-    if (fs.existsSync(IM_CONFIG_FILE)) {
+    if (fs.existsSync(configFile)) {
+      return JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    }
+    // 如果用户配置不存在，尝试读取全局配置作为备用
+    if (userCode && fs.existsSync(IM_CONFIG_FILE)) {
       return JSON.parse(fs.readFileSync(IM_CONFIG_FILE, 'utf8'));
     }
   } catch (e) {
@@ -387,6 +398,73 @@ async function handleDingtalkWebhook(body, getAIResponse) {
 }
 
 // ===== 导出 =====
+/**
+ * 主动推送定时任务结果到配置的 IM 频道
+ * @param {string} userCode - 用户标识，用于加载对应用户的 IM 配置
+ * @param {string} taskTitle - 定时任务标题
+ * @param {string} output - AI 执行结果文本
+ * @param {object} options - { status: 'success'|'error', error: string }
+ */
+async function pushTaskResult(userCode, taskTitle, output, options = {}) {
+  const config = loadImConfig(userCode);
+  const status = options.status || 'success';
+  const pushed = [];
+
+  // 构建推送消息内容
+  const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+  const statusIcon = status === 'success' ? '✅' : '❌';
+  const preview = output ? output.slice(0, 300) + (output.length > 300 ? '...' : '') : '';
+  const msgText = [
+    `${statusIcon} 《MedAgent 定时任务》`,
+    `任务：${taskTitle}`,
+    `时间：${now}`,
+    `状态：${status === 'success' ? '成功' : '失败'}`,
+    status === 'error' ? `错误：${options.error || '未知错误'}` : '',
+    preview ? `\n结果预览：\n${preview}` : ''
+  ].filter(Boolean).join('\n');
+
+  // 推送到企业微信
+  if (config.wecom?.webhookUrl && config.wecom?.pushOnSchedule !== false) {
+    try {
+      const ok = await sendWecomMessage(config.wecom.webhookUrl, msgText);
+      if (ok) pushed.push('wecom');
+    } catch (e) { console.error('[Push] 企微推送失败:', e.message); }
+  }
+
+  // 推送到钉钉
+  if (config.dingtalk?.webhookUrl && config.dingtalk?.pushOnSchedule !== false) {
+    try {
+      const ok = await sendDingtalkMessage(config.dingtalk.webhookUrl, msgText, config.dingtalk.secret);
+      if (ok) pushed.push('dingtalk');
+    } catch (e) { console.error('[Push] 钉钉推送失败:', e.message); }
+  }
+
+  // 推送到飞书（需要自建应用，有 chat_id 配置时才推送）
+  if (config.feishu?.appId && config.feishu?.appSecret && config.feishu?.chatId && config.feishu?.pushOnSchedule !== false) {
+    try {
+      const token = await getFeishuToken(config.feishu.appId, config.feishu.appSecret);
+      if (token) {
+        const result = await httpPost(
+          'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id',
+          {
+            receive_id: config.feishu.chatId,
+            msg_type: 'text',
+            content: JSON.stringify({ text: msgText })
+          },
+          { Authorization: `Bearer ${token}` }
+        );
+        if (result.data?.code === 0) pushed.push('feishu');
+        else console.error('[Push] 飞书推送失败:', result.data);
+      }
+    } catch (e) { console.error('[Push] 飞书推送失败:', e.message); }
+  }
+
+  if (pushed.length > 0) {
+    console.log(`[Push] 定时任务结果已推送到: ${pushed.join(', ')} | 任务: ${taskTitle}`);
+  }
+  return pushed;
+}
+
 module.exports = {
   loadImConfig,
   saveImConfig,
@@ -396,4 +474,5 @@ module.exports = {
   sendWecomMessage,
   sendDingtalkMessage,
   getFeishuToken,
+  pushTaskResult,
 };

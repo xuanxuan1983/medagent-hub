@@ -213,9 +213,14 @@ function getUserLogs(userCode, limit = 50) {
 // ============================================================
 
 let aiExecutor = null; // 由 api-server.js 注入
+let imChannels = null; // 由 api-server.js 注入，用于主动推送
 
 function setAIExecutor(fn) {
   aiExecutor = fn;
+}
+
+function setImChannels(mod) {
+  imChannels = mod;
 }
 
 async function executeTask(task) {
@@ -251,6 +256,12 @@ async function executeTask(task) {
     `).run(next, task.id);
 
     console.log(`[ScheduledTask] Done: ${task.title}`);
+
+    // 主动推送：定时任务成功后推送结果到 IM 频道
+    if (imChannels && task.push_on_complete !== 0) {
+      imChannels.pushTaskResult(task.user_code, task.title, output, { status: 'success' })
+        .catch(e => console.error('[ScheduledTask] IM 推送失败:', e.message));
+    }
   } catch (err) {
     db.prepare(`
       UPDATE task_run_logs SET status='error', error=?, finished_at=datetime('now') WHERE id=?
@@ -258,6 +269,12 @@ async function executeTask(task) {
     const next = nextRunTime(task.cron_expr);
     db.prepare(`UPDATE scheduled_tasks SET last_run=datetime('now'), next_run=? WHERE id=?`).run(next, task.id);
     console.error(`[ScheduledTask] Error: ${task.title} — ${err.message}`);
+
+    // 主动推送：定时任务失败后推送错误通知
+    if (imChannels && task.push_on_complete !== 0) {
+      imChannels.pushTaskResult(task.user_code, task.title, '', { status: 'error', error: err.message })
+        .catch(e => console.error('[ScheduledTask] IM 错误推送失败:', e.message));
+    }
   }
 }
 
@@ -396,4 +413,4 @@ async function handleRequest(url, method, body, userCode, res) {
   return false; // 未匹配
 }
 
-module.exports = { init, handleRequest, startScheduler, setAIExecutor, cronDescription, nextRunTime, createTask, getUserTasks, getTask, updateTask, deleteTask, getTaskLogs, getUserLogs };
+module.exports = { init, handleRequest, startScheduler, setAIExecutor, setImChannels, cronDescription, nextRunTime, createTask, getUserTasks, getTask, updateTask, deleteTask, getTaskLogs, getUserLogs };

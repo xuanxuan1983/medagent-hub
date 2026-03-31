@@ -1777,6 +1777,9 @@ scheduledTasks.setAIExecutor(async ({ userCode, agentId, message, taskId }) => {
   return result;
 });
 
+// 注入 IM 频道模块，用于定时任务执行完成后主动推送结果
+scheduledTasks.setImChannels(imChannels);
+
 // 定期清理过期 IM 会话
 setInterval(() => {
   const now = Date.now();
@@ -3302,6 +3305,41 @@ const server = http.createServer(async (req, res) => {
         let agentTurn = 0;
         let agentDone = false;
 
+        // ===== 自我纠错状态 =====
+        const toolFailCount = {};   // { toolName: failCount }
+        const toolLastError = {};   // { toolName: errorMessage }
+        const MAX_TOOL_RETRIES = 2; // 同一工具最多重试次数
+        // 备用策略映射：主工具失败时切换到备用工具
+        const FALLBACK_STRATEGY = {
+          'web_search': 'nmpa_search',   // 联网搜索失败 → 药监局搜索
+          'nmpa_search': 'web_search',   // 药监局失败 → 联网搜索
+        };
+        // 自我纠错：执行工具，失败时自动重试/切换备用
+        async function executeToolWithRetry(toolName, toolArgs, context) {
+          const failCount = toolFailCount[toolName] || 0;
+          // 超过重试上限：注入错误摘要，提示 AI 切换策略
+          if (failCount >= MAX_TOOL_RETRIES) {
+            const errMsg = toolLastError[toolName] || '服务暂时不可用';
+            res.write(`data: ${JSON.stringify({ type: 'tool_retry', tool: toolName, status: 'fallback', message: '已切换为知识库回答' })}
+
+`);
+            return { text: `[${toolName} 已达重试上限，切换为知识库模式] 上次错误：${errMsg}。请直接基于已有知识和训练数据回答，不要再调用此工具。`, isFallback: true };
+          }
+          // 尝试备用策略
+          const fallbackTool = FALLBACK_STRATEGY[toolName];
+          if (failCount > 0 && fallbackTool) {
+            const fbFailCount = toolFailCount[fallbackTool] || 0;
+            if (fbFailCount < MAX_TOOL_RETRIES) {
+              res.write(`data: ${JSON.stringify({ type: 'tool_retry', tool: toolName, status: 'switching', fallback: fallbackTool, attempt: failCount + 1 })}
+
+`);
+              console.log(`[SelfCorrect] ${toolName} 失败 ${failCount} 次，切换到备用工具 ${fallbackTool}`);
+              return { text: `[自动切换到备用工具 ${fallbackTool}]`, switchTo: fallbackTool };
+            }
+          }
+          return null; // 正常执行
+        }
+
         while (!agentDone && agentTurn < MAX_TOOL_TURNS) {
           agentTurn++;
           console.log(`[AgenticLoop] 第 ${agentTurn} 轮 | messages=${agentMessages.length}`);
@@ -3403,7 +3441,24 @@ const server = http.createServer(async (req, res) => {
                 toolResultText = '药监局实时搜索未找到匹配结果。请优先使用系统提示词中的知识库参考资料回答。';
               }
             } catch (e) {
-              toolResultText = `NMPA 查询失败：${e.message}`;
+              toolFailCount['nmpa_search'] = (toolFailCount['nmpa_search'] || 0) + 1;
+              toolLastError['nmpa_search'] = e.message;
+              const retryResult = await executeToolWithRetry('nmpa_search', toolArgs, {});
+              if (retryResult?.switchTo === 'web_search') {
+                // 自动切换到联网搜索
+                try {
+                  const fallbackData = await bochaSearch(toolArgs.query || toolArgs.keyword || message, 8);
+                  toolResultText = fallbackData?.results?.length > 0
+                    ? fallbackData.results.slice(0, 5).map(r => `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`).join('\n\n')
+                    : '备用搜索也未找到相关结果，请基于已有知识回答。';
+                  res.write(`data: ${JSON.stringify({ type: 'tool_retry', tool: 'nmpa_search', status: 'recovered', fallback: 'web_search' })}\n\n`);
+                } catch (e2) {
+                  toolFailCount['web_search'] = (toolFailCount['web_search'] || 0) + 1;
+                  toolResultText = retryResult.text;
+                }
+              } else {
+                toolResultText = retryResult?.text || `NMPA 查询失败：${e.message}，请基于已有知识回答。`;
+              }
             }
 
           } else if (toolCallName === 'web_search') {
@@ -3420,7 +3475,25 @@ const server = http.createServer(async (req, res) => {
                 toolResultText = '联网搜索未找到相关结果，请基于已有知识回答。';
               }
             } catch (e) {
-              toolResultText = `联网搜索失败：${e.message}，请基于已有知识回答。`;
+              toolFailCount['web_search'] = (toolFailCount['web_search'] || 0) + 1;
+              toolLastError['web_search'] = e.message;
+              const retryResult = await executeToolWithRetry('web_search', toolArgs, {});
+              if (retryResult?.switchTo === 'nmpa_search') {
+                // 自动切换到药监局搜索
+                try {
+                  const fallbackQuery = toolArgs.query || toolArgs.keyword || message;
+                  const fallbackData = await nmpaSearch(fallbackQuery, detectNmpaProduct(fallbackQuery) || []);
+                  toolResultText = fallbackData?.success && fallbackData.results?.length > 0
+                    ? fallbackData.results.map(r => `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`).join('\n\n')
+                    : '备用药监局搜索也未找到结果，请基于已有知识回答。';
+                  res.write(`data: ${JSON.stringify({ type: 'tool_retry', tool: 'web_search', status: 'recovered', fallback: 'nmpa_search' })}\n\n`);
+                } catch (e2) {
+                  toolFailCount['nmpa_search'] = (toolFailCount['nmpa_search'] || 0) + 1;
+                  toolResultText = retryResult.text;
+                }
+              } else {
+                toolResultText = retryResult?.text || `联网搜索失败：${e.message}，请基于已有知识回答。`;
+              }
             }
 
           } else if (toolCallName === 'query_med_db') {
@@ -3432,7 +3505,23 @@ const server = http.createServer(async (req, res) => {
               });
               toolResultText = toolResult.text || '数据库查询无结果。';
             } catch (e) {
-              toolResultText = `价格数据库查询失败：${e.message}`;
+              toolFailCount['query_med_db'] = (toolFailCount['query_med_db'] || 0) + 1;
+              toolLastError['query_med_db'] = e.message;
+              // 价格库失败：自动切换到联网搜索作为备用
+              if ((toolFailCount['query_med_db'] || 0) <= MAX_TOOL_RETRIES) {
+                res.write(`data: ${JSON.stringify({ type: 'tool_retry', tool: 'query_med_db', status: 'switching', fallback: 'web_search', attempt: toolFailCount['query_med_db'] })}\n\n`);
+                try {
+                  const fallbackData = await bochaSearch(toolArgs.keyword || message, 5);
+                  toolResultText = fallbackData?.results?.length > 0
+                    ? `[价格库不可用，已切换联网搜索] ` + fallbackData.results.slice(0, 3).map(r => `[来源] ${r.title}\n${r.snippet}`).join('\n\n')
+                    : `价格数据库查询失败：${e.message}，联网备用搜索也无结果。`;
+                  res.write(`data: ${JSON.stringify({ type: 'tool_retry', tool: 'query_med_db', status: 'recovered', fallback: 'web_search' })}\n\n`);
+                } catch (e2) {
+                  toolResultText = `价格数据库查询失败：${e.message}`;
+                }
+              } else {
+                toolResultText = `[价格库已达重试上限] 请基于已知市场行情回答。`;
+              }
             }
 
           } else if (toolCallName === 'skill_dispatch') {
