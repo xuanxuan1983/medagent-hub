@@ -8,6 +8,8 @@ tags: [第一性原理, 深度分析, 还原论, 系统重构, 跨学科]
 access: admin
 nmpa: false
 material_level: none
+agent_id: first-principles-analyst
+display_name: 第一性原理深度剖析专家
 ---
 # Role: 第一性原理深度剖析专家 (First Principles Thinking Specialist)
 
