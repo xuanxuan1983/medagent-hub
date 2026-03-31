@@ -686,6 +686,31 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       background: var(--text); color: white; font-size: 0.85rem; font-weight: 600; cursor: pointer;
     }
     .new-task-submit-btn:hover { opacity: 0.85; }
+    /* 定时任务模板选择区 */
+    .task-templates {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+    }
+    .task-tpl-item {
+      padding: 0.65rem 0.75rem; border-radius: 8px;
+      border: 1.5px solid var(--border); background: var(--bg-warm);
+      cursor: pointer; transition: all 0.12s;
+    }
+    .task-tpl-item:hover {
+      border-color: var(--text); background: white;
+    }
+    .task-tpl-item.selected {
+      border-color: var(--text); background: white;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
+    }
+    .task-tpl-name {
+      font-size: 0.82rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem;
+    }
+    .task-tpl-desc {
+      font-size: 0.72rem; color: var(--text-3); line-height: 1.4; margin-bottom: 0.25rem;
+    }
+    .task-tpl-cron {
+      font-size: 0.7rem; color: var(--text-2);
+    }
 
     /* ===== AGENT STORE VIEW ===== */
     .store-view {
@@ -1909,7 +1934,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   <!-- CHAT VIEW -->
   <div class="chat-view" id="chatView">
     <div class="chat-topbar">
-      <div class="chat-agent-avatar" id="topbarAvatar">🤖</div>
+      <div class="chat-agent-avatar" id="topbarAvatar">AI</div>
       <div>
         <div class="chat-agent-name" id="topbarName">加载中...</div>
         <div class="chat-agent-desc" id="topbarDesc">正在初始化...</div>
@@ -1917,9 +1942,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <div class="chat-status" id="chatStatus" style="display:none">
         <div class="chat-status-dot"></div>在线
       </div>
-      <button class="chat-topbar-btn" onclick="showHistory()">📜<span class="btn-label"> 历史</span></button>
+      <button class="chat-topbar-btn" onclick="showHistory()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M7 8h10M7 12h10M7 16h6"/></svg><span class="btn-label"> 历史</span></button>
       <button class="chat-topbar-btn" onclick="clearChat()"><span class="btn-label">清空对话</span></button>
-      <button class="chat-topbar-btn" onclick="openSettings('api')">⚙<span class="btn-label"> 设置</span></button>
+      <button class="chat-topbar-btn" onclick="openSettings('api')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="btn-label"> 设置</span></button>
       <!-- 任务监控开关按鈕 -->
       <button class="task-monitor-open-btn" id="taskMonitorToggleBtn" onclick="toggleTaskMonitor()" title="任务监控">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="9" x2="21" y2="9"/><line x1="15" y1="15" x2="21" y2="15"/></svg>
@@ -1949,10 +1974,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             <div class="chat-input-footer">
               <div class="chat-input-left">
                 <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
-                  📎<span class="btn-label"> 上传文件</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg><span class="btn-label"> 上传文件</span>
                 </button>
                 <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
-                  🌐<span class="btn-label"> 联网</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg><span class="btn-label"> 联网</span>
                 </button>
                 <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
               </div>
@@ -2038,6 +2063,41 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   <div class="new-task-modal">
     <h3>新建定时任务</h3>
     <div class="new-task-field">
+      <label>快速模板</label>
+      <div class="task-templates">
+        <div class="task-tpl-item" onclick="applyTaskTemplate('news_daily')">
+          <div class="task-tpl-name">AI 医美日报</div>
+          <div class="task-tpl-desc">每日早间搜集医美行业动态，自动整理成日报</div>
+          <div class="task-tpl-cron">每天 09:00</div>
+        </div>
+        <div class="task-tpl-item" onclick="applyTaskTemplate('competitor_track')">
+          <div class="task-tpl-name">竞品动态追踪</div>
+          <div class="task-tpl-desc">每周监控主要竞品项目、定价及营销动态</div>
+          <div class="task-tpl-cron">每周一 10:00</div>
+        </div>
+        <div class="task-tpl-item" onclick="applyTaskTemplate('customer_followup')">
+          <div class="task-tpl-name">客户回访提醒</div>
+          <div class="task-tpl-desc">每天下午生成待回访客户名单及话术建议</div>
+          <div class="task-tpl-cron">每天 14:00</div>
+        </div>
+        <div class="task-tpl-item" onclick="applyTaskTemplate('content_generate')">
+          <div class="task-tpl-name">内容生产计划</div>
+          <div class="task-tpl-desc">每周自动生成一周小红书/公众号内容选题计划</div>
+          <div class="task-tpl-cron">每周一 09:00</div>
+        </div>
+        <div class="task-tpl-item" onclick="applyTaskTemplate('price_monitor')">
+          <div class="task-tpl-name">项目价格监测</div>
+          <div class="task-tpl-desc">每天查询指定项目市场价格区间，异常时预警</div>
+          <div class="task-tpl-cron">每天 09:30</div>
+        </div>
+        <div class="task-tpl-item" onclick="applyTaskTemplate('weekly_report')">
+          <div class="task-tpl-name">周报自动生成</div>
+          <div class="task-tpl-desc">每周五整合本周对话数据生成经营周报</div>
+          <div class="task-tpl-cron">每周五 17:00</div>
+        </div>
+      </div>
+    </div>
+    <div class="new-task-field">
       <label>任务名称</label>
       <input type="text" id="newTaskTitle" placeholder="例：AI 医美新闻日报" maxlength="40" />
     </div>
@@ -2079,7 +2139,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 <div class="modal-overlay" id="historyModal" style="display:none">
   <div class="modal-card" style="position:relative;max-width:480px;max-height:80vh;display:flex;flex-direction:column">
     <button class="modal-close" onclick="closeHistory()">✕</button>
-    <div style="font-weight:700;font-size:1rem;margin-bottom:0.75rem;padding-right:2rem">📜 历史对话记录</div>
+    <div style="font-weight:700;font-size:1rem;margin-bottom:0.75rem;padding-right:2rem">历史对话记录</div>
     <div id="historyList" style="flex:1;overflow-y:auto;min-height:200px">
       <div style="text-align:center;color:var(--text-3);padding:2rem;font-size:0.85rem">加载中...</div>
     </div>
@@ -2217,7 +2277,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <!-- Notion 风格套餐升级 -->
         <!-- 内测期间提示条 -->
         <div style="background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem">
-          <div style="font-size:0.825rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">🎉 内测期间权益</div>
+                  <div style="font-size:0.825rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">内测期间权益</div>
           <div style="font-size:0.775rem;color:var(--text-3);line-height:1.6">内测期间所有用户默认开放全部 21 个医美专属 Agent。提交反馈可额外解锁内容创作全套工具。</div>
         </div>
 
@@ -2293,7 +2353,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <div class="modal-pane" id="pane-feedback">
         <!-- 已解锁状态提示 -->
         <div id="feedbackUnlockedBanner" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem">
-          <div style="font-size:0.875rem;font-weight:600;color:#15803d;margin-bottom:0.2rem">✅ 内容创作类 Agent 已解锁</div>
+          <div style="font-size:0.875rem;font-weight:600;color:#15803d;margin-bottom:0.2rem">内容创作类 Agent 已解锁</div>
           <div style="font-size:0.775rem;color:#166534">感谢你的宝贵反馈！你已获得内容创作全套工具的使用权限。</div>
         </div>
 
@@ -2869,7 +2929,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const a = g.agents.find(x => x.id === agentId);
         if (a) return a.icon;
       }
-      return '🤖';
+      return 'AI';
     }
 
     // Render favorites
@@ -2881,7 +2941,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       favSessions.forEach(s => {
         const btn = document.createElement('button');
         btn.className = 'sidebar-history-item';
-        btn.innerHTML = `<span class="sidebar-history-item-icon">${getAgentIcon(s.agentId)}</span><span class="sidebar-history-item-text">${s.preview || s.agentName || s.agentId}</span><span class="sidebar-history-item-star">★</span>`;
+        btn.innerHTML = `<span class="sidebar-history-item-icon">${getAgentIcon(s.agentId)}</span><span class="sidebar-history-item-text">${s.preview || s.agentName || s.agentId}</span><span class="sidebar-history-item-star">&#9733;</span>`;
         btn.onclick = () => loadHistorySession(s.id, s.agentId);
         favList.appendChild(btn);
       });
@@ -2901,7 +2961,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         btn.innerHTML = `
           <span class="sidebar-history-item-icon">${getAgentIcon(s.agentId)}</span>
           <span class="sidebar-history-item-text">${s.preview || s.agentName || s.agentId}</span>
-          <span class="sidebar-history-item-star" style="opacity:${isFav?1:0.25};cursor:pointer" title="${isFav?'取消收藏':'添加收藏'}" onclick="event.stopPropagation();toggleFavorite('${s.id}')">${isFav?'★':'☆'}</span>`;
+          <span class="sidebar-history-item-star" style="opacity:${isFav?1:0.25};cursor:pointer" title="${isFav?'取消收藏':'添加收藏'}" onclick="event.stopPropagation();toggleFavorite('${s.id}')">${isFav?'&#9733;':'&#9734;'}</span>`;
         btn.onclick = () => loadHistorySession(s.id, s.agentId);
         histList.appendChild(btn);
       });
@@ -3170,8 +3230,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   function getFileIcon(name) {
     const ext = name.split('.').pop().toLowerCase();
-    const icons = { pdf: '📕', doc: '📄', docx: '📄', xls: '📊', xlsx: '📊', txt: '📝', csv: '📊', md: '📝', png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️', webp: '🖼️', bmp: '🖼️' };
-    return icons[ext] || '📎';
+    const icons = { pdf: 'PDF', doc: 'DOC', docx: 'DOC', xls: 'XLS', xlsx: 'XLS', txt: 'TXT', csv: 'CSV', md: 'MD', png: 'IMG', jpg: 'IMG', jpeg: 'IMG', gif: 'IMG', webp: 'IMG', bmp: 'IMG' };
+    return icons[ext] || 'FILE';
   }
 
   function formatFileSize(bytes) {
@@ -3711,8 +3771,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
               } else if (evt.type === 'tool_retry') {
                 // 自我纠错：工具失败重试/切换备用
                 const retryStatusMap = {
-                  switching: '⚠️ ' + (evt.tool || '') + ' 失败，切换备用工具...',
-                  recovered: '✅ 备用工具恢复成功',
+                  switching: (evt.tool || '') + ' 失败，切换备用工具...',
+                  recovered: '备用工具恢复成功',
                   fallback: '知识库模式已启动'
                 };
                 const retryMsg = retryStatusMap[evt.status] || '工具重试中...';
@@ -3778,7 +3838,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 // 思考结束，更新思考框标题
                 const rBox = bubble.querySelector('.reasoning-box summary');
                 if (rBox && rBox.textContent.includes('正在')) {
-                  rBox.textContent = '💡 思考过程（点击展开）';
+                  rBox.textContent = '思考过程（点击展开）';
                 }
                 // 保护：如果 fullText 为空，说明 delta 事件未收到，显示错误提示
                 if (!fullText && !bubble.querySelector('.reasoning-box')) {
@@ -3866,7 +3926,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     avatar.className = 'msg-avatar';
     if (agent) {
       avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
-    } else { avatar.textContent = '🤖'; }
+    } else { avatar.textContent = 'AI'; }
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
     bubble.innerHTML = '<span style="opacity:0.5">█</span>'; // blinking cursor
@@ -3964,7 +4024,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const links = searchResults.slice(0, 5).map((s, i) =>
         '<a href="' + s.url + '" target="_blank" rel="noopener" title="' + (s.title || s.url) + '">[' + (i+1) + '] ' + (s.title || s.url) + '</a>'
       ).join('');
-      srcDiv.innerHTML = '<span class="src-label">🔍 联网参考：</span>' + links;
+      srcDiv.innerHTML = '<span class="src-label">联网参考：</span>' + links;
       bubble.appendChild(srcDiv);
     }
 
@@ -3987,12 +4047,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       exportBar.appendChild(exportTitle);
       const pdfBtn = document.createElement('button');
       pdfBtn.className = 'export-btn';
-      pdfBtn.innerHTML = '📄 PDF';
+      pdfBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF';
       pdfBtn.onclick = () => exportMessage(mainContent, 'pdf', pdfBtn);
       exportBar.appendChild(pdfBtn);
       const wordBtn = document.createElement('button');
       wordBtn.className = 'export-btn';
-      wordBtn.innerHTML = '📝 Word';
+      wordBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg> Word';
       wordBtn.onclick = () => exportMessage(mainContent, 'word', wordBtn);
       exportBar.appendChild(wordBtn);
       bubble.appendChild(exportBar);
@@ -4238,7 +4298,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     } else if (agent) {
       avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else {
-      avatar.textContent = '🤖';
+      avatar.textContent = 'AI';
     }
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
@@ -4356,7 +4416,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const links = searchResults.slice(0, 5).map((s, i) =>
           `<a href="${s.url}" target="_blank" rel="noopener" title="${s.title || s.url}">[${i+1}] ${s.title || s.url}</a>`
         ).join('');
-        srcDiv.innerHTML = `<span class="src-label">🔍 联网参考：</span>${links}`;
+        srcDiv.innerHTML = `<span class="src-label">联网参考：</span>${links}`;
         bubble.appendChild(srcDiv);
       }
       const feedback = document.createElement('div');
@@ -4517,7 +4577,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     avatar.className = 'msg-avatar';
     if (agent) {
       avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
-    } else { avatar.textContent = '🤖'; }
+    } else { avatar.textContent = 'AI'; }
     const dots = document.createElement('div');
     dots.className = 'typing-dots';
     dots.innerHTML = '<svg class=\'typing-pen-svg\' width=\'64\' height=\'20\' viewBox=\'0 0 64 20\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'><path class=\'pen-path\' d=\'M4 16 Q12 4 20 14 Q28 4 36 14 Q44 4 52 14 Q58 8 62 10\' stroke=\'#AEAAA5\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\' fill=\'none\'/></svg>';
@@ -4677,7 +4737,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const data = await res.json();
       if (data.success) {
         closeCreditApply();
-        showToast('申请已提交，管理员將24小时内处理 ✅');
+        showToast('申请已提交，管理员将24小时内处理');
       } else {
         showToast(data.error || '提交失败，请重试');
         btn.disabled = false;
@@ -4802,7 +4862,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const d = await r.json();
         if (d.paid) {
           clearInterval(payCheckTimer);
-          document.getElementById('payStatus').innerHTML = '✅ 支付成功！正在刷新...';
+          document.getElementById('payStatus').innerHTML = '支付成功，正在刷新...';
           setTimeout(() => { closePayModal(); location.reload(); }, 1500);
         }
       } catch {}
@@ -4839,7 +4899,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           const a = g.agents.find(x => x.id === agentId);
           if (a) return a.icon;
         }
-        return '🤖';
+        return 'AI';
       }
 
       function formatTime(ts) {
@@ -4890,7 +4950,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       let agent = null;
       AGENT_GROUPS.forEach(g => { const a = g.agents.find(x => x.id === (agentId || data.agentId)); if (a) agent = a; });
       if (!agent) {
-        agent = { id: agentId || data.agentId, icon: '🤖', name: data.agentName || agentId, desc: '' };
+        agent = { id: agentId || data.agentId, icon: 'AI', name: data.agentName || agentId, desc: '' };
       }
 
       // Switch to chat view
@@ -5626,7 +5686,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       fallback: '已切换知识库模式'
     };
     const label = statusLabels[status] || '重试中';
-    const stepText = tool ? `⚠️ ${tool} 失败 → ${label}` : `⚠️ 工具失败 → ${label}`;
+    const stepText = tool ? `${tool} 失败 > ${label}` : `工具失败 > ${label}`;
     tmAddStep(stepText, status === 'recovered' ? 'done' : 'running');
     if (fallback_tool) {
       tmAddSkill(fallback_tool, 'tool', 'active');
@@ -5640,7 +5700,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   function loadScheduleTasks() {
     var body = document.getElementById('scheduleBody');
-    body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⏳</div><div class="task-empty-title">加载中...</div></div>';
+    body.innerHTML = '<div class="task-empty"><div class="task-empty-title">加载中...</div></div>';
     var token = localStorage.getItem('medagent_token');
     fetch('/api/scheduled-tasks', { headers: { 'Authorization': 'Bearer ' + token } })
       .then(function(r) { return r.json(); })
@@ -5649,7 +5709,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         renderScheduleTasks();
       })
       .catch(function() {
-        body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⚠️</div><div class="task-empty-title">加载失败</div></div>';
+        body.innerHTML = '<div class="task-empty"><div class="task-empty-title">加载失败</div></div>';
       });
   }
 
@@ -5657,7 +5717,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (scheduleCurrentTab === 'logs') { loadScheduleLogs(); return; }
     var body = document.getElementById('scheduleBody');
     if (scheduleTasks.length === 0) {
-      body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⏰</div><div class="task-empty-title">暂无定时任务</div><div class="task-empty-desc">点击「新建定时任务」创建你的第一个自动化任务<br>也可在对话中说“每天早上送我医美日报”自动创建</div></div>';
+      body.innerHTML = '<div class="task-empty"><div class="task-empty-title">暂无定时任务</div><div class="task-empty-desc">点击「新建定时任务」创建你的第一个自动化任务<br>也可在对话中说“每天早上送我医美日报”自动创建</div></div>';
       return;
     }
     var html = '<div class="schedule-grid">';
@@ -5692,14 +5752,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   function loadScheduleLogs() {
     var body = document.getElementById('scheduleBody');
-    body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⏳</div><div class="task-empty-title">加载中...</div></div>';
+    body.innerHTML = '<div class="task-empty"><div class="task-empty-title">加载中...</div></div>';
     var token = localStorage.getItem('medagent_token');
     fetch('/api/scheduled-tasks/logs/all', { headers: { 'Authorization': 'Bearer ' + token } })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var logs = data.logs || [];
         if (logs.length === 0) {
-          body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">📝</div><div class="task-empty-title">暂无执行记录</div></div>';
+          body.innerHTML = '<div class="task-empty"><div class="task-empty-title">暂无执行记录</div></div>';
           return;
         }
         var html = '<div class="log-list">';
@@ -5723,7 +5783,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         body.innerHTML = html;
       })
       .catch(function() {
-        body.innerHTML = '<div class="task-empty"><div class="task-empty-icon">⚠️</div><div class="task-empty-title">加载失败</div></div>';
+        body.innerHTML = '<div class="task-empty"><div class="task-empty-title">加载失败</div></div>';
       });
   }
 
@@ -5791,7 +5851,76 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     document.getElementById('newTaskDesc').value = '';
     document.getElementById('newTaskCron').value = '0 9 * * *';
     document.getElementById('cronPreview').textContent = '每天 09:00 执行';
+    // 清除模板选中状态
+    document.querySelectorAll('.task-tpl-item').forEach(function(el) { el.classList.remove('selected'); });
     setTimeout(function() { document.getElementById('newTaskTitle').focus(); }, 100);
+  }
+
+  // 定时任务模板数据
+  var TASK_TEMPLATES = {
+    news_daily: {
+      title: 'AI 医美日报',
+      desc: '搜索今日医美行业最新动态，包括监管政策、新技术、市场动向，整理前 5 条重要资讯，每条包含标题、来源和一句话摘要。输出格式简洁，方便阅读。',
+      cron: '0 9 * * *',
+      cronLabel: '每天 09:00',
+      agent: 'news_reporter'
+    },
+    competitor_track: {
+      title: '竞品动态追踪',
+      desc: '搜索本周医美机构竞品动态，包括：1.新项目或价格调整 2.营销活动与促销策略 3.客户口碑反馈。整理为表格格式，并给出应对建议。',
+      cron: '0 10 * * 1',
+      cronLabel: '每周一 10:00',
+      agent: 'market_analyst'
+    },
+    customer_followup: {
+      title: '客户回访提醒',
+      desc: '根据客户最近的咨询记录，生成今日建议回访的客户名单，并为每位客户提供个性化回访话术建议。输出格式：客户名称 | 上次咨询内容 | 建议话术。',
+      cron: '0 14 * * *',
+      cronLabel: '每天 14:00',
+      agent: 'senior_consultant'
+    },
+    content_generate: {
+      title: '内容生产计划',
+      desc: '为医美机构生成本周 7 天的内容选题计划，包括小红书和公众号各 3-4 个选题，每个选题附带关键词、目标人群和预期点击率分析。',
+      cron: '0 9 * * 1',
+      cronLabel: '每周一 09:00',
+      agent: 'content_creator'
+    },
+    price_monitor: {
+      title: '项目价格监测',
+      desc: '查询玻尿酸、肉毒素、水光针、热玛等主流项目当前市场价格区间，对比上周变化，如有大幅波动（超过 15%）则标注预警。',
+      cron: '30 9 * * *',
+      cronLabel: '每天 09:30',
+      agent: 'market_analyst'
+    },
+    weekly_report: {
+      title: '周报自动生成',
+      desc: '整合本周对话数据，生成经营周报，包括：1.客户咨询量及趋势 2.热门项目 TOP5 3.常见问题汇总 4.下周建议重点。输出为结构化报告格式。',
+      cron: '0 17 * * 5',
+      cronLabel: '每周五 17:00',
+      agent: 'senior_consultant'
+    }
+  };
+
+  function applyTaskTemplate(tplId) {
+    var tpl = TASK_TEMPLATES[tplId];
+    if (!tpl) return;
+    // 选中状态
+    document.querySelectorAll('.task-tpl-item').forEach(function(el) { el.classList.remove('selected'); });
+    event.currentTarget.classList.add('selected');
+    // 填充表单
+    document.getElementById('newTaskTitle').value = tpl.title;
+    document.getElementById('newTaskDesc').value = tpl.desc;
+    document.getElementById('newTaskCron').value = tpl.cron;
+    document.getElementById('cronPreview').textContent = tpl.cronLabel + ' 执行';
+    document.getElementById('cronPreview').style.color = 'var(--coral)';
+    // 选中 Agent
+    var agentSel = document.getElementById('newTaskAgent');
+    if (agentSel) {
+      for (var i = 0; i < agentSel.options.length; i++) {
+        if (agentSel.options[i].value === tpl.agent) { agentSel.selectedIndex = i; break; }
+      }
+    }
   }
 
   function closeNewTaskModal() {
