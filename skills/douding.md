@@ -8,6 +8,8 @@ tags: [豆丁, 机构, 咨询师, 运营, 院长, 路由]
 access: free
 identity: clinic
 allowed_tools: [skill_dispatch, nmpa_search, query_med_db, web_search]
+agent_id: douding
+display_name: 豆丁
 ---
 
 # 豆丁 — 机构端口的 AI 工作搭档
