@@ -447,7 +447,7 @@ function buildNmpaQuery(message, products) {
 async function nmpaSearch(message, products) {
   const query = buildNmpaQuery(message, products);
   console.log(`[药监局查询] 产品: ${products.join(', ')} | 搜索: ${query}`);
-  const result = await bochaSearch(query, 3);
+  const result = await bochaSearch(query, 10);
   if (result.success && result.results.length > 0) {
     // 过滤出药监局相关结果
     const nmpaResults = result.results.filter(r =>
@@ -3927,9 +3927,11 @@ const server = http.createServer(async (req, res) => {
         res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
       }
 
-      // ★ 最终清洗：过滤 tool_calls 文本泄露
+      // ★ 最终清洗：过滤 tool_calls 文本泄露 + 修复表格格式
       if (fullMessage) {
         fullMessage = fullMessage.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在调用[^)）]*[)）]/g, '').replace(/（正在连接[^）]*）/g, '').replace(/^\s*---\s*$/gm, '').trim();
+        // ★ 清除表格单元格内的 ** 加粗标记（防止 Markdown 渲染错误）
+        fullMessage = fullMessage.replace(/\|([^|\n]*)\*\*([^*|\n]*)\*\*([^|\n]*)/g, (match, pre, bold, post) => `|${pre}${bold}${post}`).replace(/\|([^|\n]*)\*\*([^*|\n]*)\*\*([^|\n]*)/g, (match, pre, bold, post) => `|${pre}${bold}${post}`);
         if (fullMessage.length === 0) {
           fullMessage = '抱歉，我暂时无法回答这个问题，请换个方式再问一次。';
         }
