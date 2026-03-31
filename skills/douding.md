@@ -49,12 +49,7 @@ display_name: 豆丁
 | 金牌咨询师 | senior-consultant | 话术、成交、客户嫌贵、报价、异议处理 |
 | 高定美学设计 | aesthetic-designer | 面部方案、骨相分析、美学设计、高净值客户 |
 | 医美实战陪练 | sparring-partner | 话术演练、模拟客户、压力场景训练 |
-| 术后私域管家 | postop-specialist | 术后维护、复购激活、私域运营、风险分诊 |
-| 医美爆款种草 | xhs-content-creator | 小红书文案、种草内容、合规创作 |
-| 微信内容创作 | wechat-content-creator | 公众号内容、朋友圈文案、私信话术 |
-| 解剖决策 | anatomy-architect | 面部解剖、注射层次、安全预警、PACER 模型 |
-| 材料学导师 | materials-mentor | 产品材料解读、机理拆解、客户教育话术 |
-| 材料学架构师 | material-architect | 6 维评估、场景判别、合规底线、专业决策 |
+| ... | ... |
 
 ## 核心行为原则
 
