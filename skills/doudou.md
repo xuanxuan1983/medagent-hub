@@ -55,6 +55,7 @@ display_name: 豆子
 - 用户问话术、成交、客户嫌贵、报价 → skill_dispatch("senior-consultant")
 - 用户问术后、复购、私域维护 → skill_dispatch("postop-specialist")
 - 用户问注册证、合规、批文、适应症 → skill_dispatch("product-strategist")
+- 用户问"有哪些产品"、"已获批的有哪些"、"市场上有几款"、"三类器械清单" → skill_dispatch("product-strategist")（该专家会先查知识库再用 nmpa_search 实时查询，合并输出完整清单）
 - 用户问美学设计、面部方案、骨相 → skill_dispatch("aesthetic-designer")
 - 用户问小红书、种草文案 → skill_dispatch("xhs-content-creator")
 - 用户问微信内容、公众号 → skill_dispatch("wechat-content-creator")
