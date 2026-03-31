@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MedAgent Hub</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
   <script>
 /**
  * marked v15.0.12 - a markdown parser
@@ -101,7 +101,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     html, body { height: 100%; overflow: hidden; }
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Noto Sans SC', 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
       background: var(--bg-warm);
       color: var(--text);
       display: flex;
@@ -998,33 +998,37 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   .copy-btn:hover { background: #f0f0f0; color: #333; }
   .copy-btn.copied { color: #4caf50; border-color: #4caf50; }
   .msg-bubble { position: relative; }
-.msg-bubble {
+    .msg-bubble {
       position: relative;
-      max-width: 72%; padding: 0.875rem 1.1rem;
-      border-radius: 14px; font-size: 0.875rem; line-height: 1.75;
-      background: white; border: 1px solid var(--border); color: var(--text);
+      max-width: 72%; padding: 1rem 1.25rem;
+      border-radius: 16px; font-size: 0.9375rem; line-height: 1.85;
+      font-family: 'Noto Sans SC', 'PingFang SC', -apple-system, sans-serif;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      background: white; border: 1px solid var(--border); color: #2d2d2d;
     }
     .msg-row.user .msg-bubble {
       background: var(--text); color: white; border-color: var(--text);
     }
-    /* Markdown 内容样式 */
-    .msg-bubble p { margin: 0 0 0.6rem; }
+    /* Markdown 内容样式 —— 温暖治愈风格 */
+    .msg-bubble p { margin: 0 0 0.85rem; line-height: 1.85; }
     .msg-bubble p:last-child { margin-bottom: 0; }
-    .msg-bubble ul, .msg-bubble ol { padding-left: 1.4rem; margin: 0 0 0.6rem; }
-    .msg-bubble li { margin-bottom: 0.3rem; line-height: 1.65; }
-    .msg-bubble li > ul, .msg-bubble li > ol { margin-top: 0.2rem; margin-bottom: 0; }
-    .msg-bubble strong { font-weight: 600; color: var(--text); }
-    .msg-bubble em { font-style: italic; color: var(--text-2); }
-    /* 标题样式 */
+    .msg-bubble ul, .msg-bubble ol { padding-left: 1.5rem; margin: 0 0 0.85rem; }
+    .msg-bubble li { margin-bottom: 0.45rem; line-height: 1.8; }
+    .msg-bubble li > ul, .msg-bubble li > ol { margin-top: 0.3rem; margin-bottom: 0; }
+    .msg-bubble strong { font-weight: 600; color: #1a1a1a; }
+    .msg-bubble em { font-style: normal; color: var(--text-2); font-weight: 300; }
+    /* 标题样式 —— 保留 Noto Serif 但字重更轻盈 */
     .msg-bubble h1, .msg-bubble h2, .msg-bubble h3, .msg-bubble h4 {
-      font-family: 'Noto Serif SC', serif;
-      font-weight: 700; color: var(--text); line-height: 1.4;
-      margin: 1rem 0 0.4rem;
+      font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
+      font-weight: 600; color: #1a1a1a; line-height: 1.5;
+      margin: 1.25rem 0 0.5rem;
+      letter-spacing: 0.015em;
     }
-    .msg-bubble h1 { font-size: 1.1rem; border-bottom: 2px solid var(--coral); padding-bottom: 0.3rem; }
-    .msg-bubble h2 { font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
-    .msg-bubble h3 { font-size: 0.95rem; color: var(--coral); }
-    .msg-bubble h4 { font-size: 0.875rem; color: var(--text-2); }
+    .msg-bubble h1 { font-size: 1.125rem; border-bottom: 2px solid var(--coral); padding-bottom: 0.35rem; }
+    .msg-bubble h2 { font-size: 1.0rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+    .msg-bubble h3 { font-size: 0.9375rem; color: var(--coral); }
+    .msg-bubble h4 { font-size: 0.875rem; color: var(--text-2); font-weight: 500; }
     .msg-bubble h1:first-child, .msg-bubble h2:first-child, .msg-bubble h3:first-child { margin-top: 0; }
     /* 分隔线 */
     .msg-bubble hr { border: none; border-top: 1px solid var(--border-light); margin: 0.75rem 0; }
@@ -1055,10 +1059,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     .msg-bubble blockquote {
       border-left: 3px solid var(--coral);
       background: var(--coral-light);
-      margin: 0.5rem 0 0.75rem;
-      padding: 0.5rem 0.875rem;
-      border-radius: 0 8px 8px 0;
-      color: var(--text-2); font-style: italic;
+      margin: 0.6rem 0 0.9rem;
+      padding: 0.6rem 1rem;
+      border-radius: 0 10px 10px 0;
+      color: #5a5a5a; font-style: normal;
+      font-weight: 400; line-height: 1.8;
     }
     .msg-bubble blockquote p { margin-bottom: 0; }
     /* 表格：包裹可横向滑动容器，防止手机端文字被挤压 */
@@ -1069,23 +1074,24 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     .msg-bubble table {
       min-width: 400px; border-collapse: collapse;
-      font-size: 0.82rem; width: 100%;
+      font-size: 0.875rem; width: 100%;
+      font-family: 'Noto Sans SC', 'PingFang SC', sans-serif;
     }
     .msg-bubble th {
-      background: var(--bg-warm); font-weight: 600;
-      padding: 0.5rem 0.75rem; border-bottom: 1.5px solid var(--border);
+      background: var(--bg-warm); font-weight: 500;
+      padding: 0.65rem 1rem; border-bottom: 1.5px solid var(--border);
       border-right: 1px solid var(--border); text-align: left;
-      color: var(--text); white-space: nowrap;
+      color: #1a1a1a; white-space: nowrap; letter-spacing: 0.01em;
     }
     .msg-bubble th:last-child { border-right: none; }
     .msg-bubble td {
-      padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--border-light);
+      padding: 0.55rem 1rem; border-bottom: 1px solid var(--border-light);
       border-right: 1px solid var(--border-light);
-      color: var(--text-2); white-space: nowrap;
+      color: #3d3d3d; line-height: 1.7;
     }
     .msg-bubble td:last-child { border-right: none; }
     .msg-bubble tr:last-child td { border-bottom: none; }
-    .msg-bubble tr:nth-child(even) td { background: var(--bg-warm); }
+    .msg-bubble tr:nth-child(even) td { background: #fdfcfb; }
     /* 链接 */
     .msg-bubble a { color: #5a7fa8; text-decoration: none; border-bottom: 1px solid rgba(90,127,168,0.3); }
     .msg-bubble a:hover { border-bottom-color: #5a7fa8; }
