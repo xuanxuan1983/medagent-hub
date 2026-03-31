@@ -607,6 +607,161 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       flex: 1; display: none; flex-direction: column; overflow: hidden;
     }
     .chat-view.active { display: flex; }
+
+    /* ===== TASK MONITOR PANEL ===== */
+    .chat-body {
+      flex: 1; display: flex; flex-direction: row; overflow: hidden;
+    }
+    .chat-main-col {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+    }
+    .task-monitor-panel {
+      width: 240px;
+      min-width: 240px;
+      border-left: 1px solid var(--border);
+      background: #FAFAF9;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.2s ease, min-width 0.2s ease;
+    }
+    .task-monitor-panel.collapsed {
+      width: 0; min-width: 0; border-left: none;
+    }
+    .task-monitor-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 0.875rem 0.625rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .task-monitor-title {
+      font-size: 0.8rem; font-weight: 700; color: var(--text);
+      letter-spacing: 0.01em;
+    }
+    .task-monitor-toggle {
+      width: 22px; height: 22px; border-radius: 5px;
+      border: none; background: transparent; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-3); transition: background 0.1s;
+    }
+    .task-monitor-toggle:hover { background: var(--border-light); color: var(--text); }
+    .task-monitor-body {
+      flex: 1; overflow-y: auto; padding: 0.5rem 0;
+    }
+    .task-monitor-body::-webkit-scrollbar { width: 3px; }
+    .task-monitor-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    /* Section */
+    .tm-section {
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 0.25rem;
+      margin-bottom: 0;
+    }
+    .tm-section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.5rem 0.875rem 0.375rem;
+      cursor: pointer; user-select: none;
+    }
+    .tm-section-header:hover { background: var(--border-light); }
+    .tm-section-title {
+      font-size: 0.75rem; font-weight: 700; color: var(--text-2);
+      letter-spacing: 0.03em;
+    }
+    .tm-section-arrow {
+      font-size: 0.65rem; color: var(--text-3);
+      transition: transform 0.15s;
+    }
+    .tm-section-arrow.open { transform: rotate(0deg); }
+    .tm-section-arrow.closed { transform: rotate(-90deg); }
+    .tm-section-body {
+      padding: 0.125rem 0.875rem 0.5rem;
+    }
+    .tm-section-body.hidden { display: none; }
+    .tm-empty {
+      font-size: 0.72rem; color: var(--text-3); padding: 0.125rem 0;
+    }
+    /* Step items */
+    .tm-step {
+      display: flex; align-items: flex-start; gap: 0.5rem;
+      padding: 0.25rem 0; font-size: 0.75rem; color: var(--text-2);
+      line-height: 1.4;
+    }
+    .tm-step-icon {
+      width: 16px; height: 16px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+      font-size: 0.6rem; font-weight: 700;
+    }
+    .tm-step-icon.pending {
+      background: var(--border); color: var(--text-3);
+    }
+    .tm-step-icon.running {
+      background: #FEF3C7; color: #D97706;
+      animation: tm-pulse 1.2s ease-in-out infinite;
+    }
+    .tm-step-icon.done {
+      background: #DCFCE7; color: #16A34A;
+    }
+    .tm-step-icon.error {
+      background: #FEE2E2; color: #DC2626;
+    }
+    @keyframes tm-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .tm-step-text { flex: 1; min-width: 0; word-break: break-word; }
+    .tm-step-text.running { color: var(--text); font-weight: 500; }
+    .tm-step-text.done { color: var(--text-3); text-decoration: line-through; }
+    /* Artifact items */
+    .tm-artifact {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.3rem 0.5rem; margin: 0.125rem 0;
+      border-radius: 6px; background: white;
+      border: 1px solid var(--border); cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+      font-size: 0.72rem; color: var(--text-2);
+    }
+    .tm-artifact:hover { background: var(--bg-warm); border-color: var(--text-3); }
+    .tm-artifact-icon {
+      width: 22px; height: 22px; border-radius: 5px;
+      background: var(--coral-light); color: var(--coral);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 0.7rem;
+    }
+    .tm-artifact-name {
+      flex: 1; min-width: 0; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      font-weight: 500; color: var(--text);
+    }
+    .tm-artifact-size { color: var(--text-3); font-size: 0.68rem; }
+    /* Skill/MCP items */
+    .tm-skill {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.25rem 0; font-size: 0.72rem; color: var(--text-2);
+    }
+    .tm-skill-badge {
+      padding: 0.1rem 0.4rem; border-radius: 4px;
+      font-size: 0.65rem; font-weight: 600; flex-shrink: 0;
+    }
+    .tm-skill-badge.skill { background: #EDE9FE; color: #7C3AED; }
+    .tm-skill-badge.mcp { background: #DBEAFE; color: #1D4ED8; }
+    .tm-skill-badge.tool { background: #FEF3C7; color: #B45309; }
+    .tm-skill-name { flex: 1; min-width: 0; }
+    .tm-skill-status {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    }
+    .tm-skill-status.active { background: #16A34A; }
+    .tm-skill-status.idle { background: var(--border); }
+    /* Toggle button in topbar */
+    .task-monitor-open-btn {
+      padding: 0.4rem 0.75rem; border-radius: 8px;
+      border: 1.5px solid var(--border); background: white;
+      font-size: 0.78rem; color: var(--text-2); cursor: pointer;
+      font-family: inherit; transition: all 0.12s; margin-left: 0.5rem;
+      display: flex; align-items: center; gap: 0.375rem;
+    }
+    .task-monitor-open-btn:hover { background: var(--bg-warm); color: var(--text); }
+    .task-monitor-open-btn.active { background: var(--coral-light); color: var(--coral); border-color: var(--coral); }
+
     .chat-topbar {
       padding: 0.875rem 1.5rem;
       border-bottom: 1px solid var(--border);
@@ -1585,41 +1740,94 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <button class="chat-topbar-btn" onclick="showHistory()">📜<span class="btn-label"> 历史</span></button>
       <button class="chat-topbar-btn" onclick="clearChat()"><span class="btn-label">清空对话</span></button>
       <button class="chat-topbar-btn" onclick="openSettings('api')">⚙<span class="btn-label"> 设置</span></button>
+      <!-- 任务监控开关按鈕 -->
+      <button class="task-monitor-open-btn" id="taskMonitorToggleBtn" onclick="toggleTaskMonitor()" title="任务监控">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="9" x2="21" y2="9"/><line x1="15" y1="15" x2="21" y2="15"/></svg>
+        <span class="btn-label">任务</span>
+      </button>
     </div>
-    <div class="chat-messages" id="chatMessages">
-      <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
-        <div class="welcome-title" id="welcomeTitle">你好！</div>
-        <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
-      </div>
-    </div>
-          <div class="guided-questions" id="guidedQuestions"></div>
-      <div class="chat-input-area">
-        <!-- File preview card -->
-        <div id="filePreviewArea" style="display:none"></div>
-        <!-- Hidden file input -->
-        <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.md,.png,.jpg,.jpeg,.gif,.webp,.bmp" onchange="handleFileSelect(event)">
-      <div class="chat-input-box">
-        <div id="chatSlashPopup" class="slash-popup" style="display:none"></div>
-        <textarea class="chat-textarea" id="messageInput" placeholder="输入问题，或用 / 切换专家..." rows="1" disabled oninput="autoResize(this); handleSlashInput(this, 'chatSlashPopup')" onkeydown="chatKeydown(event)"></textarea>
-        <div class="chat-input-footer">
-          <div class="chat-input-left">
-            <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
-              📎<span class="btn-label"> 上传文件</span>
-            </button>
-            <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
-              🌐<span class="btn-label"> 联网</span>
-            </button>
-            <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图">
-              🎨<span class="btn-label"> 绘图</span>
-            </button>
-            <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
+    <!-- 聊天区域 + 任务监控面板 并排布局 -->
+    <div class="chat-body">
+      <!-- 左侧：聊天主区 -->
+      <div class="chat-main-col">
+        <div class="chat-messages" id="chatMessages">
+          <div class="welcome-wrap" id="welcomeWrap">
+            <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
+            <div class="welcome-title" id="welcomeTitle">你好！</div>
+            <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
           </div>
-          <div class="chat-input-right">
-            <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入">
-              🎙️<span class="btn-label"> 语音</span>
-            </button>
-            <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
+        </div>
+        <div class="guided-questions" id="guidedQuestions"></div>
+        <div class="chat-input-area">
+          <!-- File preview card -->
+          <div id="filePreviewArea" style="display:none"></div>
+          <!-- Hidden file input -->
+          <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.md,.png,.jpg,.jpeg,.gif,.webp,.bmp" onchange="handleFileSelect(event)">
+          <div class="chat-input-box">
+            <div id="chatSlashPopup" class="slash-popup" style="display:none"></div>
+            <textarea class="chat-textarea" id="messageInput" placeholder="输入问题，或用 / 切换专家..." rows="1" disabled oninput="autoResize(this); handleSlashInput(this, 'chatSlashPopup')" onkeydown="chatKeydown(event)"></textarea>
+            <div class="chat-input-footer">
+              <div class="chat-input-left">
+                <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
+                  📎<span class="btn-label"> 上传文件</span>
+                </button>
+                <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
+                  🌐<span class="btn-label"> 联网</span>
+                </button>
+                <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图">
+                  🎨<span class="btn-label"> 绘图</span>
+                </button>
+                <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
+              </div>
+              <div class="chat-input-right">
+                <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入">
+                  🎤️<span class="btn-label"> 语音</span>
+                </button>
+                <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：任务监控面板 -->
+      <div class="task-monitor-panel collapsed" id="taskMonitorPanel">
+        <div class="task-monitor-header">
+          <span class="task-monitor-title">任务监控</span>
+          <button class="task-monitor-toggle" onclick="toggleTaskMonitor()" title="收起">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+        </div>
+        <div class="task-monitor-body">
+          <!-- 待办区块 -->
+          <div class="tm-section" id="tmSectionTodo">
+            <div class="tm-section-header" onclick="tmToggleSection('todo')">
+              <span class="tm-section-title">待办</span>
+              <span class="tm-section-arrow open" id="tmArrowTodo">▾</span>
+            </div>
+            <div class="tm-section-body" id="tmBodyTodo">
+              <div class="tm-empty" id="tmEmptyTodo">暂无待办</div>
+            </div>
+          </div>
+          <!-- 产物区块 -->
+          <div class="tm-section" id="tmSectionArtifact">
+            <div class="tm-section-header" onclick="tmToggleSection('artifact')">
+              <span class="tm-section-title">产物</span>
+              <span class="tm-section-arrow open" id="tmArrowArtifact">▾</span>
+            </div>
+            <div class="tm-section-body" id="tmBodyArtifact">
+              <div class="tm-empty" id="tmEmptyArtifact">默认工作目录</div>
+            </div>
+          </div>
+          <!-- 技能与 MCP 区块 -->
+          <div class="tm-section" id="tmSectionSkill">
+            <div class="tm-section-header" onclick="tmToggleSection('skill')">
+              <span class="tm-section-title">技能与 MCP</span>
+              <span class="tm-section-arrow open" id="tmArrowSkill">▾</span>
+            </div>
+            <div class="tm-section-body" id="tmBodySkill">
+              <div class="tm-empty" id="tmEmptySkill">没有技能</div>
+            </div>
           </div>
         </div>
       </div>
@@ -3071,6 +3279,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 hideTyping();
                 const name = evt.displayName || evt.skill_id || '专家';
                 showToolStatusIndicator('skill_dispatch', `正在调用 ${name}...`);
+                // 触发任务监控面板更新
+                document.dispatchEvent(new CustomEvent('tm:skill_dispatch', { detail: { displayName: name, skill_id: evt.skill_id } }));
               } else if (evt.type === 'tool_call') {
                 // Function Calling：模型触发了工具调用，显示查询提示
                 hideTyping();
@@ -4660,6 +4870,260 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     _origSwitchTab(tab);
     if (tab === 'im') loadImChannelConfig();
   };
+
+  // ===== 任务监控面板 JS =====
+
+  /** 任务监控面板内部状态 */
+  const _tm = {
+    open: false,
+    steps: [],      // { id, text, status: 'pending'|'running'|'done'|'error' }
+    artifacts: [],  // { name, type, url }
+    skills: [],     // { name, badge: 'skill'|'mcp'|'tool', status: 'active'|'idle' }
+    stepCounter: 0
+  };
+
+  /** 开关任务监控面板 */
+  function toggleTaskMonitor() {
+    _tm.open = !_tm.open;
+    const panel = document.getElementById('taskMonitorPanel');
+    const btn = document.getElementById('taskMonitorToggleBtn');
+    if (_tm.open) {
+      panel.classList.remove('collapsed');
+      btn.classList.add('active');
+    } else {
+      panel.classList.add('collapsed');
+      btn.classList.remove('active');
+    }
+  }
+
+  /** 折叠/展开区块 */
+  function tmToggleSection(section) {
+    const body = document.getElementById('tmBody' + section.charAt(0).toUpperCase() + section.slice(1));
+    const arrow = document.getElementById('tmArrow' + section.charAt(0).toUpperCase() + section.slice(1));
+    if (!body || !arrow) return;
+    const hidden = body.classList.toggle('hidden');
+    arrow.classList.toggle('open', !hidden);
+    arrow.classList.toggle('closed', hidden);
+  }
+
+  /** 清空任务监控（每次发送新消息时调用） */
+  function tmReset() {
+    _tm.steps = [];
+    _tm.artifacts = [];
+    _tm.skills = [];
+    _tm.stepCounter = 0;
+    tmRenderTodo();
+    tmRenderArtifacts();
+    tmRenderSkills();
+  }
+
+  /** 渲染待办区块 */
+  function tmRenderTodo() {
+    const body = document.getElementById('tmBodyTodo');
+    const empty = document.getElementById('tmEmptyTodo');
+    if (!body) return;
+    // 移除旧的 step 元素
+    body.querySelectorAll('.tm-step').forEach(el => el.remove());
+    if (_tm.steps.length === 0) {
+      if (empty) empty.style.display = '';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    _tm.steps.forEach(step => {
+      const el = document.createElement('div');
+      el.className = 'tm-step';
+      el.id = 'tmStep_' + step.id;
+      const iconMap = { pending: '○', running: '▶', done: '✓', error: '×' };
+      el.innerHTML = `
+        <div class="tm-step-icon ${step.status}">${iconMap[step.status] || '○'}</div>
+        <div class="tm-step-text ${step.status}">${step.text}</div>
+      `;
+      body.appendChild(el);
+    });
+  }
+
+  /** 渲染产物区块 */
+  function tmRenderArtifacts() {
+    const body = document.getElementById('tmBodyArtifact');
+    const empty = document.getElementById('tmEmptyArtifact');
+    if (!body) return;
+    body.querySelectorAll('.tm-artifact').forEach(el => el.remove());
+    if (_tm.artifacts.length === 0) {
+      if (empty) { empty.style.display = ''; empty.textContent = '默认工作目录'; }
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    const typeIcons = {
+      pdf: 'PDF', doc: 'DOC', xls: 'XLS', img: 'IMG',
+      md: 'MD', txt: 'TXT', ppt: 'PPT', default: 'FILE'
+    };
+    _tm.artifacts.forEach(art => {
+      const el = document.createElement('div');
+      el.className = 'tm-artifact';
+      const ext = (art.name.split('.').pop() || 'default').toLowerCase();
+      const iconLabel = typeIcons[ext] || typeIcons.default;
+      el.innerHTML = `
+        <div class="tm-artifact-icon">${iconLabel}</div>
+        <div class="tm-artifact-name" title="${art.name}">${art.name}</div>
+      `;
+      if (art.url) {
+        el.style.cursor = 'pointer';
+        el.onclick = () => window.open(art.url, '_blank');
+      }
+      body.appendChild(el);
+    });
+  }
+
+  /** 渲染技能与 MCP 区块 */
+  function tmRenderSkills() {
+    const body = document.getElementById('tmBodySkill');
+    const empty = document.getElementById('tmEmptySkill');
+    if (!body) return;
+    body.querySelectorAll('.tm-skill').forEach(el => el.remove());
+    if (_tm.skills.length === 0) {
+      if (empty) empty.style.display = '';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    _tm.skills.forEach(skill => {
+      const el = document.createElement('div');
+      el.className = 'tm-skill';
+      el.innerHTML = `
+        <span class="tm-skill-badge ${skill.badge}">${skill.badge.toUpperCase()}</span>
+        <span class="tm-skill-name">${skill.name}</span>
+        <span class="tm-skill-status ${skill.status}"></span>
+      `;
+      body.appendChild(el);
+    });
+  }
+
+  /** 添加或更新一个步骤 */
+  function tmAddStep(text, status) {
+    status = status || 'pending';
+    // 如果当前有 running 状态的步骤，先将其标记为 done
+    _tm.steps.forEach(s => { if (s.status === 'running') s.status = 'done'; });
+    const id = ++_tm.stepCounter;
+    _tm.steps.push({ id, text, status });
+    tmRenderTodo();
+    // 自动打开面板（如果未开）
+    if (!_tm.open) toggleTaskMonitor();
+    return id;
+  }
+
+  /** 更新步骤状态 */
+  function tmUpdateStep(id, status, text) {
+    const step = _tm.steps.find(s => s.id === id);
+    if (!step) return;
+    if (status) step.status = status;
+    if (text) step.text = text;
+    // 直接更新 DOM 而不重渲染全部
+    const el = document.getElementById('tmStep_' + id);
+    if (el) {
+      const iconMap = { pending: '○', running: '▶', done: '✓', error: '×' };
+      el.querySelector('.tm-step-icon').className = 'tm-step-icon ' + step.status;
+      el.querySelector('.tm-step-icon').textContent = iconMap[step.status] || '○';
+      el.querySelector('.tm-step-text').className = 'tm-step-text ' + step.status;
+      if (text) el.querySelector('.tm-step-text').textContent = text;
+    }
+  }
+
+  /** 添加产物文件 */
+  function tmAddArtifact(name, url) {
+    // 去重
+    if (_tm.artifacts.find(a => a.name === name)) return;
+    _tm.artifacts.push({ name, url: url || null });
+    tmRenderArtifacts();
+  }
+
+  /** 添加技能或工具 */
+  function tmAddSkill(name, badge, status) {
+    badge = badge || 'skill';
+    status = status || 'active';
+    // 去重
+    const existing = _tm.skills.find(s => s.name === name);
+    if (existing) {
+      existing.status = status;
+      tmRenderSkills();
+      return;
+    }
+    _tm.skills.push({ name, badge, status });
+    tmRenderSkills();
+  }
+
+  /** 所有技能标记为 idle */
+  function tmIdleAllSkills() {
+    _tm.skills.forEach(s => s.status = 'idle');
+    tmRenderSkills();
+  }
+
+  // ===== 与 SSE 事件集成 =====
+  // Hook showToolStatusIndicator 以同步更新任务监控面板
+  const _origShowToolStatus = showToolStatusIndicator;
+  showToolStatusIndicator = function(tool, text) {
+    _origShowToolStatus(tool, text);
+    // 映射工具名到中文显示
+    const toolNames = {
+      'web_search': '联网搜索',
+      'query_med_db': '医美价格数据库',
+      'nmpa_search': '药监局数据库',
+      'skill_dispatch': '专家 Skill 调度',
+      'get_user_memory': '用户记忆库'
+    };
+    const displayName = toolNames[tool] || tool;
+    const badge = tool === 'skill_dispatch' ? 'skill' : 'tool';
+    tmAddSkill(displayName, badge, 'active');
+    // 将工具调用添加为步骤
+    tmAddStep(text || ('调用 ' + displayName), 'running');
+  };
+
+  const _origHideToolStatus = hideToolStatusIndicator;
+  hideToolStatusIndicator = function() {
+    _origHideToolStatus();
+    // 将最后一个 running 步骤标记为 done
+    const runningStep = [..._tm.steps].reverse().find(s => s.status === 'running');
+    if (runningStep) tmUpdateStep(runningStep.id, 'done');
+    tmIdleAllSkills();
+  };
+
+  // Hook sendMessage 以在每次发送时重置面板
+  const _origSendMessage = typeof sendMessage === 'function' ? sendMessage : null;
+  if (_origSendMessage) {
+    sendMessage = function() {
+      tmReset();
+      return _origSendMessage.apply(this, arguments);
+    };
+  }
+
+  // Hook finalizeStreamBubble 以检测产物文件
+  const _origFinalizeStream = typeof finalizeStreamBubble === 'function' ? finalizeStreamBubble : null;
+  if (_origFinalizeStream) {
+    finalizeStreamBubble = function(bubble, row, container, fullText, searchResults) {
+      _origFinalizeStream.apply(this, arguments);
+      // 检测回复中是否有文件链接
+      const links = bubble.querySelectorAll('a[href]');
+      links.forEach(link => {
+        const href = link.href || '';
+        const text = link.textContent || '';
+        if (/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|md|txt|csv|png|jpg|jpeg|gif)$/i.test(href)) {
+          tmAddArtifact(text || href.split('/').pop(), href);
+        }
+      });
+      // 将最后一个 running/pending 步骤标记为 done
+      _tm.steps.forEach(s => { if (s.status === 'running' || s.status === 'pending') s.status = 'done'; });
+      tmRenderTodo();
+      tmIdleAllSkills();
+    };
+  }
+
+  // 处理 skill_dispatch 事件：将专家名添加到技能区块
+  // 通过拦截 SSE 处理逻辑中的 skill_dispatch 分支
+  document.addEventListener('tm:skill_dispatch', function(e) {
+    const { displayName, skill_id } = e.detail || {};
+    if (displayName) {
+      tmAddSkill(displayName, 'skill', 'active');
+      tmAddStep('调用专家：' + displayName, 'running');
+    }
+  });
 </script>
 <!-- IM 配置弹窗容器 -->
 <div class="im-config-modal" id="imConfigModal" onclick="if(event.target===this)closeImConfig()">
