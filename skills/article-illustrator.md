@@ -8,6 +8,8 @@ tags: [配图, 插图, 文章创作, 视觉内容, AI绘图]
 access: pro
 nmpa: false
 material_level: none
+agent_id: article-illustrator
+display_name: 文章配图顾问
 ---
 
 # 医美文章智能配图顾问
