@@ -1,24 +1,27 @@
 /**
- * MedAgent 用户记忆系统
- * 从对话中自动提取用户属性（职业、预算、皮肤类型、偏好等），
- * 并在后续对话中注入个性化上下文，提升回答精准度。
- *
+ * MedAgent 用户记忆系统 v2.0
+ * 双轨提取：关键词快速提取（同步）+ LLM 深度提取（异步，每5轮触发）
+ * 扩展字段：role, budget, skinType, concerns, city, ageGroup, treatmentHistory, goals
  * 存储位置：user-profiles.json 中的 memory 字段
- * 格式：{ memory: { role, budget, skinType, concerns, preferences, lastUpdated } }
  */
 
+const https = require('https');
+
 // ============================================================
-// 属性提取规则（基于关键词，无需LLM，毫秒级）
+// 关键词提取规则（同步，毫秒级）
 // ============================================================
 
 const ROLE_PATTERNS = [
   { pattern: /我是(医美机构|诊所|医院|美容院)/, role: '机构运营' },
-  { pattern: /我(做|从事|负责).*(销售|代理|推广)/, role: '厂商销售' },
-  { pattern: /我是(顾问|咨询师|美容顾问)/, role: '医美顾问' },
-  { pattern: /我是(医生|医师|护士|护理)/, role: '医疗从业者' },
-  { pattern: /我(想|准备|考虑).*(做|打|注射|手术)/, role: '消费者' },
-  { pattern: /我(代理|销售|推广).*(产品|品牌)/, role: '厂商销售' },
   { pattern: /我们(机构|诊所|医院|门诊)/, role: '机构运营' },
+  { pattern: /我(做|从事|负责).*(销售|代理|推广)/, role: '厂商销售' },
+  { pattern: /我(代理|销售|推广).*(产品|品牌)/, role: '厂商销售' },
+  { pattern: /我们(公司|品牌|团队)/, role: '厂商销售' },
+  { pattern: /我是(顾问|咨询师|美容顾问|医美顾问)/, role: '医美顾问' },
+  { pattern: /我是(医生|医师|护士|护理|医美医生)/, role: '医疗从业者' },
+  { pattern: /我是消费者|我是用户|我是患者|我是求美者/, role: '消费者' },
+  { pattern: /我(想|准备|考虑|打算).*(做|打|注射|手术|项目)/, role: '消费者' },
+  { pattern: /我(最近|刚|已经|曾经).*(做了|打了|注射了|手术了)/, role: '消费者' },
 ];
 
 const BUDGET_PATTERNS = [
@@ -26,16 +29,16 @@ const BUDGET_PATTERNS = [
   { pattern: /预算[是在约]?\s*(\d+)\s*千/, extract: m => parseInt(m[1]) * 1000 },
   { pattern: /预算[是在约]?\s*(\d+)\s*元/, extract: m => parseInt(m[1]) },
   { pattern: /(\d+)\s*万以内/, extract: m => parseInt(m[1]) * 10000 },
-  { pattern: /(\d+)[~-](\d+)\s*万/, extract: m => Math.round((parseInt(m[1]) + parseInt(m[2])) / 2) * 10000 },
-  { pattern: /(\d+)[~-](\d+)\s*千/, extract: m => Math.round((parseInt(m[1]) + parseInt(m[2])) / 2) * 1000 },
+  { pattern: /(\d+)[~\-到至]\s*(\d+)\s*万/, extract: m => Math.round((parseInt(m[1]) + parseInt(m[2])) / 2) * 10000 },
+  { pattern: /(\d+)[~\-到至]\s*(\d+)\s*千/, extract: m => Math.round((parseInt(m[1]) + parseInt(m[2])) / 2) * 1000 },
 ];
 
 const SKIN_PATTERNS = [
-  { pattern: /皮肤[比较|有点|很]*(干|干燥|缺水)/, type: '干性皮肤' },
-  { pattern: /皮肤[比较|有点|很]*(油|出油|油腻)/, type: '油性皮肤' },
+  { pattern: /皮肤[比较有点很]*(干|干燥|缺水)/, type: '干性皮肤' },
+  { pattern: /皮肤[比较有点很]*(油|出油|油腻)/, type: '油性皮肤' },
   { pattern: /混合(型|性)皮肤|T区出油/, type: '混合性皮肤' },
   { pattern: /敏感(肌|皮肤|型)|皮肤敏感/, type: '敏感肌' },
-  { pattern: /皮肤[比较|有点|很]*(暗|暗沉|发黄)/, type: '暗沉肌' },
+  { pattern: /皮肤[比较有点很]*(暗|暗沉|发黄)/, type: '暗沉肌' },
 ];
 
 const CONCERN_PATTERNS = [
@@ -49,43 +52,62 @@ const CONCERN_PATTERNS = [
   { pattern: /鼻子|隆鼻|鼻综合/, concern: '鼻部塑形' },
 ];
 
+const CITY_PATTERNS = [
+  /我在(北京|上海|广州|深圳|杭州|成都|重庆|武汉|西安|南京|苏州|天津|郑州|长沙|青岛|宁波|厦门|合肥|昆明|贵阳|福州|济南|哈尔滨|沈阳|大连)/,
+  /(北京|上海|广州|深圳|杭州|成都|重庆|武汉|西安|南京|苏州|天津|郑州|长沙|青岛|宁波|厦门|合肥|昆明|贵阳|福州|济南|哈尔滨|沈阳|大连)(这边|当地|本地|的机构|的医院|的诊所)/,
+];
+
+const AGE_PATTERNS = [
+  { pattern: /我\s*(\d{2})\s*岁/, extract: m => getAgeGroup(parseInt(m[1])) },
+  { pattern: /(\d{2})\s*岁的我/, extract: m => getAgeGroup(parseInt(m[1])) },
+  { pattern: /二十多岁|20多岁|20几岁/, extract: () => '20-29岁' },
+  { pattern: /三十多岁|30多岁|30几岁/, extract: () => '30-39岁' },
+  { pattern: /四十多岁|40多岁|40几岁/, extract: () => '40-49岁' },
+  { pattern: /五十多岁|50多岁/, extract: () => '50岁以上' },
+];
+
+function getAgeGroup(age) {
+  if (age < 20) return '20岁以下';
+  if (age < 30) return '20-29岁';
+  if (age < 40) return '30-39岁';
+  if (age < 50) return '40-49岁';
+  return '50岁以上';
+}
+
 // ============================================================
-// 从单条消息中提取用户属性
+// 从单条消息中提取用户属性（同步）
 // ============================================================
 function extractFromMessage(message) {
   const extracted = {};
 
-  // 提取职业/角色
   for (const { pattern, role } of ROLE_PATTERNS) {
-    if (pattern.test(message)) {
-      extracted.role = role;
-      break;
-    }
+    if (pattern.test(message)) { extracted.role = role; break; }
   }
 
-  // 提取预算
   for (const { pattern, extract } of BUDGET_PATTERNS) {
     const m = message.match(pattern);
-    if (m) {
-      extracted.budget = extract(m);
-      break;
-    }
+    if (m) { extracted.budget = extract(m); break; }
   }
 
-  // 提取皮肤类型
   for (const { pattern, type } of SKIN_PATTERNS) {
-    if (pattern.test(message)) {
-      extracted.skinType = type;
-      break;
-    }
+    if (pattern.test(message)) { extracted.skinType = type; break; }
   }
 
-  // 提取关注点（可多个）
   const concerns = [];
   for (const { pattern, concern } of CONCERN_PATTERNS) {
     if (pattern.test(message)) concerns.push(concern);
   }
   if (concerns.length > 0) extracted.concerns = concerns;
+
+  for (const pattern of CITY_PATTERNS) {
+    const m = message.match(pattern);
+    if (m) { extracted.city = m[1]; break; }
+  }
+
+  for (const { pattern, extract } of AGE_PATTERNS) {
+    const m = message.match(pattern);
+    if (m) { extracted.ageGroup = extract(m); break; }
+  }
 
   return extracted;
 }
@@ -101,66 +123,195 @@ function updateUserMemory(profiles, userCode, message) {
   const extracted = extractFromMessage(message);
   let updated = false;
 
-  // 合并提取的属性（新值覆盖旧值，concerns 合并去重）
-  if (extracted.role && extracted.role !== mem.role) {
-    mem.role = extracted.role;
-    updated = true;
-  }
-  if (extracted.budget && extracted.budget !== mem.budget) {
-    mem.budget = extracted.budget;
-    updated = true;
-  }
-  if (extracted.skinType && extracted.skinType !== mem.skinType) {
-    mem.skinType = extracted.skinType;
-    updated = true;
-  }
+  if (extracted.role && extracted.role !== mem.role) { mem.role = extracted.role; updated = true; }
+  if (extracted.budget && extracted.budget !== mem.budget) { mem.budget = extracted.budget; updated = true; }
+  if (extracted.skinType && extracted.skinType !== mem.skinType) { mem.skinType = extracted.skinType; updated = true; }
+  if (extracted.city && extracted.city !== mem.city) { mem.city = extracted.city; updated = true; }
+  if (extracted.ageGroup && extracted.ageGroup !== mem.ageGroup) { mem.ageGroup = extracted.ageGroup; updated = true; }
+
   if (extracted.concerns && extracted.concerns.length > 0) {
     const existing = mem.concerns || [];
     const merged = [...new Set([...existing, ...extracted.concerns])];
-    if (merged.length !== existing.length) {
-      mem.concerns = merged.slice(0, 6); // 最多保留6个关注点
-      updated = true;
-    }
+    if (merged.length !== existing.length) { mem.concerns = merged.slice(0, 6); updated = true; }
   }
 
-  if (updated) {
-    mem.lastUpdated = new Date().toISOString();
-  }
-
+  if (updated) mem.lastUpdated = new Date().toISOString();
   return updated;
 }
 
 // ============================================================
-// 生成个性化上下文注入文本
+// LLM 辅助提取（异步，每5轮触发，不阻塞响应）
+// ============================================================
+async function extractWithLLM(messages, currentMemory) {
+  const apiKey = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  // 只取用户消息，最多15条，避免 Token 过多
+  const userMessages = messages
+    .filter(m => m.role === 'user')
+    .slice(-15)
+    .map(m => m.content || '')
+    .join('\n---\n');
+
+  if (!userMessages.trim()) return null;
+
+  const prompt = `你是用户画像分析专家。根据以下用户对话内容，提取用户的基本信息。
+
+对话内容：
+${userMessages}
+
+当前已知信息（如有）：
+${JSON.stringify(currentMemory || {}, null, 2)}
+
+请从对话中提取或更新以下信息（只提取对话中明确或强烈暗示的信息，不要猜测）：
+- role: 用户身份（消费者/机构运营/医美顾问/医疗从业者/厂商销售，选一个）
+- budget: 预算金额（数字，单位元，如30000）
+- skinType: 皮肤类型（干性皮肤/油性皮肤/混合性皮肤/敏感肌/暗沉肌）
+- concerns: 关注方向数组（从：抗衰老/提升紧致/美白祛斑/填充塑形/瘦身塑形/祛痘修复/眼部改善/鼻部塑形 中选）
+- city: 所在城市（如北京、上海）
+- ageGroup: 年龄段（20岁以下/20-29岁/30-39岁/40-49岁/50岁以上）
+- treatmentHistory: 治疗史摘要（简短描述用户提到的已做过的项目，不超过50字）
+- goals: 核心诉求摘要（用户最想解决的问题，不超过30字）
+
+只返回 JSON，不要解释。如果某字段无法从对话中确定，不要包含该字段。
+示例：{"role":"消费者","concerns":["抗衰老"],"goals":"改善法令纹和面部松弛"}`;
+
+  try {
+    const baseURL = process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1';
+    const model = process.env.LLM_MODEL || 'deepseek-chat';
+
+    const response = await callLLMAPI(baseURL, apiKey, model, prompt);
+    if (!response) return null;
+
+    // 解析 JSON
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    console.warn('[用户记忆LLM] 提取失败:', e.message);
+    return null;
+  }
+}
+
+// ============================================================
+// 简单的 LLM API 调用（避免依赖 axios）
+// ============================================================
+function callLLMAPI(baseURL, apiKey, model, prompt) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      model: model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 300,
+      temperature: 0.1,
+    });
+
+    const url = new URL(`${baseURL}/chat/completions`);
+    const options = {
+      hostname: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Length': Buffer.byteLength(body),
+      },
+      timeout: 10000,
+    };
+
+    const lib = url.protocol === 'https:' ? https : require('http');
+    const req = lib.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          resolve(parsed.choices?.[0]?.message?.content || null);
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    });
+
+    req.on('error', (e) => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.write(body);
+    req.end();
+  });
+}
+
+// ============================================================
+// 异步更新用户记忆（LLM辅助，每5轮触发）
+// ============================================================
+async function updateUserMemoryWithLLM(profiles, userCode, messages, saveProfilesFn) {
+  if (!profiles[userCode]) profiles[userCode] = {};
+  if (!profiles[userCode].memory) profiles[userCode].memory = {};
+
+  const mem = profiles[userCode].memory;
+
+  // 计数器：每5轮触发一次LLM提取
+  const msgCount = messages.filter(m => m.role === 'user').length;
+  if (msgCount % 5 !== 0 || msgCount === 0) return;
+
+  console.log(`[用户记忆LLM] 触发深度提取 (用户: ${userCode}, 消息数: ${msgCount})`);
+
+  try {
+    const extracted = await extractWithLLM(messages, mem);
+    if (!extracted) return;
+
+    let updated = false;
+    const fields = ['role', 'budget', 'skinType', 'city', 'ageGroup', 'treatmentHistory', 'goals'];
+    for (const field of fields) {
+      if (extracted[field] !== undefined && extracted[field] !== mem[field]) {
+        mem[field] = extracted[field];
+        updated = true;
+      }
+    }
+
+    // concerns 合并
+    if (extracted.concerns && extracted.concerns.length > 0) {
+      const existing = mem.concerns || [];
+      const merged = [...new Set([...existing, ...extracted.concerns])];
+      if (merged.length !== existing.length) { mem.concerns = merged.slice(0, 8); updated = true; }
+    }
+
+    if (updated) {
+      mem.lastUpdated = new Date().toISOString();
+      mem.llmExtracted = true;
+      saveProfilesFn(profiles);
+      console.log(`[用户记忆LLM] 更新成功:`, JSON.stringify(mem));
+    }
+  } catch (e) {
+    console.warn('[用户记忆LLM] 异步更新失败:', e.message);
+  }
+}
+
+// ============================================================
+// 生成个性化上下文注入文本（精简版，减少Token消耗）
 // ============================================================
 function buildMemoryContext(memory) {
   if (!memory || Object.keys(memory).length === 0) return null;
 
   const parts = [];
-
-  if (memory.role) {
-    parts.push(`用户身份：${memory.role}`);
-  }
+  if (memory.role) parts.push(`身份:${memory.role}`);
+  if (memory.city) parts.push(`城市:${memory.city}`);
+  if (memory.ageGroup) parts.push(`年龄:${memory.ageGroup}`);
   if (memory.budget) {
-    const budgetStr = memory.budget >= 10000
-      ? `${(memory.budget / 10000).toFixed(1)}万元`
-      : `${memory.budget}元`;
-    parts.push(`预算范围：约${budgetStr}`);
+    const b = memory.budget >= 10000 ? `${(memory.budget/10000).toFixed(1)}万` : `${memory.budget}元`;
+    parts.push(`预算:${b}`);
   }
-  if (memory.skinType) {
-    parts.push(`皮肤类型：${memory.skinType}`);
-  }
-  if (memory.concerns && memory.concerns.length > 0) {
-    parts.push(`关注方向：${memory.concerns.join('、')}`);
-  }
+  if (memory.skinType) parts.push(`皮肤:${memory.skinType}`);
+  if (memory.concerns?.length > 0) parts.push(`关注:${memory.concerns.join('/')}`);
+  if (memory.goals) parts.push(`诉求:${memory.goals}`);
+  if (memory.treatmentHistory) parts.push(`治疗史:${memory.treatmentHistory}`);
 
   if (parts.length === 0) return null;
 
-  return `===== 用户个人档案（历史对话记忆）=====\n以下是根据用户历史对话自动记录的个人信息，请在回答时考虑这些背景，提供更有针对性的建议：\n\n${parts.join('\n')}\n\n请根据以上用户背景，给出更精准、更个性化的回答。`;
+  return `[用户档案] ${parts.join(' | ')}\n请根据以上背景提供个性化回答。`;
 }
 
 // ============================================================
-// 专业程度评估（根据用户历史对话判断）
+// 专业程度评估
 // ============================================================
 const EXPERT_SIGNALS = [
   /透明质酸|玻璃酸钠|肉毒杆菌素|A型肉毒毒素|聚左旋乳酸|聚己内酯|羟基磷灰石/,
@@ -179,15 +330,10 @@ const BEGINNER_SIGNALS = [
 
 function assessExpertLevel(messages) {
   if (!messages || messages.length === 0) return 'unknown';
-  let expertScore = 0;
-  let beginnerScore = 0;
+  let expertScore = 0, beginnerScore = 0;
   const userMessages = messages.filter(m => m.role === 'user').map(m => m.content || '').join(' ');
-  for (const pattern of EXPERT_SIGNALS) {
-    if (pattern.test(userMessages)) expertScore++;
-  }
-  for (const pattern of BEGINNER_SIGNALS) {
-    if (pattern.test(userMessages)) beginnerScore++;
-  }
+  for (const p of EXPERT_SIGNALS) if (p.test(userMessages)) expertScore++;
+  for (const p of BEGINNER_SIGNALS) if (p.test(userMessages)) beginnerScore++;
   if (expertScore >= 2) return 'expert';
   if (beginnerScore >= 2) return 'beginner';
   if (expertScore >= 1) return 'intermediate';
@@ -195,20 +341,18 @@ function assessExpertLevel(messages) {
 }
 
 const STYLE_PROMPTS = {
-  expert: '用户是医美行业专业人士，请使用专业术语，直接给出核心结论，省略基础科普，可以引用数据和文献。',
-  intermediate: '用户有一定医美知识背景，可以使用行业术语但需简要解释，回答要有深度但不要过于学术化。',
-  beginner: '用户是医美新手，请用通俗易懂的语言，避免专业术语或用括号注解，多用类比和例子，语气亲切耐心。',
+  expert: '用户是医美专业人士，使用专业术语，直接给结论，省略科普。',
+  intermediate: '用户有一定医美知识，可用术语但需简要解释，回答有深度。',
+  beginner: '用户是医美新手，用通俗语言，避免术语或加括号注解，语气亲切。',
   unknown: null,
 };
 
 // ============================================================
-// 获取用户记忆上下文（供api-server.js调用）
+// 获取用户记忆上下文（供 api-server.js 调用）
 // ============================================================
 function getUserMemoryContext(profiles, userCode, recentMessages) {
   const mem = profiles[userCode]?.memory;
   const baseContext = buildMemoryContext(mem);
-
-  // 评估专业程度并注入风格指令
   const expertLevel = assessExpertLevel(recentMessages);
   const stylePrompt = STYLE_PROMPTS[expertLevel];
 
@@ -216,8 +360,7 @@ function getUserMemoryContext(profiles, userCode, recentMessages) {
 
   const parts = [];
   if (baseContext) parts.push(baseContext);
-  if (stylePrompt) parts.push(`\n===== 回答风格指令 =====\n${stylePrompt}`);
-
+  if (stylePrompt) parts.push(`[回答风格] ${stylePrompt}`);
   return parts.join('\n');
 }
 
@@ -231,7 +374,8 @@ function getUserMemorySummary(profiles, userCode) {
 module.exports = {
   extractFromMessage,
   updateUserMemory,
+  updateUserMemoryWithLLM,
   buildMemoryContext,
   getUserMemoryContext,
-  getUserMemorySummary
+  getUserMemorySummary,
 };
