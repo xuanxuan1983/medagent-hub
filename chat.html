@@ -3106,85 +3106,162 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
 
-  // ===== 绘图功能（内置对话式，无需弹窗）=====
 
-  /** 检测用户是否输入了绘图指令 */
-  function willDraw(msg) {
-    if (!msg) return false;
-    const m = msg.trim();
-    return /^(画一张|画个|绘制|帮我画|帮我绘|生成图片|生成一张|为我画|为我绘|帮我创作一张图|创作一张图|请绘制|请画一张|draw |generate image|create image)/i.test(m);
+  // ===== 绘图功能（内置解剖图库检索，无需弹窗）=====
+
+  // 内置解剖图库（与 /public/anatomy/index.json 同步）
+  var ANATOMY_LIBRARY = {
+    images: [
+      { id: 'muscles_overview_en',    url: '/public/anatomy/muscles/01_facial_muscles_overview_labeled_EN.jpg',    title: '面部肌肉总览（英文标注）',        category: 'muscles',          keywords: ['面部肌肉','肌肉解剖','额肌','眼轮匝肌','颧大肌','颧小肌','口轮匝肌','咬肌','降口角肌','提口角肌','皱眉肌','降眉肌','鼻肌','颈阔肌','facial muscles','frontalis','orbicularis','zygomaticus'] },
+      { id: 'muscles_chinese',        url: '/public/anatomy/muscles/02_facial_muscles_chinese_labeled.jpg',        title: '面部肌肉图（中英双语）',          category: 'muscles',          keywords: ['面部肌肉','肌肉解剖','额肌','眼轮匝肌','颧上肌','口轮匝肌','咬肌','皱眉肌','颈阔肌','胸锁乳突肌'] },
+      { id: 'muscles_botox_points',   url: '/public/anatomy/muscles/03_facial_muscles_botox_injection_points.jpg', title: '肌肉解剖+Botox注射点',           category: 'muscles',          keywords: ['肌肉注射','肉毒素','Botox','注射点','额纹','眉间纹','鱼尾纹','咬肌注射','颈阔肌','bunny lines','gummy smile','DAO'] },
+      { id: 'fat_pads_overview',      url: '/public/anatomy/fat_pads/01_facial_fat_compartments_overview.jpg',     title: '面部脂肪垫分区总览',             category: 'fat_pads',         keywords: ['脂肪垫','脂肪室','脂肪分区','颞部脂肪','眶周脂肪','颊部脂肪','鼻唇沟脂肪','下颌脂肪','jowl','nasolabial fat','fat compartments','fat pads'] },
+      { id: 'fat_pads_superficial',   url: '/public/anatomy/fat_pads/02_superficial_fat_pads_labeled.jpg',         title: '浅层脂肪垫标注图',               category: 'fat_pads',         keywords: ['浅层脂肪','脂肪垫','面中部脂肪','眶下脂肪','颊脂垫','前颌脂肪','superficial fat','malar fat pad','buccal fat'] },
+      { id: 'fat_pads_chinese',       url: '/public/anatomy/fat_pads/03_facial_fat_pads_chinese.png',              title: '面部脂肪简介（中文）',            category: 'fat_pads',         keywords: ['脂肪垫','脂肪室','前额中央脂肪','眶上脂肪','眶下脂肪','颊内侧脂肪','颊外侧脂肪','鼻唇脂肪','上颌脂肪','下颌脂肪'] },
+      { id: 'vessels_arteries',       url: '/public/anatomy/vessels_nerves/01_facial_arteries_lateral_labeled.png', title: '面部动脉侧面图',                 category: 'vessels_nerves',   keywords: ['面部动脉','血管','颞浅动脉','面动脉','眶上动脉','滑车上动脉','鼻背动脉','唇动脉','颏动脉','facial artery','temporal artery','vascular'] },
+      { id: 'vessels_danger_zones',   url: '/public/anatomy/vessels_nerves/02_injection_danger_zones.png',          title: '注射危险区分级图',               category: 'vessels_nerves',   keywords: ['危险区','注射风险','血管栓塞','失明风险','颞部注射','鼻部注射','眉间注射','额部注射','唇部注射','鼻唇沟注射','danger zones','vascular occlusion','injection safety'] },
+      { id: 'vessels_chinese',        url: '/public/anatomy/vessels_nerves/02_facial_vessels_chinese.png',          title: '面部血管中文标注图',             category: 'vessels_nerves',   keywords: ['面部血管','血管解剖','面动脉','颞浅动脉','面神经','危险区','注射安全'] },
+      { id: 'vessels_nerves_chinese', url: '/public/anatomy/vessels_nerves/03_facial_vessels_nerves_chinese.jpeg',  title: '面深层血管神经侧面观（中文）',    category: 'vessels_nerves',   keywords: ['面部神经','面神经','血管神经','颞浅动静脉','耳颞神经','咬肌神经','颊动脉','颈外动脉','面动脉','颏神经'] },
+      { id: 'bones_skull',            url: '/public/anatomy/bones/01_skull_lateral_view_labeled.jpg',               title: '颅骨侧面彩色标注图',             category: 'bones',            keywords: ['颅骨','骨骼','额骨','颞骨','顶骨','枕骨','蝶骨','颧骨','上颌骨','下颌骨','鼻骨','frontal bone','temporal bone','zygomatic bone','mandible'] },
+      { id: 'skin_layers_cross',      url: '/public/anatomy/skin_layers/01_skin_layers_cross_section.jpg',          title: '皮肤层次截面图',                 category: 'skin_layers',      keywords: ['皮肤层次','表皮','真皮','皮下组织','毛囊','皮脂腺','汗腺','胶原纤维','epidermis','dermis','hypodermis','subcutaneous'] },
+      { id: 'skin_smas_layer',        url: '/public/anatomy/skin_layers/01_smas_layer_explained.png',               title: 'SMAS层解剖图',                   category: 'skin_layers',      keywords: ['SMAS','浅表肌腱膜系统','皮肤层次','皮下组织','肌肉层','注射层次','线雕','提升','superficial musculoaponeurotic system'] },
+      { id: 'skin_layers_3d',         url: '/public/anatomy/skin_layers/02_skin_layers_3d_labeled.png',             title: '3D皮肤层次图',                   category: 'skin_layers',      keywords: ['皮肤层次','3D皮肤','表皮','真皮','皮下层','角质层','颗粒层','棘层','基底层','epidermis','dermis','hypodermis','stratum corneum'] },
+      { id: 'injection_layers',       url: '/public/anatomy/injection_layers/01_facial_injection_layers_lateral.jpg', title: '面部注射层次侧面图',            category: 'injection_layers', keywords: ['注射层次','SMAS','骨膜上','皮下','肌肉内','韧带','间隙','填充层次','injection plane','periosteum','subgaleal','subcutaneous'] },
+      { id: 'injection_ligaments',    url: '/public/anatomy/injection_layers/02_retaining_ligaments_labeled.jpg',   title: '面部韧带标注图',                 category: 'injection_layers', keywords: ['韧带','面部韧带','颧韧带','咬肌皮肤韧带','下颌韧带','眶韧带','retaining ligaments','zygomatic ligament','masseteric ligament'] },
+      { id: 'injection_layers_cn',    url: '/public/anatomy/injection_layers/03_injection_layers_chinese.jpg',      title: '注射层次中文图',                 category: 'injection_layers', keywords: ['注射层次','皮肤','皮下组织','肌腱膜','SMAS','蜂窝组织','骨膜','深层筋膜','颞浅筋膜','颞深筋膜','腮腺'] },
+      { id: 'aesthetics_golden',      url: '/public/anatomy/aesthetics/01_facial_golden_ratio_analysis.jpg',        title: '面部黄金比例分析',               category: 'aesthetics',       keywords: ['黄金比例','面部比例','美学分析','面部测量','三庭五眼','黄金分割','golden ratio','facial proportion','aesthetic analysis','phi'] },
+      { id: 'aesthetics_three_courts',url: '/public/anatomy/aesthetics/02_three_courts_five_eyes_chinese.jpg',      title: '三庭五眼（中文）',               category: 'aesthetics',       keywords: ['三庭五眼','面部比例','美学标准','发际线','眉心','鼻尖','下颌','面宽','眼距','黄金比例'] },
+      { id: 'aesthetics_proportions', url: '/public/anatomy/aesthetics/03_facial_proportions_detailed_chinese.jpg', title: '面部比例详细标注（中文）',        category: 'aesthetics',       keywords: ['三庭五眼','面部比例','美学标准','发际线','眉心','鼻尖','下颌','面宽','眼距'] }
+    ],
+    // 分类中文名
+    categoryNames: {
+      muscles: '面部肌肉',
+      fat_pads: '脂肪垫',
+      vessels_nerves: '血管与神经',
+      bones: '骨骼',
+      skin_layers: '皮肤层次',
+      injection_layers: '注射层次',
+      aesthetics: '美学比例'
+    }
+  };
+
+  /**
+   * 从用户输入中检索匹配的解剖图
+   * 返回最多 3 张最相关的图片
+   */
+  function searchAnatomyImages(query) {
+    var q = query.toLowerCase();
+    var scores = {};
+
+    ANATOMY_LIBRARY.images.forEach(function(img) {
+      var score = 0;
+      // 标题完全匹配权重最高
+      if (img.title.includes(query) || img.title.toLowerCase().includes(q)) score += 10;
+      // 分类名匹配
+      var catName = ANATOMY_LIBRARY.categoryNames[img.category] || '';
+      if (catName && (catName.includes(query) || q.includes(img.category))) score += 5;
+      // 关键词匹配
+      img.keywords.forEach(function(kw) {
+        if (q.includes(kw.toLowerCase()) || kw.toLowerCase().includes(q)) score += 3;
+        // 单字匹配（中文）
+        if (kw.length >= 2 && q.includes(kw.substring(0, 2))) score += 1;
+      });
+      if (score > 0) scores[img.id] = score;
+    });
+
+    // 按分数排序，取前 3
+    var sorted = Object.keys(scores).sort(function(a, b) { return scores[b] - scores[a]; });
+    return sorted.slice(0, 3).map(function(id) {
+      return ANATOMY_LIBRARY.images.find(function(img) { return img.id === id; });
+    });
   }
 
-  /** 内置对话式绘图：直接在聊天流里展示结果 */
-  async function handleInlineDrawRequest(msg) {
-    const prompt = msg
-      .replace(/^(画一张|画个|绘制|帮我画|帮我绘|生成图片|生成一张|为我画|为我绘|帮我创作一张图|创作一张图|请绘制|请画一张|draw |generate image|create image)/i, '')
-      .trim();
-    if (!prompt) return;
+  /** 检测用户是否输入了查图/绘图指令 */
+  function willDraw(msg) {
+    if (!msg) return false;
+    var m = msg.trim();
+    return /^(画一张|画个|绘制|帮我画|帮我绘|生成图片|生成一张|为我画|为我绘|帮我创作一张图|创作一张图|请绘制|请画一张|给我看|展示|查看解剖|显示解剖|show me|draw |generate image|create image)/i.test(m);
+  }
 
-    const { bubble, row, container } = createStreamBubble();
-    bubble.innerHTML = '<div class="draw-inline-status">AI 绘图生成中，预计 15-30 秒...</div>';
+  /** 内置解剖图库检索：直接在聊天流里展示匹配图片 */
+  async function handleInlineDrawRequest(msg) {
+    var query = msg
+      .replace(/^(画一张|画个|绘制|帮我画|帮我绘|生成图片|生成一张|为我画|为我绘|帮我创作一张图|创作一张图|请绘制|请画一张|给我看|展示|查看解剖|显示解剖|show me|draw |generate image|create image)/i, '')
+      .trim();
+    if (!query) query = msg.trim();
+
+    var results = searchAnatomyImages(query);
+
+    var bubbleData = createStreamBubble();
+    var bubble = bubbleData.bubble;
+    var container = bubbleData.container;
+
+    if (results.length === 0) {
+      // 没有匹配图片，转发给 AI 正常回答
+      bubble.parentNode && bubble.parentNode.remove();
+      return false; // 返回 false 表示未处理，让调用方走正常 AI 流程
+    }
+
+    // 构建展示 HTML
+    var html = '<div style="font-size:0.82rem;color:var(--text-3);margin-bottom:0.75rem;">为您找到 ' + results.length + ' 张相关解剖图：</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:1rem;">';
+
+    results.forEach(function(img) {
+      var catName = ANATOMY_LIBRARY.categoryNames[img.category] || img.category;
+      html += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg-warm);">';
+      html += '<div style="padding:0.5rem 0.75rem;font-size:0.78rem;color:var(--text-2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.4rem;">';
+      html += '<span style="background:var(--coral);color:white;border-radius:4px;padding:0.1rem 0.4rem;font-size:0.7rem;">' + catName + '</span>';
+      html += '<span>' + img.title + '</span></div>';
+      html += '<div class="anatomy-img-wrapper">';
+      html += '<img src="' + img.url + '" alt="' + img.title + '" loading="lazy" style="width:100%;display:block;cursor:zoom-in;" />';
+      html += '</div></div>';
+    });
+
+    html += '</div>';
+
+    // 如果图库里没有完全匹配的，提示可以问 AI
+    if (results.length > 0 && results.length < 3) {
+      html += '<div style="margin-top:0.75rem;font-size:0.78rem;color:var(--text-3);">提示：可以直接向 AI 提问获取更详细的解剖分析。</div>';
+    }
+
+    bubble.innerHTML = html;
+
+    // 触发骨架屏懒加载
+    if (typeof wrapAnatomyImages === 'function') {
+      bubble.querySelectorAll('img').forEach(function(img) { wrapAnatomyImages(img); });
+    }
+
+    // 点击图片放大
+    bubble.querySelectorAll('img').forEach(function(imgEl) {
+      imgEl.addEventListener('click', function() {
+        var modal = document.getElementById('anatomyImgModal');
+        var modalImg = document.getElementById('anatomyImgModalImg');
+        if (modal && modalImg) {
+          modalImg.src = imgEl.src;
+          modalImg.alt = imgEl.alt;
+          modal.classList.add('active');
+        }
+      });
+    });
+
+    setDoudouEmotion('happy');
+    setTimeout(function() { setDoudouEmotion('default'); }, 3000);
     container.scrollTop = container.scrollHeight;
 
-    try {
-      const token = localStorage.getItem('medagent_token');
-      const res = await fetch('/api/image/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ customPrompt: prompt })
-      });
-      const data = await res.json();
+    // 添加到任务监控产物
+    results.forEach(function(img) {
+      if (typeof tmAddArtifact === 'function') tmAddArtifact(img.title, img.url);
+    });
 
-      if (!res.ok || data.error) {
-        const errMap = {
-          'image_not_allowed': data.message || '绘图配额已用完，请明天再试',
-          'not_pro': '绘图功能仅 Pro 用户可用',
-          'img_quota_exceeded': '本月绘图次数已用完'
-        };
-        bubble.innerHTML = '<span style="color:#dc2626">' + (errMap[data.error] || (data.message || '绘图失败，请稍后重试')) + '</span>';
-        setDoudouEmotion('default');
-        return;
-      }
-
-      const imgUrl = data.imageUrl || data.url;
-      if (imgUrl) {
-        const mdText = 'AI 绘图已完成\n\n![AI绘图](' + imgUrl + ')';
-        if (typeof marked !== 'undefined') {
-          bubble.innerHTML = marked.parse(mdText);
-          wrapTables(bubble);
-        } else {
-          bubble.textContent = mdText;
-        }
-        bubble.querySelectorAll('img').forEach(function(img) {
-          img.style.cursor = 'pointer';
-          img.title = '点击下载';
-          img.onclick = function() {
-            var a = document.createElement('a');
-            a.href = imgUrl;
-            a.download = 'medagent-draw.png';
-            a.target = '_blank';
-            a.click();
-          };
-        });
-        setDoudouEmotion('happy');
-        setTimeout(function() { setDoudouEmotion('default'); }, 3000);
-        container.scrollTop = container.scrollHeight;
-        // 添加到任务监控产物
-        if (typeof tmAddArtifact === 'function') tmAddArtifact('AI绘图.png', imgUrl);
-      } else {
-        bubble.innerHTML = '<span style="color:#dc2626">绘图失败，请稍后重试</span>';
-        setDoudouEmotion('default');
-      }
-    } catch(e) {
-      bubble.innerHTML = '<span style="color:#dc2626">网络错误，请稍后重试</span>';
-      setDoudouEmotion('default');
-    }
+    return true; // 已处理
   }
 
   // 保留旧弹窗函数定义（内部兼容）
   let drawModalEl = null;
 
   function openDrawModal() {
+
+
 
     if (drawModalEl) return;
     drawModalEl = document.createElement('div');
@@ -3272,7 +3349,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     input.value = '';
     input.style.height = 'auto';
 
-    // ===== 绘图意图检测：直接在对话框输入绘图指令 =====
+    // ===== 图库检索：输入「画一张/展示...」时优先检索内置解剖图库 =====
     if (msg && !pendingFile && willDraw(msg)) {
       input.value = '';
       input.style.height = 'auto';
@@ -3280,12 +3357,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       document.getElementById('sendBtn').disabled = true;
       document.getElementById('uploadBtn').disabled = true;
       setDoudouEmotion('thinking');
-      await handleInlineDrawRequest(msg);
+      var drawHandled = await handleInlineDrawRequest(msg);
       input.disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('uploadBtn').disabled = false;
       input.focus();
-      return;
+      if (drawHandled !== false) return; // 图库已处理，无需继续走 AI 流程
+      // drawHandled === false 表示图库无匹配，继续走 AI 流程
     }
 
     const searching = willSearch(msg);
