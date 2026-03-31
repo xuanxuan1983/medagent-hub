@@ -3392,6 +3392,20 @@ const server = http.createServer(async (req, res) => {
           });
         }
 
+        // ===== ReAct 思维链 =====
+        // 在 system prompt 末尾注入 ReAct 指令，要求 AI 在每次工具调用前输出 <thought> 标签
+        const REACT_SYSTEM_SUFFIX = `
+
+===== 思维协议 =====
+每次决定调用工具前，必须先在 content 中输出一段思考过程，格式为：
+<thought>我需要...[分析目标]。因为...[推理过程]，所以我将调用 [tool_name] 查询 [query]</thought>
+然后再发起工具调用。
+注意：<thought> 内容必须简洁（不超过 80 字），不要在最终回答中重复思考过程。`;
+        enrichedSystemPrompt = enrichedSystemPrompt + REACT_SYSTEM_SUFFIX;
+
+        // ReAct 思维链记录（用于前端展示）
+        const reactTrace = []; // [{ turn, thought, action, observation }]
+
         // ===== 自我纠错状态 =====
         const toolFailCount = {};   // { toolName: failCount }
         const toolLastError = {};   // { toolName: errorMessage }
@@ -3444,6 +3458,10 @@ const server = http.createServer(async (req, res) => {
           let firstRoundContent = '';
           let assistantMsg1 = null;
           let loopFinishReason = null;
+          // ReAct: 思维流解析状态
+          let thoughtBuf = '';         // 当前轮正在累积的 thought 内容
+          let inThoughtTag = false;    // 是否处于 <thought>...</thought> 内部
+          let thoughtSentThisTurn = false; // 本轮是否已推送过 thought
 
           for await (const parsed of parseSSEStream(loopStream)) {
             const choice = parsed.choices?.[0];
@@ -3451,6 +3469,29 @@ const server = http.createServer(async (req, res) => {
             const delta = choice.delta || {};
             if (delta.content) {
               firstRoundContent += delta.content;
+              // ReAct: 实时解析 <thought>...</thought> 标签
+              thoughtBuf += delta.content;
+              // 检测开始标签
+              if (!inThoughtTag && thoughtBuf.includes('<thought>')) {
+                inThoughtTag = true;
+                const startIdx = thoughtBuf.indexOf('<thought>');
+                thoughtBuf = thoughtBuf.slice(startIdx + '<thought>'.length);
+              }
+              // 检测结束标签
+              if (inThoughtTag && thoughtBuf.includes('</thought>')) {
+                const endIdx = thoughtBuf.indexOf('</thought>');
+                const thoughtText = thoughtBuf.slice(0, endIdx).trim();
+                thoughtBuf = thoughtBuf.slice(endIdx + '</thought>'.length);
+                inThoughtTag = false;
+                if (thoughtText && !thoughtSentThisTurn) {
+                  thoughtSentThisTurn = true;
+                  // 通过 SSE 推送 thought 事件
+                  res.write(`data: ${JSON.stringify({ type: 'thought', turn: agentTurn, content: thoughtText })}\n\n`);
+                  console.log(`🧠 [ReAct] Turn ${agentTurn} Thought: ${thoughtText.slice(0, 60)}...`);
+                  // 记录到 reactTrace
+                  reactTrace.push({ turn: agentTurn, thought: thoughtText, action: null, observation: null });
+                }
+              }
               // 不在工具调用阶段直接发送 delta（避免伪函数调用文本泄露给前端）
             }
             if (delta.tool_calls) {
@@ -3764,6 +3805,37 @@ const server = http.createServer(async (req, res) => {
             assistantMsg1,
             { role: 'tool', tool_call_id: toolCallId, content: toolResultText }
           ];
+
+          // ReAct: 更新当前轮的 action 和 observation
+          const traceEntry = reactTrace.find(t => t.turn === agentTurn);
+          const actionLabel = (() => {
+            const toolLabels = {
+              nmpa_search: '查询药监局数据库',
+              web_search: '联网搜索',
+              query_med_db: '查询医美价格库',
+              skill_dispatch: '调用专家模块',
+              user_memory: '读取用户记忆'
+            };
+            const label = toolLabels[toolCallName] || toolCallName;
+            const queryHint = toolArgs.query || toolArgs.keyword || toolArgs.products?.join('、') || '';
+            return queryHint ? `${label}(「${String(queryHint).slice(0, 30)}」)` : label;
+          })();
+          const observationSummary = (() => {
+            const len = toolResultText.length;
+            if (len === 0 || toolResultText.startsWith('[HITL 拒绝]')) return '操作已取消';
+            if (len < 100) return toolResultText.slice(0, 80);
+            // 提取前两行作为摘要
+            const firstLines = toolResultText.split('\n').filter(l => l.trim()).slice(0, 2).join(' ');
+            return firstLines.slice(0, 80) + (firstLines.length > 80 ? '…' : '');
+          })();
+          if (traceEntry) {
+            traceEntry.action = actionLabel;
+            traceEntry.observation = observationSummary;
+          } else {
+            reactTrace.push({ turn: agentTurn, thought: null, action: actionLabel, observation: observationSummary });
+          }
+          // 推送 observation SSE 事件
+          res.write(`data: ${JSON.stringify({ type: 'observation', turn: agentTurn, action: actionLabel, observation: observationSummary })}\n\n`);
 
           // 更新规划步骤状态：将当前轮次对应的步骤标记为 done
           if (planSteps && planSteps[agentTurn - 1]) {

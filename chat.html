@@ -888,6 +888,59 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     .tm-step-text { flex: 1; min-width: 0; word-break: break-word; }
     .tm-step-text.running { color: var(--text); font-weight: 500; }
     .tm-step-text.done { color: var(--text-3); text-decoration: line-through; }
+    /* ReAct 思维链条目 */
+    .tm-react-item {
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-light);
+    }
+    .tm-react-thought {
+      padding: 0.45rem 0.625rem;
+      background: #F0F7FF;
+      font-size: 0.72rem;
+      color: #1D4ED8;
+      line-height: 1.55;
+      border-bottom: 1px solid #DBEAFE;
+    }
+    .tm-react-thought-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #3B82F6;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+    .tm-react-action {
+      padding: 0.35rem 0.625rem;
+      background: white;
+      font-size: 0.72rem;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .tm-react-action-icon {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      background: var(--coral-light);
+      color: var(--coral);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.55rem; font-weight: 700; flex-shrink: 0;
+    }
+    .tm-react-obs {
+      padding: 0.35rem 0.625rem;
+      background: var(--bg-warm);
+      font-size: 0.7rem;
+      color: var(--text-3);
+      line-height: 1.5;
+    }
+    .tm-react-obs-label {
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: var(--text-3);
+      margin-bottom: 0.15rem;
+    }
     /* Artifact items */
     .tm-artifact {
       display: flex; align-items: center; gap: 0.5rem;
@@ -2026,6 +2079,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             </div>
             <div class="tm-section-body" id="tmBodySkill">
               <div class="tm-empty" id="tmEmptySkill">没有技能</div>
+            </div>
+          </div>
+          <!-- ReAct 思维链区块 -->
+          <div class="tm-section" id="tmSectionReact" style="display:none">
+            <div class="tm-section-header" onclick="tmToggleSection('react')">
+              <span class="tm-section-title">思维链</span>
+              <span class="tm-section-arrow open" id="tmArrowReact">▾</span>
+            </div>
+            <div class="tm-section-body" id="tmBodyReact">
+              <div class="tm-empty" id="tmEmptyReact">等待 Agent 思考中…</div>
             </div>
           </div>
         </div>
@@ -3872,6 +3935,12 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 if (evt.count > 0) {
                   showToolStatusIndicator('memory', `记忆检索到 ${evt.count} 条相关历史...`);
                 }
+              } else if (evt.type === 'thought') {
+                // ReAct: Agent 思考过程
+                document.dispatchEvent(new CustomEvent('tm:thought', { detail: evt }));
+              } else if (evt.type === 'observation') {
+                // ReAct: 工具执行结果观察
+                document.dispatchEvent(new CustomEvent('tm:observation', { detail: evt }));
               } else if (evt.type === 'confirmation_required') {
                 // P3: HITL 危险操作确认请求
                 document.dispatchEvent(new CustomEvent('hitl:confirmation_required', { detail: evt }));
@@ -5402,7 +5471,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     steps: [],      // { id, text, status: 'pending'|'running'|'done'|'error' }
     artifacts: [],  // { name, type, url }
     skills: [],     // { name, badge: 'skill'|'mcp'|'tool', status: 'active'|'idle' }
-    stepCounter: 0
+    stepCounter: 0,
+    reactItems: []  // { turn, thought, action, observation } — ReAct 思维链
   };
 
   /** 开关任务监控面板 */
@@ -5435,9 +5505,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     _tm.artifacts = [];
     _tm.skills = [];
     _tm.stepCounter = 0;
+    _tm.reactItems = [];
     tmRenderTodo();
     tmRenderArtifacts();
     tmRenderSkills();
+    tmRenderReact();
+    // 重置时隐藏思维链区块
+    const reactSection = document.getElementById('tmSectionReact');
+    if (reactSection) reactSection.style.display = 'none';
   }
 
   /** 渲染待办区块 */
@@ -5578,6 +5653,85 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     _tm.skills.forEach(s => s.status = 'idle');
     tmRenderSkills();
   }
+
+  /** 渲染 ReAct 思维链区块 */
+  function tmRenderReact() {
+    const body = document.getElementById('tmBodyReact');
+    const empty = document.getElementById('tmEmptyReact');
+    if (!body) return;
+    body.querySelectorAll('.tm-react-item').forEach(el => el.remove());
+    if (_tm.reactItems.length === 0) {
+      if (empty) empty.style.display = '';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    _tm.reactItems.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'tm-react-item';
+      el.id = 'tmReact_' + item.turn;
+      let html = '';
+      if (item.thought) {
+        html += `<div class="tm-react-thought"><div class="tm-react-thought-label">THOUGHT</div>${escapeHtml(item.thought)}</div>`;
+      }
+      if (item.action) {
+        html += `<div class="tm-react-action"><div class="tm-react-action-icon">ACT</div>${escapeHtml(item.action)}</div>`;
+      }
+      if (item.observation) {
+        html += `<div class="tm-react-obs"><div class="tm-react-obs-label">OBSERVATION</div>${escapeHtml(item.observation)}</div>`;
+      }
+      el.innerHTML = html;
+      body.appendChild(el);
+    });
+  }
+
+  /** 添加或更新 ReAct 思维链条目 */
+  function tmAddReactItem(turn, thought, action, observation) {
+    let item = _tm.reactItems.find(i => i.turn === turn);
+    if (!item) {
+      item = { turn, thought: null, action: null, observation: null };
+      _tm.reactItems.push(item);
+    }
+    if (thought !== undefined && thought !== null) item.thought = thought;
+    if (action !== undefined && action !== null) item.action = action;
+    if (observation !== undefined && observation !== null) item.observation = observation;
+    // 显示思维链区块
+    const reactSection = document.getElementById('tmSectionReact');
+    if (reactSection) reactSection.style.display = '';
+    // 自动打开面板
+    if (!_tm.open) toggleTaskMonitor();
+    // 更新单个条目的 DOM
+    const existing = document.getElementById('tmReact_' + turn);
+    if (existing) {
+      let html = '';
+      if (item.thought) html += `<div class="tm-react-thought"><div class="tm-react-thought-label">THOUGHT</div>${escapeHtml(item.thought)}</div>`;
+      if (item.action) html += `<div class="tm-react-action"><div class="tm-react-action-icon">ACT</div>${escapeHtml(item.action)}</div>`;
+      if (item.observation) html += `<div class="tm-react-obs"><div class="tm-react-obs-label">OBSERVATION</div>${escapeHtml(item.observation)}</div>`;
+      existing.innerHTML = html;
+    } else {
+      tmRenderReact();
+    }
+  }
+
+  /** HTML 转义辅助函数 */
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ===== ReAct SSE 事件监听 =====
+  document.addEventListener('hitl:confirmation_required', function(e) {
+    // 已在 HITL 模块处理，这里不重复
+  });
+
+  document.addEventListener('tm:thought', function(e) {
+    const { turn, content } = e.detail || {};
+    if (turn && content) tmAddReactItem(turn, content, null, null);
+  });
+
+  document.addEventListener('tm:observation', function(e) {
+    const { turn, action, observation } = e.detail || {};
+    if (turn) tmAddReactItem(turn, null, action, observation);
+  });
 
   // ===== 与 SSE 事件集成 =====
   // Hook showToolStatusIndicator 以同步更新任务监控面板
