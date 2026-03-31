@@ -8,6 +8,9 @@ tags: [个人品牌, 电影感, 视觉形象, 创始人IP, 拍摄方案, 医美]
 access: pro
 nmpa: false
 material_level: none
+agent_id: personal-brand-cinematic
+display_name: 电影感品牌视觉顾问
+ip_owner: douya
 ---
 
 # 个人品牌电影感视觉打造指南
