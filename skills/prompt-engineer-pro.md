@@ -8,6 +8,8 @@ tags: [Prompt工程, CRISPE, 需求分析, 结构化输出, 提示优化]
 access: admin
 nmpa: false
 material_level: none
+agent_id: prompt-engineer-pro
+display_name: 高级Prompt工程师
 ---
 # Role: 高级Prompt工程师
 
