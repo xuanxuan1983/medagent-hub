@@ -8,6 +8,8 @@ tags: [PPT, 幻灯片, 演示文稿, 内容创作, 医美汇报]
 access: pro
 nmpa: false
 material_level: none
+agent_id: ppt-creator
+display_name: PPT创作顾问
 ---
 
 # 医美PPT创作顾问
