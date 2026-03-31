@@ -8,6 +8,9 @@ tags: [医美, SFE, 销售效能, 激励设计, 区域管理]
 access: free
 nmpa: false
 material_level: brief
+agent_id: operations-director
+display_name: 运营效能总监
+ip_owner: doudou
 ---
 
 # Role: 医美上游 SFE 效能总监 (Upstream SFE Director)
