@@ -3824,6 +3824,9 @@ const server = http.createServer(async (req, res) => {
                   // ★ 使用 chatStream（不带工具）避免模型再次触发工具调用和 DSML 乱码
                   const stream2Expert = await activeProvider.chatStream(expertSystemPrompt, messagesForExpert);
                   let expertDeltaCount = 0;
+                  // 思维链过滤状态机：缓冲跨片段的 <thought>...</thought> 标签
+                  let expertThoughtBuf = '';   // 当前片段的累积缓冲
+                  let expertInThought = false; // 是否处于 thought 块内部
                   try {
                     for await (const parsed of parseSSEStream(stream2Expert)) {
                       const delta = parsed.choices?.[0]?.delta?.content || '';
@@ -3833,11 +3836,56 @@ const server = http.createServer(async (req, res) => {
                       }
                       if (delta) {
                         expertDeltaCount++;
-                        const filteredDelta = cleanDelta(delta).replace(/##([^\s#])/g, '## $1');
-                        fullMessage += filteredDelta;
-                        if (filteredDelta.trim()) {
-                          res.write(`data: ${JSON.stringify({ type: 'delta', content: filteredDelta })}\n\n`);
+                        // 将新片段加入缓冲区
+                        expertThoughtBuf += delta;
+                        // 循环处理缓冲区：将可安全推送的内容推送出去
+                        let safeToSend = '';
+                        while (true) {
+                          if (expertInThought) {
+                            // 处于 thought 内部，寻找结束标签
+                            const endIdx = expertThoughtBuf.indexOf('</thought>');
+                            if (endIdx !== -1) {
+                              // 找到结束标签，删除 thought 块，继续处理剩余
+                              expertThoughtBuf = expertThoughtBuf.slice(endIdx + '</thought>'.length);
+                              expertInThought = false;
+                            } else {
+                              // 还没找到结束，继续等待更多片段
+                              break;
+                            }
+                          } else {
+                            // 不在 thought 内部，寻找开始标签
+                            const startIdx = expertThoughtBuf.indexOf('<thought>');
+                            if (startIdx !== -1) {
+                              // 将 <thought> 之前的内容加入安全内容
+                              safeToSend += expertThoughtBuf.slice(0, startIdx);
+                              expertThoughtBuf = expertThoughtBuf.slice(startIdx + '<thought>'.length);
+                              expertInThought = true;
+                            } else {
+                              // 没有 thought 开始标签，但需要保留最后几个字符防止标签被切割
+                              const keepLen = '<thought>'.length - 1; // 8个字符
+                              if (expertThoughtBuf.length > keepLen) {
+                                safeToSend += expertThoughtBuf.slice(0, expertThoughtBuf.length - keepLen);
+                                expertThoughtBuf = expertThoughtBuf.slice(expertThoughtBuf.length - keepLen);
+                              }
+                              break;
+                            }
+                          }
                         }
+                        if (safeToSend) {
+                          const filteredDelta = cleanDelta(safeToSend).replace(/##([^\s#])/g, '## $1');
+                          fullMessage += filteredDelta;
+                          if (filteredDelta.trim()) {
+                            res.write(`data: ${JSON.stringify({ type: 'delta', content: filteredDelta })}\n\n`);
+                          }
+                        }
+                      }
+                    }
+                    // 流结束后处理缓冲区剩余内容
+                    if (expertThoughtBuf && !expertInThought) {
+                      const filteredDelta = cleanDelta(expertThoughtBuf).replace(/##([^\s#])/g, '## $1');
+                      fullMessage += filteredDelta;
+                      if (filteredDelta.trim()) {
+                        res.write(`data: ${JSON.stringify({ type: 'delta', content: filteredDelta })}\n\n`);
                       }
                     }
                   } catch (streamErr) {
