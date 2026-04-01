@@ -3455,21 +3455,21 @@ const server = http.createServer(async (req, res) => {
         // 用于所有流式 delta 推送路径，过滤 thought 标签、JSON 代码块、伪函数调用
         function cleanDelta(text) {
           if (!text) return '';
-          return text
-            // 过滤完整的 <thought>...</thought> 标签
-            .replace(/<thought>[\s\S]*?<\/thought>/g, '')
-            // 过滤未闭合的 <thought>... （流式片段可能只有开头）
-            .replace(/<thought>[\s\S]*/g, '')
+          // 第一步：过滤完整的 <thought>...</thought> 标签
+          let result = text.replace(/<thought>[\s\S]*?<\/thought>/g, '');
+          // 第二步：逐行扫描，删除包含 <thought> 的行（未闭合的流式片段）
+          result = result.split('\n').filter(line => !line.includes('<thought>')).join('\n');
+          return result
             // 过滤 ```json{...}``` 或 ```json\n{...}\n``` 代码块（含未闭合）
             .replace(/```json[\s\S]*?```/g, '')
-            .replace(/```json[\s\S]*/g, '')  // 未闭合的 ```json 代码块
+            .replace(/```json.*/g, '')  // 未闭合的 ```json 开头行
             .replace(/```[\s\S]*?```/g, '')  // 其他代码块
-            .replace(/```[\s\S]*/g, '')       // 未闭合的代码块
+            .replace(/```[^\n]*/g, '')       // 未闭合的代码块开头行
             // 过滤 json{...} 和 json[...] 格式（无代码块标记的裸式 JSON 调用）
             .replace(/json\s*\{[\s\S]*?\}/g, '')
             .replace(/json\s*\[[\s\S]*?\]/g, '')
-            .replace(/json\s*\{[\s\S]*/g, '')  // 未闭合的 json{ 格式
-            .replace(/json\s*\[[\s\S]*/g, '')  // 未闭合的 json[ 格式
+            .replace(/json\s*\{[^\n]*/g, '')  // 未闭合的 json{ 开头行
+            .replace(/json\s*\[[^\n]*/g, '')  // 未闭合的 json[ 开头行
             // 过滤工具调用 JSON 结构体（字段匹配）
             .replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '')
             .replace(/\{\s*"tool_name"\s*:[\s\S]*?\}/g, '')  // tool_name 格式
