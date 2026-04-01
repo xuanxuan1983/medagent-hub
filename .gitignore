@@ -57,3 +57,9 @@ deploy_team_plan.py
 fix_team_api.py
 team_api_addon.js
 node_modules/
+
+# security cleanup
+*.bak*
+*.pre_security_fix_*
+
+!.env.example

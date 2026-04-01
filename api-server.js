@@ -27,7 +27,7 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // Bocha Search API
-const BOCHA_API_KEY = process.env.BOCHA_API_KEY || 'sk-51d7d709eb6d4150b76dc131663330d3';
+const BOCHA_API_KEY = process.env.BOCHA_API_KEY || '';
 
 // ===== Notion 知识库配置 =====
 const NOTION_API_KEY = process.env.NOTION_API_KEY || '';
@@ -115,8 +115,8 @@ async function searchNotion(query, maxResults = 5) {
 const BOCHA_API_URL = 'https://api.bochaai.com/v1/web-search';
 
 // LibLib AI 图片生成
-const LIBLIB_ACCESS_KEY = process.env.LIBLIB_ACCESS_KEY || 'JP004_52azfkydBDkipUeQ';
-const LIBLIB_SECRET_KEY = process.env.LIBLIB_SECRET_KEY || 'Nx1rqfvE88V1KdX_7L5jaEwyUklmL0Z7';
+const LIBLIB_ACCESS_KEY = process.env.LIBLIB_ACCESS_KEY || '';
+const LIBLIB_SECRET_KEY = process.env.LIBLIB_SECRET_KEY || '';
 const LIBLIB_API_URL = 'https://openapi.liblibai.cloud';
 
 // ===== 权限体系常量 =====
@@ -2174,7 +2174,7 @@ const MEDAESTHETIC_IMAGE_PROMPTS = {
 };
 
 // ===== 魔搭 Z-Image-Turbo 图片生成 =====
-const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || 'ms-2301e8af-a457-4927-8041-9fbd9ef50c8e';
+const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || '';
 const MODELSCOPE_BASE_URL = 'https://api-inference.modelscope.cn';
 
 async function generateImageModelScope(promptKey, customPrompt) {
@@ -6616,7 +6616,7 @@ const server = http.createServer(async (req, res) => {
       fileStream.pipe(res);
     } else {
       const content = fs.readFileSync(filePath);
-      res.writeHead(200, { 'Content-Type': contentType });
+      res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-cache, no-store, must-revalidate' });
       res.end(content);
     }
   } catch {
