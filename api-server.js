@@ -3445,6 +3445,35 @@ const server = http.createServer(async (req, res) => {
         // ReAct 思维链记录（用于前端展示）
         const reactTrace = []; // [{ turn, thought, action, observation }]
 
+        // ===== 统一 delta 清洗函数 =====
+        // 用于所有流式 delta 推送路径，过滤 thought 标签、JSON 代码块、伪函数调用
+        function cleanDelta(text) {
+          if (!text) return '';
+          return text
+            // 过滤完整的 <thought>...</thought> 标签
+            .replace(/<thought>[\s\S]*?<\/thought>/g, '')
+            // 过滤未闭合的 <thought>... 到行尾（流式片段可能只有开头）
+            .replace(/<thought>[^<]*/g, '')
+            // 过滤 ```json{...}``` 或 ```json\n{...}\n``` 代码块（含未闭合）
+            .replace(/```json[\s\S]*?```/g, '')
+            .replace(/```json[\s\S]*/g, '')  // 未闭合的 ```json 代码块
+            .replace(/```[\s\S]*?```/g, '')  // 其他代码块
+            .replace(/```[\s\S]*/g, '')       // 未闭合的代码块
+            // 过滤工具调用 JSON 结构体
+            .replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '')
+            .replace(/\{\s*"api_name"\s*:[\s\S]*?\}/g, '')
+            .replace(/\{\s*"operation"\s*:[\s\S]*?\}/g, '')  // operation 格式
+            .replace(/\[\s*\{\s*"api_name"[\s\S]*?\}\s*\]/g, '')
+            // 过滤伪函数调用文本
+            .replace(/skill_dispatch\([^)]*\)/g, '')
+            .replace(/nmpa_search\([^)]*\)/g, '')
+            .replace(/query_med_db\([^)]*\)/g, '')
+            .replace(/bocha_search\([^)]*\)/g, '')
+            .replace(/web_search\([^)]*\)/g, '')
+            .replace(/[（(]正在[^)）]{1,20}[)）]/g, '')
+            .trim();
+        }
+
         // ===== 自我纠错状态 =====
         const toolFailCount = {};   // { toolName: failCount }
         const toolLastError = {};   // { toolName: errorMessage }
@@ -3575,20 +3604,8 @@ const server = http.createServer(async (req, res) => {
               continue;
             }
 
-            // 正常文本回复
-            let finalText = firstRoundContent;
-            // 过滤 ReAct <thought>...</thought> 标签内容（不应出现在正文）
-            finalText = finalText.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
-            // 过滤伪函数调用文本
-            finalText = finalText.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '');
-            // 过滤工具调用 JSON 结构体（如 {"tool": "nmpa_search", ...} 或 {"api_name": ..., "params": ...}）
-            finalText = finalText
-              .replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '')
-              .replace(/\{\s*"api_name"\s*:[\s\S]*?\}/g, '')
-              .replace(/\[\s*\{\s*"api_name"[\s\S]*?\}\s*\]/g, '')  // 数组格式 [{"api_name":...}]
-              .replace(/```json[\s\S]*?```/g, '')
-              .replace(/```[\s\S]*?```/g, '')  // 任意代码块
-              .trim();
+            // 正常文本回复 —— 使用统一 cleanDelta 函数过滤
+            let finalText = cleanDelta(firstRoundContent);
             if (finalText) {
               res.write(`data: ${JSON.stringify({ type: 'delta', content: finalText })}\n\n`);
               fullMessage += finalText;
@@ -3800,19 +3817,7 @@ const server = http.createServer(async (req, res) => {
                       }
                       if (delta) {
                         expertDeltaCount++;
-                        let filteredDelta = delta
-                          .replace(/<thought>[\s\S]*?<\/thought>/g, '')  // 过滤 ReAct thought 标签
-                          .replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '')    // 过滤工具调用 JSON 结构体
-                          .replace(/\{\s*"api_name"\s*:[\s\S]*?\}/g, '') // 过滤 api_name 格式
-                          .replace(/\[\s*\{\s*"api_name"[\s\S]*?\}\s*\]/g, '') // 过滤数组格式
-                          .replace(/```json[\s\S]*?```/g, '')             // 过滤 JSON 代码块
-                          .replace(/```[\s\S]*?```/g, '')                  // 过滤任意代码块
-                          .replace(/skill_dispatch\([^)]*\)/g, '')
-                          .replace(/nmpa_search\([^)]*\)/g, '')
-                          .replace(/[（(]正在调用[^)）]*[)）]/g, '')
-                          .replace(/[（(]正在连接[^)）]*[)）]/g, '')
-                          .replace(/[（(]正在查询[^)）]*[)）]/g, '')
-                          .replace(/##([^\s#])/g, '## $1');
+                        const filteredDelta = cleanDelta(delta).replace(/##([^\s#])/g, '## $1');
                         fullMessage += filteredDelta;
                         if (filteredDelta.trim()) {
                           res.write(`data: ${JSON.stringify({ type: 'delta', content: filteredDelta })}\n\n`);
@@ -3922,10 +3927,7 @@ const server = http.createServer(async (req, res) => {
             });
             const finalStream = await activeProvider.chatStream(finalSystemPrompt, finalMessages);
             for await (const parsed of parseSSEStream(finalStream)) {
-              let delta = parsed.choices?.[0]?.delta?.content || '';
-              if (delta) {
-                delta = delta.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
-              }
+              let delta = cleanDelta(parsed.choices?.[0]?.delta?.content || '');
               if (delta) {
                 fullMessage += delta;
                 res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
@@ -3949,11 +3951,7 @@ const server = http.createServer(async (req, res) => {
             if (dataStr === '[DONE]') continue;
             try {
               const parsed = JSON.parse(dataStr);
-              let delta = parsed.choices?.[0]?.delta?.content || '';
-              if (delta) {
-                // ★ 过滤 tool_calls 文本泄露
-                delta = delta.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
-              }
+              let delta = cleanDelta(parsed.choices?.[0]?.delta?.content || '');
               if (delta) {
                 fullMessage += delta;
                 res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
@@ -3970,11 +3968,7 @@ const server = http.createServer(async (req, res) => {
           const retryPrompt = enrichedSystemPrompt + '\n\n【重要】请直接回答用户最后一个问题，不要重复开场白，不要自我介绍，直接给出有价值的回答。';
           const retryStream = await activeProvider.chatStream(retryPrompt, session.messages);
           for await (const parsed of parseSSEStream(retryStream)) {
-            let delta = parsed.choices?.[0]?.delta?.content || '';
-            if (delta) {
-              // ★ 过滤 tool_calls 文本泄露
-              delta = delta.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '').trim();
-            }
+            let delta = cleanDelta(parsed.choices?.[0]?.delta?.content || '');
             if (delta) {
               fullMessage += delta;
               res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
@@ -3990,9 +3984,10 @@ const server = http.createServer(async (req, res) => {
         res.write(`data: ${JSON.stringify({ type: 'delta', content: fullMessage })}\n\n`);
       }
 
-      // ★ 最终清洗：过滤 tool_calls 文本泄露 + 修复表格格式
+      // ★ 最终清洗：过滤所有残留的 thought 标签、JSON 代码块、伪函数调用 + 修复表格格式
       if (fullMessage) {
-        fullMessage = fullMessage.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在调用[^)）]*[)）]/g, '').replace(/（正在连接[^）]*）/g, '').replace(/^\s*---\s*$/gm, '').trim();
+        fullMessage = cleanDelta(fullMessage)
+          .replace(/^\s*---\s*$/gm, '').trim();
         // ★ 清除表格单元格内的 ** 加粗标记（防止 Markdown 渲染错误）
         fullMessage = fullMessage.replace(/\|([^|\n]*)\*\*([^*|\n]*)\*\*([^|\n]*)/g, (match, pre, bold, post) => `|${pre}${bold}${post}`).replace(/\|([^|\n]*)\*\*([^*|\n]*)\*\*([^|\n]*)/g, (match, pre, bold, post) => `|${pre}${bold}${post}`);
         if (fullMessage.length === 0) {
