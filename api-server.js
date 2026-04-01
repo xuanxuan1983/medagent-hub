@@ -3542,8 +3542,14 @@ const server = http.createServer(async (req, res) => {
             finalText = finalText.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
             // 过滤伪函数调用文本
             finalText = finalText.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/[（(]正在[^)）]{1,20}[)）]/g, '');
-            // 过滤工具调用 JSON 结构体（如 {"tool": "nmpa_search", ...}）
-            finalText = finalText.replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '').replace(/```json[\s\S]*?```/g, '').trim();
+            // 过滤工具调用 JSON 结构体（如 {"tool": "nmpa_search", ...} 或 {"api_name": ..., "params": ...}）
+            finalText = finalText
+              .replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '')
+              .replace(/\{\s*"api_name"\s*:[\s\S]*?\}/g, '')
+              .replace(/\[\s*\{\s*"api_name"[\s\S]*?\}\s*\]/g, '')  // 数组格式 [{"api_name":...}]
+              .replace(/```json[\s\S]*?```/g, '')
+              .replace(/```[\s\S]*?```/g, '')  // 任意代码块
+              .trim();
             if (finalText) {
               res.write(`data: ${JSON.stringify({ type: 'delta', content: finalText })}\n\n`);
               fullMessage += finalText;
@@ -3758,7 +3764,10 @@ const server = http.createServer(async (req, res) => {
                         let filteredDelta = delta
                           .replace(/<thought>[\s\S]*?<\/thought>/g, '')  // 过滤 ReAct thought 标签
                           .replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '')    // 过滤工具调用 JSON 结构体
+                          .replace(/\{\s*"api_name"\s*:[\s\S]*?\}/g, '') // 过滤 api_name 格式
+                          .replace(/\[\s*\{\s*"api_name"[\s\S]*?\}\s*\]/g, '') // 过滤数组格式
                           .replace(/```json[\s\S]*?```/g, '')             // 过滤 JSON 代码块
+                          .replace(/```[\s\S]*?```/g, '')                  // 过滤任意代码块
                           .replace(/skill_dispatch\([^)]*\)/g, '')
                           .replace(/nmpa_search\([^)]*\)/g, '')
                           .replace(/[（(]正在调用[^)）]*[)）]/g, '')
