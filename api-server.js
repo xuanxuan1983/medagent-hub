@@ -3185,6 +3185,36 @@ const server = http.createServer(async (req, res) => {
             const sfKey = process.env.SILICONFLOW_API_KEY;
             const topK = strategy.topK || 5;
 
+            // ── 产品清单全量检索模式 ──────────────────────────────────────
+            // 当问题是「列举所有产品」类型时，直接返回对应文件的全部 chunk
+            // 避免 topK 截断导致产品不全
+            const isListQuery = /有哪些|清单|列举|全部|所有|列出|几款|多少款/.test(message);
+            const listKeywords = [
+              { kw: /胶原蛋白/, file: 'collagen-registration' },
+              { kw: /玻尿酸|透明质酸/, file: 'hyaluronic-acid' },
+              { kw: /肉毒素|肉毒杆菌|botox/, file: 'botulinum' },
+            ];
+            let fullFileChunks = [];
+            if (isListQuery) {
+              try {
+                const globalIndex = kb.loadVectorIndex('global');
+                for (const { kw, file } of listKeywords) {
+                  if (kw.test(message)) {
+                    const matched = globalIndex.filter(c => c.source && c.source.includes(file));
+                    if (matched.length > 0) { fullFileChunks = matched; break; }
+                  }
+                }
+                // 若未命中特定文件，退回到全量 BM25
+                if (fullFileChunks.length === 0) {
+                  fullFileChunks = globalIndex.filter(c => {
+                    const src = (c.source || '').toLowerCase();
+                    return listKeywords.some(({ kw }) => kw.test(src));
+                  });
+                }
+              } catch (e) { fullFileChunks = []; }
+            }
+            // ──────────────────────────────────────────────────────────────
+
             // 并行执行向量检索和BM25检索
             const [vectorChunks, bm25Chunks] = await Promise.all([
               Promise.race([
@@ -3201,11 +3231,20 @@ const server = http.createServer(async (req, res) => {
               })()
             ]);
 
-            // 混合去重
-            const mergedChunks = mergeRetrievalResults(vectorChunks || [], bm25Chunks || [], topK * 2);
+            // 混合去重（全量模式时合并全文 chunk）
+            const baseChunks = fullFileChunks.length > 0
+              ? [...fullFileChunks, ...(vectorChunks || []), ...bm25Chunks]
+              : [...(vectorChunks || []), ...bm25Chunks];
+            const mergedChunks = mergeRetrievalResults(
+              fullFileChunks.length > 0 ? fullFileChunks : (vectorChunks || []),
+              bm25Chunks,
+              fullFileChunks.length > 0 ? fullFileChunks.length + topK : topK * 2
+            );
             
-            // Rerank 重排序，取前 topK 个
-            const rerankedChunks = rerankChunks(message, mergedChunks).slice(0, topK);
+            // Rerank 重排序：全量模式不截断，普通模式取前 topK 个
+            const rerankedChunks = fullFileChunks.length > 0
+              ? rerankChunks(message, mergedChunks)  // 不截断，全部返回
+              : rerankChunks(message, mergedChunks).slice(0, topK);
 
             if (rerankedChunks.length > 0) {
               const kbContext = kb.formatKnowledgeContext(rerankedChunks);
