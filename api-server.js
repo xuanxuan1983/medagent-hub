@@ -3439,7 +3439,13 @@ const server = http.createServer(async (req, res) => {
 每次决定调用工具前，必须先在 content 中输出一段思考过程，格式为：
 <thought>我需要...[分析目标]。因为...[推理过程]，所以我将调用 [tool_name] 查询 [query]</thought>
 然后再发起工具调用。
-注意：<thought> 内容必须简洁（不超过 80 字），不要在最终回答中重复思考过程。`;
+
+【严格禁止】以下内容绝对不能出现在用户可见的正文回复中：
+1. 任何 JSON 格式的工具调用（如 {"tool":...}、{"api_name":...}、json{...}、json[...]）
+2. 任何未用 <thought> 标签包裹的思考过程文字
+3. 任何代码块（```开头的内容）
+工具调用必须通过 function_call 机制发起，不得在正文中输出任何 JSON。
+<thought> 内容必须简洁（不超过 80 字），不要在最终回答中重复思考过程。`;
         enrichedSystemPrompt = enrichedSystemPrompt + REACT_SYSTEM_SUFFIX;
 
         // ReAct 思维链记录（用于前端展示）
@@ -3452,18 +3458,27 @@ const server = http.createServer(async (req, res) => {
           return text
             // 过滤完整的 <thought>...</thought> 标签
             .replace(/<thought>[\s\S]*?<\/thought>/g, '')
-            // 过滤未闭合的 <thought>... 到行尾（流式片段可能只有开头）
-            .replace(/<thought>[^<]*/g, '')
+            // 过滤未闭合的 <thought>... （流式片段可能只有开头）
+            .replace(/<thought>[\s\S]*/g, '')
             // 过滤 ```json{...}``` 或 ```json\n{...}\n``` 代码块（含未闭合）
             .replace(/```json[\s\S]*?```/g, '')
             .replace(/```json[\s\S]*/g, '')  // 未闭合的 ```json 代码块
             .replace(/```[\s\S]*?```/g, '')  // 其他代码块
             .replace(/```[\s\S]*/g, '')       // 未闭合的代码块
-            // 过滤工具调用 JSON 结构体
+            // 过滤 json{...} 和 json[...] 格式（无代码块标记的裸式 JSON 调用）
+            .replace(/json\s*\{[\s\S]*?\}/g, '')
+            .replace(/json\s*\[[\s\S]*?\]/g, '')
+            .replace(/json\s*\{[\s\S]*/g, '')  // 未闭合的 json{ 格式
+            .replace(/json\s*\[[\s\S]*/g, '')  // 未闭合的 json[ 格式
+            // 过滤工具调用 JSON 结构体（字段匹配）
             .replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '')
+            .replace(/\{\s*"tool_name"\s*:[\s\S]*?\}/g, '')  // tool_name 格式
             .replace(/\{\s*"api_name"\s*:[\s\S]*?\}/g, '')
             .replace(/\{\s*"operation"\s*:[\s\S]*?\}/g, '')  // operation 格式
+            .replace(/\{\s*"query"\s*:[\s\S]*?\}/g, '')      // 单独 query 字段
+            .replace(/\{\s*"keyword"\s*:[\s\S]*?\}/g, '')    // keyword 字段
             .replace(/\[\s*\{\s*"api_name"[\s\S]*?\}\s*\]/g, '')
+            .replace(/\[\s*\{\s*"tool_name"[\s\S]*?\}\s*\]/g, '')
             // 过滤伪函数调用文本
             .replace(/skill_dispatch\([^)]*\)/g, '')
             .replace(/nmpa_search\([^)]*\)/g, '')
