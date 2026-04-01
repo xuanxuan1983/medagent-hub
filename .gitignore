@@ -63,3 +63,7 @@ node_modules/
 *.pre_security_fix_*
 
 !.env.example
+
+# local runtime secrets
+.env.runtime
+.env.runtime_backup_*
