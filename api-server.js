@@ -3455,10 +3455,13 @@ const server = http.createServer(async (req, res) => {
         // 用于所有流式 delta 推送路径，过滤 thought 标签、JSON 代码块、伪函数调用
         function cleanDelta(text) {
           if (!text) return '';
-          // 第一步：过滤完整的 <thought>...</thought> 标签
-          let result = text.replace(/<thought>[\s\S]*?<\/thought>/g, '');
-          // 第二步：逐行扫描，删除包含 <thought> 的行（未闭合的流式片段）
-          result = result.split('\n').filter(line => !line.includes('<thought>')).join('\n');
+          // 第一步：删除所有 <thought>...</thought> 块（含多行）
+          // 先删完整封闭的，再删未封闭的（从 <thought> 开头到下一个非 thought 行之前）
+          let result = text
+            .replace(/<thought>[\s\S]*?<\/thought>\s*/g, '')  // 完整封闭的 thought 块
+            .replace(/<thought>[\s\S]*$/gm, '');               // 未封闭的：删除 <thought> 到字符串末尾
+          // 第二步：删除残留的空行（thought 删除后可能留下多余空行）
+          result = result.replace(/^\s*\n/gm, '').replace(/\n{3,}/g, '\n\n');
           return result
             // 过滤 ```json{...}``` 或 ```json\n{...}\n``` 代码块（含未闭合）
             .replace(/```json[\s\S]*?```/g, '')
