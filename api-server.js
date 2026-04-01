@@ -3459,20 +3459,18 @@ const server = http.createServer(async (req, res) => {
           // 先删完整封闭的，再删未封闭的（从 <thought> 开头到下一个非 thought 行之前）
           let result = text
             .replace(/<thought>[\s\S]*?<\/thought>\s*/g, '')  // 完整封闭的 thought 块
-            .replace(/<thought>[\s\S]*$/gm, '');               // 未封闭的：删除 <thought> 到字符串末尾
+            .replace(/<thought>[\s\S]*$/, '');                  // 未封闭的：删除 <thought> 到字符串末尾（不加m标志，$匹配整个字符串末尾）
           // 第二步：删除残留的空行（thought 删除后可能留下多余空行）
           result = result.replace(/^\s*\n/gm, '').replace(/\n{3,}/g, '\n\n');
+          // 第三步：逐行删除包含工具调用标志的行（json{、json[、```json 开头）
+          result = result.split('\n').filter(line => {
+            const t = line.trim();
+            return !(/^json\s*[\[\{]/.test(t)) && !(/^```/.test(t));
+          }).join('\n');
           return result
-            // 过滤 ```json{...}``` 或 ```json\n{...}\n``` 代码块（含未闭合）
-            .replace(/```json[\s\S]*?```/g, '')
-            .replace(/```json.*/g, '')  // 未闭合的 ```json 开头行
-            .replace(/```[\s\S]*?```/g, '')  // 其他代码块
-            .replace(/```[^\n]*/g, '')       // 未闭合的代码块开头行
-            // 过滤 json{...} 和 json[...] 格式（无代码块标记的裸式 JSON 调用）
-            .replace(/json\s*\{[\s\S]*?\}/g, '')
-            .replace(/json\s*\[[\s\S]*?\]/g, '')
-            .replace(/json\s*\{[^\n]*/g, '')  // 未闭合的 json{ 开头行
-            .replace(/json\s*\[[^\n]*/g, '')  // 未闭合的 json[ 开头行
+            // 过滤行内残留的 json{...} 和 json[...] 片段
+            .replace(/json\s*\{[\s\S]*?\}\s*/g, '')
+            .replace(/json\s*\[[\s\S]*?\]\s*/g, '')
             // 过滤工具调用 JSON 结构体（字段匹配）
             .replace(/\{\s*"tool"\s*:[\s\S]*?\}/g, '')
             .replace(/\{\s*"tool_name"\s*:[\s\S]*?\}/g, '')  // tool_name 格式
