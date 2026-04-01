@@ -3730,9 +3730,16 @@ const server = http.createServer(async (req, res) => {
                     return idx >= 0 ? '\n\n' + enrichedSystemPrompt.slice(idx) : '';
                   })();
                   const expertSystemPrompt = toolResult.skillPrompt + kbSection;
-                  const messagesForExpert = [...agentMessages];
+                  // ★ 清洗 agentMessages：将 tool/assistant(with tool_calls) 消息转换为普通消息
+                  // 避免 DeepSeek-V3 看到 tool 消息后输出 <｜DSML｜function_calls> 乱码
+                  const messagesForExpert = agentMessages.map(m => {
+                    if (m.role === 'tool') return { role: 'user', content: '工具查询结果：' + (m.content || '') };
+                    if (m.role === 'assistant' && m.tool_calls) return { role: 'assistant', content: m.content || '（正在查询数据）' };
+                    return m;
+                  });
                   console.log(`🎯 [skill_dispatch] 使用专家 prompt 直接回答 | skill: ${skillId} | prompt长度: ${expertSystemPrompt.length}`);
-                  const stream2Expert = await activeProvider.chatStreamWithTools(expertSystemPrompt, messagesForExpert, []);
+                  // ★ 使用 chatStream（不带工具）避免模型再次触发工具调用和 DSML 乱码
+                  const stream2Expert = await activeProvider.chatStream(expertSystemPrompt, messagesForExpert);
                   let expertDeltaCount = 0;
                   try {
                     for await (const parsed of parseSSEStream(stream2Expert)) {
