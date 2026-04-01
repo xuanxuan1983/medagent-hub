@@ -3856,6 +3856,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                   // Fix missing blank line before table (LLM often puts table right after heading text)
                   // 修复表格渲染：处理LLM生成表格的常见格式问题
                   renderText = (function(text) {
+                    // Step0: 拆分单行连续表格（LLM有时把多行表格压缩成一行，用||分隔）
+                    // 例：|产品|注册证号||---|---||肤丽美|国械注准| → 拆成多行
+                    var splitLines = text.split('\n'), splitOut = [];
+                    for (var si = 0; si < splitLines.length; si++) {
+                      var sln = splitLines[si];
+                      if (/^\|.*\|\|.*\|/.test(sln)) {
+                        splitOut.push(sln.replace(/\|\|/g, '|\n|'));
+                      } else {
+                        splitOut.push(sln);
+                      }
+                    }
+                    text = splitOut.join('\n');
                     // Step1: 去除行首空格（LLM有时缩进表格行）
                     text = text.replace(/^[ \t]+\|/gm, '|');
                     // Step2: 去除表格行之间的空行（LLM常在每行后加空行）
@@ -4064,6 +4076,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       mainContent = mainContent.replace(/##([^\s#\n])/g, '## $1');
       // 修复表格渲染：处理LLM生成表格的常见格式问题
       mainContent = (function(text) {
+        // Step0: 拆分单行连续表格
+        var splitLines = text.split('\n'), splitOut = [];
+        for (var si = 0; si < splitLines.length; si++) {
+          var sln = splitLines[si];
+          if (/^\|.*\|\|.*\|/.test(sln)) { splitOut.push(sln.replace(/\|\|/g, '|\n|')); }
+          else { splitOut.push(sln); }
+        }
+        text = splitOut.join('\n');
         // Step1: 去除行首空格
         text = text.replace(/^[ \t]+\|/gm, '|');
         // Step2: 去除表格行之间的空行（LLM常在每行后加空行）
@@ -4086,7 +4106,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         }
         return out.join('\n');
       })(mainContent);
-      // ★ 清除表格单元格内的 ** 加粗标记
+      // ★ 清除表格单元格内的 ⨯⨯ 加粗标记
       mainContent = mainContent.replace(/^(\|[^\n]*)$/gm, function(row) {
         return row.replace(/\*\*([^*|\n]*)\*\*/g, '$1').replace(/\*\*([^*|\n]*)/g, '$1').replace(/([^*|\n]*)\*\*/g, '$1');
       });
@@ -4452,6 +4472,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (role === 'assistant' && typeof marked !== 'undefined') {
       // 修复表格渲染：处理LLM生成表格的常见格式问题
       mainContent = (function(text) {
+        // Step0: 拆分单行连续表格
+        var splitLines = text.split('\n'), splitOut = [];
+        for (var si = 0; si < splitLines.length; si++) {
+          var sln = splitLines[si];
+          if (/^\|.*\|\|.*\|/.test(sln)) { splitOut.push(sln.replace(/\|\|/g, '|\n|')); }
+          else { splitOut.push(sln); }
+        }
+        text = splitOut.join('\n');
         text = text.replace(/^[ \t]+\|/gm, '|');
         var changed = true;
         while (changed) { var prev = text; text = text.replace(/(\|[^\n]*)\n\n(\|)/g, '$1\n$2'); changed = (text !== prev); }
