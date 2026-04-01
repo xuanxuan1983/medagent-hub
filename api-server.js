@@ -3443,7 +3443,7 @@ const server = http.createServer(async (req, res) => {
 【严格禁止】以下内容绝对不能出现在用户可见的正文回复中：
 1. 任何 JSON 格式的工具调用（如 {"tool":...}、{"api_name":...}、json{...}、json[...]）
 2. 任何未用 <thought> 标签包裹的思考过程文字
-3. 任何代码块（```开头的内容）
+3. 任何代码块（三个反引号开头的内容）
 工具调用必须通过 function_call 机制发起，不得在正文中输出任何 JSON。
 <thought> 内容必须简洁（不超过 80 字），不要在最终回答中重复思考过程。`;
         enrichedSystemPrompt = enrichedSystemPrompt + REACT_SYSTEM_SUFFIX;
