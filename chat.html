@@ -4120,24 +4120,44 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     feedback.innerHTML = '<span class="feedback-hint">有帮助吗？</span><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">👍 有用</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">👎 不准</button>';
     bubble.appendChild(feedback);
 
-    // 导出按钮（回复超过 300 字时显示）
-    if (mainContent && mainContent.length > 300) {
+    // 复制按钮（回复超过 100 字时显示）
+    if (mainContent && mainContent.length > 100) {
       const exportBar = document.createElement('div');
       exportBar.className = 'msg-export-bar';
-      const exportTitle = document.createElement('span');
-      exportTitle.className = 'export-hint';
-      exportTitle.textContent = '导出：';
-      exportBar.appendChild(exportTitle);
-      const pdfBtn = document.createElement('button');
-      pdfBtn.className = 'export-btn';
-      pdfBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF';
-      pdfBtn.onclick = () => exportMessage(mainContent, 'pdf', pdfBtn);
-      exportBar.appendChild(pdfBtn);
-      const wordBtn = document.createElement('button');
-      wordBtn.className = 'export-btn';
-      wordBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg> Word';
-      wordBtn.onclick = () => exportMessage(mainContent, 'word', wordBtn);
-      exportBar.appendChild(wordBtn);
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'export-btn';
+      copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 复制';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(mainContent).then(() => {
+          copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> 已复制';
+          copyBtn.style.color = '#16a34a';
+          copyBtn.style.borderColor = '#16a34a';
+          setTimeout(() => {
+            copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 复制';
+            copyBtn.style.color = '';
+            copyBtn.style.borderColor = '';
+          }, 2000);
+        }).catch(() => {
+          // 降级方案：使用 execCommand
+          const ta = document.createElement('textarea');
+          ta.value = mainContent;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> 已复制';
+          copyBtn.style.color = '#16a34a';
+          copyBtn.style.borderColor = '#16a34a';
+          setTimeout(() => {
+            copyBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 复制';
+            copyBtn.style.color = '';
+            copyBtn.style.borderColor = '';
+          }, 2000);
+        });
+      };
+      exportBar.appendChild(copyBtn);
       bubble.appendChild(exportBar);
     }
 
