@@ -2174,7 +2174,7 @@ const MEDAESTHETIC_IMAGE_PROMPTS = {
 };
 
 // ===== 魔搭 Z-Image-Turbo 图片生成 =====
-const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || 'ms-2301e8af-a457-4927-8041-9fbd9ef50c8e';
+const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || '';
 const MODELSCOPE_BASE_URL = 'https://api-inference.modelscope.cn';
 
 async function generateImageModelScope(promptKey, customPrompt) {
