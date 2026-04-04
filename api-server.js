@@ -4235,9 +4235,11 @@ const server = http.createServer(async (req, res) => {
  const headers = { 'Content-Type': contentType };
  // CSS/JS/图片等静态资源启用浏览器缓存（1小时），HTML 不缓存
  if (['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'].includes(ext)) {
- headers['Cache-Control'] = 'public, max-age=3600';
+ headers['Cache-Control'] = 'public, max-age=300, must-revalidate';
  } else if (ext === '.html') {
- headers['Cache-Control'] = 'no-cache';
+ headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate';
+     headers['Pragma'] = 'no-cache';
+     headers['Expires'] = '0';
  }
  res.writeHead(200, headers);
  res.end(content);
