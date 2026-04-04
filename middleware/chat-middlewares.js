@@ -144,6 +144,38 @@ class SSEStreamer {
     this.res.write(`data: ${JSON.stringify({ type: 'tool_call', tool, ...args })}\n\n`);
   }
 
+  /**
+   * 初始化任务规划容器（只发标题，不发步骤）
+   * @param {number} totalSteps 预计总步骤数
+   */
+  sendTaskPlanInit(totalSteps) {
+    this.res.write(`data: ${JSON.stringify({ type: 'task_plan_init', totalSteps })}\n\n`);
+  }
+
+  /**
+   * 逐个追加任务规划步骤（带延迟动画效果）
+   * @param {Object} step 步骤对象 {id, title, description, status}
+   */
+  sendTaskPlanStep(step) {
+    this.res.write(`data: ${JSON.stringify({ type: 'task_plan_add', step })}\n\n`);
+  }
+
+  /**
+   * 逐步发送任务规划（先初始化容器，再逐个发送步骤，每步间隔 250ms）
+   * @param {Array} steps 步骤数组
+   * @returns {Promise<void>}
+   */
+  async sendTaskPlanAnimated(steps) {
+    this.sendTaskPlanInit(steps.length);
+    for (let i = 0; i < steps.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      this.sendTaskPlanStep(steps[i]);
+    }
+  }
+
+  /**
+   * 兼容旧接口：一次性发送所有步骤
+   */
   sendTaskPlan(steps) {
     this.res.write(`data: ${JSON.stringify({ type: 'task_plan', steps })}\n\n`);
   }

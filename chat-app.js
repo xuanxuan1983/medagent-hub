@@ -1349,15 +1349,84 @@
    });
    searchResults = searchResults.concat(evt.results);
  }
+ } else if (evt.type === 'task_plan_init') {
+ // 任务规划初始化：创建容器，显示“正在拆解任务...”动画
+ let planContainer = bubble.querySelector('.task-plan-container');
+ if (!planContainer) {
+ const blinkCursor = bubble.querySelector('.blink-cursor');
+ if (blinkCursor) blinkCursor.remove();
+ planContainer = document.createElement('div');
+ planContainer.className = 'task-plan-container tp-animating';
+ planContainer.innerHTML = '<div class="task-plan-header">' +
+ '<div class="task-plan-header-left">' +
+ '<span class="task-plan-thinking-dot"><span></span><span></span><span></span></span>' +
+ '<span class="task-plan-title">正在拆解任务...</span>' +
+ '</div>' +
+ '<span class="task-plan-progress"></span>' +
+ '</div>' +
+ '<div class="task-plan-steps"></div>';
+ bubble.insertBefore(planContainer, bubble.firstChild);
+ }
+ container.scrollTop = container.scrollHeight;
+ } else if (evt.type === 'task_plan_add') {
+ // 逐个步骤动画冒出
+ let planContainer = bubble.querySelector('.task-plan-container');
+ if (!planContainer) {
+ // 如果没有 init，自动创建容器
+ const blinkCursor = bubble.querySelector('.blink-cursor');
+ if (blinkCursor) blinkCursor.remove();
+ planContainer = document.createElement('div');
+ planContainer.className = 'task-plan-container tp-animating';
+ planContainer.innerHTML = '<div class="task-plan-header">' +
+ '<div class="task-plan-header-left">' +
+ '<span class="task-plan-thinking-dot"><span></span><span></span><span></span></span>' +
+ '<span class="task-plan-title">任务规划</span>' +
+ '</div>' +
+ '<span class="task-plan-progress"></span>' +
+ '</div>' +
+ '<div class="task-plan-steps"></div>';
+ bubble.insertBefore(planContainer, bubble.firstChild);
+ }
+ var step = evt.step;
+ if (step) {
+ var planStepsList = planContainer.querySelector('.task-plan-steps');
+ var stepEl = document.createElement('div');
+ stepEl.className = 'task-plan-step pending tp-step-enter';
+ stepEl.dataset.planStepId = step.id;
+ stepEl.innerHTML = '<span class="task-plan-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/></svg></span>' +
+ '<div class="task-plan-step-content"><span class="task-plan-step-title">' + step.title + '</span>' +
+ (step.description ? '<span class="task-plan-step-desc">' + step.description + '</span>' : '') + '</div>';
+ planStepsList.appendChild(stepEl);
+ // 触发动画
+ requestAnimationFrame(function() {
+ requestAnimationFrame(function() {
+ stepEl.classList.remove('tp-step-enter');
+ stepEl.classList.add('tp-step-visible');
+ });
+ });
+ // 更新标题和进度
+ var allSteps = planStepsList.querySelectorAll('.task-plan-step');
+ var titleEl = planContainer.querySelector('.task-plan-title');
+ if (titleEl) titleEl.textContent = '任务规划';
+ var progressEl = planContainer.querySelector('.task-plan-progress');
+ if (progressEl) progressEl.textContent = '0/' + allSteps.length + ' 已完成';
+ // 移除 thinking dots（当所有步骤都发完时由 update 处理）
+ }
+ container.scrollTop = container.scrollHeight;
  } else if (evt.type === 'task_plan') {
- // 任务计划：显示步骤清单
+ // 兼容旧接口：一次性发送所有步骤
  let planContainer = bubble.querySelector('.task-plan-container');
  if (!planContainer) {
  const blinkCursor = bubble.querySelector('.blink-cursor');
  if (blinkCursor) blinkCursor.remove();
  planContainer = document.createElement('div');
  planContainer.className = 'task-plan-container';
- planContainer.innerHTML = '<div class="task-plan-header"><svg class="task-plan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="task-plan-title">任务规划</span><span class="task-plan-progress">0/' + (evt.steps ? evt.steps.length : 0) + ' 已完成</span></div><div class="task-plan-steps"></div>';
+ planContainer.innerHTML = '<div class="task-plan-header">' +
+ '<div class="task-plan-header-left">' +
+ '<svg class="task-plan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>' +
+ '<span class="task-plan-title">任务规划</span>' +
+ '</div>' +
+ '<span class="task-plan-progress">0/' + (evt.steps ? evt.steps.length : 0) + ' 已完成</span></div><div class="task-plan-steps"></div>';
  bubble.insertBefore(planContainer, bubble.firstChild);
  }
  const planStepsList = planContainer.querySelector('.task-plan-steps');
@@ -1367,7 +1436,7 @@
  const stepEl = document.createElement('div');
  stepEl.className = 'task-plan-step pending';
  stepEl.dataset.planStepId = step.id;
- stepEl.innerHTML = '<span class="task-plan-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/></svg></span>' +
+ stepEl.innerHTML = '<span class="task-plan-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/></svg></span>' +
  '<div class="task-plan-step-content"><span class="task-plan-step-title">' + step.title + '</span>' +
  (step.description ? '<span class="task-plan-step-desc">' + step.description + '</span>' : '') + '</div>';
  planStepsList.appendChild(stepEl);
@@ -1375,11 +1444,20 @@
  }
  container.scrollTop = container.scrollHeight;
  } else if (evt.type === 'task_plan_update') {
- // 任务计划更新：更新单个步骤状态和描述
+ // 任务计划更新：更新单个步骤状态和描述（带动画）
  const planContainer = bubble.querySelector('.task-plan-container');
  if (planContainer) {
+ // 移除 thinking dots
+ var thinkingDot = planContainer.querySelector('.task-plan-thinking-dot');
+ if (thinkingDot) thinkingDot.remove();
+ planContainer.classList.remove('tp-animating');
+ 
  const stepEl = planContainer.querySelector('[data-plan-step-id="' + evt.stepId + '"]');
  if (stepEl) {
+ // 添加状态过渡动画 class
+ stepEl.classList.add('tp-status-change');
+ setTimeout(function() { stepEl.classList.remove('tp-status-change'); }, 500);
+ 
  stepEl.classList.remove('pending', 'running', 'done', 'error');
  stepEl.classList.add(evt.status);
  const iconEl = stepEl.querySelector('.task-plan-step-icon');
@@ -1390,28 +1468,58 @@
  } else if (evt.status === 'error') {
  iconEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2.5" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
  }
- // 更新描述（结果摘要）
+ // 更新描述（结果摘要）带打字效果
  if (evt.description) {
- const descEl = stepEl.querySelector('.task-plan-step-desc');
- if (descEl) {
- descEl.textContent = evt.description;
- } else {
- const contentEl = stepEl.querySelector('.task-plan-step-content');
+ var descEl = stepEl.querySelector('.task-plan-step-desc');
+ if (!descEl) {
+ var contentEl = stepEl.querySelector('.task-plan-step-content');
  if (contentEl) {
- const newDesc = document.createElement('span');
- newDesc.className = 'task-plan-step-desc';
- newDesc.textContent = evt.description;
- contentEl.appendChild(newDesc);
+ descEl = document.createElement('span');
+ descEl.className = 'task-plan-step-desc';
+ contentEl.appendChild(descEl);
+ }
+ }
+ if (descEl) {
+ descEl.textContent = '';
+ descEl.classList.add('tp-typing');
+ // 打字效果
+ var chars = evt.description.split('');
+ var ci = 0;
+ var typeTimer = setInterval(function() {
+ if (ci < chars.length) {
+ descEl.textContent += chars[ci];
+ ci++;
+ } else {
+ clearInterval(typeTimer);
+ descEl.classList.remove('tp-typing');
+ }
+ }, 20);
  }
  }
  }
- }
- // 更新进度计数
- const allPlanSteps = planContainer.querySelectorAll('.task-plan-step');
- const donePlanSteps = planContainer.querySelectorAll('.task-plan-step.done');
- const progressEl = planContainer.querySelector('.task-plan-progress');
+ // 更新进度条
+ var allPlanSteps = planContainer.querySelectorAll('.task-plan-step');
+ var donePlanSteps = planContainer.querySelectorAll('.task-plan-step.done');
+ var progressEl = planContainer.querySelector('.task-plan-progress');
  if (progressEl) {
- progressEl.textContent = donePlanSteps.length + '/' + allPlanSteps.length + ' 已完成';
+ var total = allPlanSteps.length;
+ var done = donePlanSteps.length;
+ progressEl.textContent = done + '/' + total + ' 已完成';
+ // 进度条
+ var bar = planContainer.querySelector('.task-plan-bar');
+ if (!bar) {
+ bar = document.createElement('div');
+ bar.className = 'task-plan-bar';
+ bar.innerHTML = '<div class="task-plan-bar-fill"></div>';
+ var header = planContainer.querySelector('.task-plan-header');
+ if (header) header.after(bar);
+ }
+ var fill = bar.querySelector('.task-plan-bar-fill');
+ if (fill) fill.style.width = (total > 0 ? (done / total * 100) : 0) + '%';
+ // 全部完成时标记
+ if (done === total && total > 0) {
+ planContainer.classList.add('tp-all-done');
+ }
  }
  }
  container.scrollTop = container.scrollHeight;

@@ -168,7 +168,8 @@ async function handleUnifiedChatStream(req, res, deps) {
    'Qwen/Qwen2.5-7B-Instruct', webSearch || isExpertMode
  );
  if (taskPlanSteps && taskPlanSteps.length > 0) {
- streamer.sendTaskPlan(taskPlanSteps);
+ // 逐步动态发送任务规划（每个步骤间隔 250ms 动画冒出）
+ await streamer.sendTaskPlanAnimated(taskPlanSteps);
  // 标记第一步（分析问题）为 running
  streamer.updateTaskPlan(taskPlanSteps[0].id, 'running');
  console.log(`[TaskPlan] 生成 ${taskPlanSteps.length} 个步骤: ${taskPlanSteps.map(s => `${s.title}${s.toolId ? '('+s.toolId+')' : ''}`).join(' → ')}`);

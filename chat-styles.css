@@ -1306,14 +1306,26 @@
       border-radius: 10px;
       border: 1px solid #d4e8d4;
       font-size: 13px;
+      animation: tp-container-in 0.35s ease;
+    }
+    @keyframes tp-container-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .task-plan-header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 6px;
       margin-bottom: 12px;
       padding-bottom: 10px;
       border-bottom: 1px solid #d4e8d4;
+    }
+    .task-plan-header-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
     }
     .task-plan-icon {
       color: #27ae60;
@@ -1324,13 +1336,50 @@
       font-weight: 600;
       color: #2d6a2d;
       letter-spacing: 0.02em;
-      flex: 1;
     }
     .task-plan-progress {
       font-size: 11px;
       color: #6b9e6b;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+      transition: all 0.3s;
+    }
+    /* 进度条 */
+    .task-plan-bar {
+      height: 3px;
+      background: #e0ede0;
+      border-radius: 2px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .task-plan-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #27ae60, #2ecc71);
+      border-radius: 2px;
+      width: 0;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tp-all-done .task-plan-bar-fill {
+      background: linear-gradient(90deg, #27ae60, #58d68d);
+    }
+    /* Thinking dots 动画 */
+    .task-plan-thinking-dot {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+    .task-plan-thinking-dot span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #27ae60;
+      animation: tp-dot-pulse 1.2s ease-in-out infinite;
+    }
+    .task-plan-thinking-dot span:nth-child(2) { animation-delay: 0.2s; }
+    .task-plan-thinking-dot span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes tp-dot-pulse {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1.1); }
     }
     .task-plan-steps {
       display: flex;
@@ -1343,11 +1392,28 @@
       gap: 10px;
       color: #999;
       line-height: 1.5;
-      transition: color 0.3s, opacity 0.3s;
+      transition: color 0.4s, opacity 0.4s, transform 0.4s, background 0.3s;
       font-size: 13px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      margin: -4px -6px;
+    }
+    /* 步骤冒出动画 */
+    .task-plan-step.tp-step-enter {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    .task-plan-step.tp-step-visible {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.4s ease, transform 0.4s ease, color 0.4s, background 0.3s;
+    }
+    /* 状态变化闪烁 */
+    .task-plan-step.tp-status-change {
+      background: rgba(39, 174, 96, 0.06);
     }
     .task-plan-step.pending {
-      color: #999;
+      color: #bbb;
     }
     .task-plan-step.running {
       color: #333;
@@ -1366,6 +1432,15 @@
       align-items: center;
       justify-content: center;
       margin-top: 1px;
+      transition: transform 0.3s;
+    }
+    .task-plan-step.done .task-plan-step-icon {
+      animation: tp-check-pop 0.35s ease;
+    }
+    @keyframes tp-check-pop {
+      0% { transform: scale(0.5); }
+      60% { transform: scale(1.2); }
+      100% { transform: scale(1); }
     }
     .task-plan-step-icon .spin {
       width: 14px;
@@ -1389,12 +1464,31 @@
       font-size: 11px;
       color: #aaa;
       line-height: 1.4;
+      transition: color 0.3s;
+    }
+    .task-plan-step-desc.tp-typing::after {
+      content: '▋';
+      animation: tp-cursor-blink 0.6s step-end infinite;
+      color: #27ae60;
+      margin-left: 1px;
+    }
+    @keyframes tp-cursor-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
     .task-plan-step.running .task-plan-step-desc {
       color: #888;
     }
     .task-plan-step.done .task-plan-step-desc {
       color: #6b9e6b;
+    }
+    /* 全部完成状态 */
+    .tp-all-done {
+      border-color: #a8d8a8;
+    }
+    .tp-all-done .task-plan-progress {
+      color: #27ae60;
+      font-weight: 600;
     }
 
     /* ===== WORKSPACE SPLIT LAYOUT ===== */
