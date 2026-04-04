@@ -996,7 +996,7 @@ const CHANNEL_COMMISSION_LEVEL2 = 0.15;       // Level 2 介绍费比例 15%
 function loadReferralCodes() {
   try {
     if (fs.existsSync(REFERRAL_FILE)) return JSON.parse(fs.readFileSync(REFERRAL_FILE, 'utf8'));
-  } catch (e) { console.error('[loadReferralCodes] 读取失败:', e.message); }
+  } catch {}
   return {};
 }
 
@@ -1007,7 +1007,7 @@ function saveReferralCodes(data) {
 function loadReferralRecords() {
   try {
     if (fs.existsSync(REFERRAL_RECORDS_FILE)) return JSON.parse(fs.readFileSync(REFERRAL_RECORDS_FILE, 'utf8'));
-  } catch (e) { console.error('[loadReferralRecords] 读取失败:', e.message); }
+  } catch {}
   return [];
 }
 
@@ -1067,7 +1067,7 @@ function loadProfiles() {
       _profilesCache = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
       return _profilesCache;
     }
-  } catch (e) { console.error('[loadProfiles] 读取失败:', e.message); }
+  } catch {}
   _profilesCache = {};
   return _profilesCache;
 }
@@ -1276,7 +1276,7 @@ function loadCodes() {
       _codesCache = JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
       return _codesCache;
     }
-  } catch (e) { console.error('[loadCodes] 读取失败:', e.message); }
+  } catch {}
   _codesCache = { 'medagent2026': '默认用户' };
   fs.writeFileSync(CODES_FILE, JSON.stringify(_codesCache, null, 2));
   return _codesCache;
@@ -1298,7 +1298,7 @@ function loadUsage() {
       _usageCache = JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8'));
       return _usageCache;
     }
-  } catch (e) { console.error('[loadUsage] 读取失败:', e.message); }
+  } catch {}
   _usageCache = {};
   return _usageCache;
 }
@@ -1319,7 +1319,7 @@ function loadUsageLimits() {
       _usageLimitsCache = JSON.parse(fs.readFileSync(USAGE_LIMITS_FILE, 'utf8'));
       return _usageLimitsCache;
     }
-  } catch (e) { console.error('[loadUsageLimits] 读取失败:', e.message); }
+  } catch {}
   _usageLimitsCache = {};
   return _usageLimitsCache;
 }
@@ -5053,7 +5053,7 @@ const server = http.createServer(async (req, res) => {
   };
 
   // Admin：创建团队
-  if (url.pathname === '/api/admin/team/create' && req.method === 'POST') {
+  if (url.pathname === '/api/admin/team/create' && req.method === 'POST' && isAdmin(req)) {
     const body = await parseRequestBody(req);
     const { ownerCode, planId, months = 1 } = body;
     if (!ownerCode || !planId || !TEAM_PLANS[planId]) {
@@ -5089,7 +5089,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Admin：查看所有团队
-  if (url.pathname === '/api/admin/teams' && req.method === 'GET') {
+  if (url.pathname === '/api/admin/teams' && req.method === 'GET' && isAdmin(req)) {
     const teams = readTeams();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ total: Object.keys(teams).length, teams }));
@@ -5097,7 +5097,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Admin：删除团队
-  if (url.pathname === '/api/admin/team/delete' && req.method === 'POST') {
+  if (url.pathname === '/api/admin/team/delete' && req.method === 'POST' && isAdmin(req)) {
     const body = await parseRequestBody(req);
     const { ownerCode } = body;
     const teams = readTeams();
@@ -5297,14 +5297,7 @@ const server = http.createServer(async (req, res) => {
       fileStream.pipe(res);
     } else {
       const content = fs.readFileSync(filePath);
-      const headers = { 'Content-Type': contentType };
-      // CSS/JS/图片等静态资源启用浏览器缓存（1小时），HTML 不缓存
-      if (['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'].includes(ext)) {
-        headers['Cache-Control'] = 'public, max-age=3600';
-      } else if (ext === '.html') {
-        headers['Cache-Control'] = 'no-cache';
-      }
-      res.writeHead(200, headers);
+      res.writeHead(200, { 'Content-Type': contentType });
       res.end(content);
     }
   } catch {
