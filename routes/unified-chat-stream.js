@@ -153,6 +153,7 @@ async function handleUnifiedChatStream(req, res, deps) {
  // 专家模式专属指令增强
  if (isExpertMode) {
  enrichedSystemPrompt += '\n\n【专家模式指令】请以专业医美顾问的身份，给出深度、结构化的分析。回答需包含：核心判断、关键数据/依据、具体建议（分步骤）、注意事项。使用 Markdown 格式，层次清晰。遇到不确定的信息，必须使用工具查询，不要编造。';
+ // 发送思考过程步骤
  streamer.sendStep(`分析问题意图：${intentResult.intent} (专家模式)`, 'done');
  }
 
@@ -163,6 +164,7 @@ async function handleUnifiedChatStream(req, res, deps) {
  if (kbCiteMatches.length > 0) {
  const citeNames = kbCiteMatches.map(m => m[1]);
  console.log(`[ KB Force] 检测到知识库引用标签: ${citeNames.join(', ')}`);
+ const kbStepId = isExpertMode ? streamer.sendStep(`检索知识库：${citeNames.join('、')}`, 'running') : null;
  try {
  const kbQuery = message.replace(kbCitePattern, '').trim() || citeNames.join(' ');
  const kbResult = await toolRegistry.executeTool('knowledge_search', { query: kbQuery, top_k: 5 }, {
@@ -181,7 +183,11 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  console.log(`[ KB Force] 强制检索成功，注入 ${kbResult.text.length} 字符上下文`);
  streamer.sendToolCall('knowledge_search', { query: kbQuery, source: 'forced_cite' });
+ if (kbStepId) {
+ streamer.updateStep(kbStepId, `检索知识库：${citeNames.join('、')}`, 'done');
+ } else {
  streamer.sendStep('已从知识库检索引用内容', 'done');
+ }
  if (kbResult.searchResults && kbResult.searchResults.length > 0) {
  streamer.sendSearch(kbResult.searchResults);
  }
@@ -276,7 +282,16 @@ async function handleUnifiedChatStream(req, res, deps) {
  try { toolArgs = JSON.parse(toolCallArgsBuf); } catch (e) {}
  
  streamer.sendToolCall(toolCallName, toolArgs);
- const stepId = streamer.sendStep(`正在调用工具：${toolCallName}...`, 'running');
+ // 生成可读的工具步骤描述
+ const toolStepNames = {
+ 'knowledge_search': '检索内部知识库',
+ 'nmpa_search': '查询国家药监局数据库',
+ 'web_search': '联网搜索最新信息',
+ 'query_med_db': '查询价格数据库',
+ 'skill_dispatch': `转接专家：${toolArgs.skill_id || ''}`
+ };
+ const toolStepText = toolStepNames[toolCallName] || `调用工具：${toolCallName}`;
+ const stepId = streamer.sendStep(toolStepText, 'running');
  
  // 执行工具
  const toolResult = await toolRegistry.executeTool(toolCallName, toolArgs, toolContext);
@@ -286,7 +301,7 @@ async function handleUnifiedChatStream(req, res, deps) {
  streamer.sendSearch(toolResult.searchResults);
  }
  
- streamer.updateStep(stepId, `工具 ${toolCallName} 执行完成`, 'done');
+ streamer.updateStep(stepId, toolStepText, 'done');
 
  // skill_dispatch 特殊处理：用专家的 skillPrompt 替换 system prompt
  let stream2SystemPrompt = enrichedSystemPrompt;
@@ -298,6 +313,9 @@ async function handleUnifiedChatStream(req, res, deps) {
  streamer.sendDelta('');
  }
  }
+
+ // 发送“整合信息”步骤
+ const integrateStepId = streamer.sendStep('整合信息，生成回答', 'running');
 
  // 第二轮对话（携带工具结果）
  // 将 tool/assistant(with tool_calls) 消息转换为普通消息，避免 DeepSeek 再次输出 tool_calls 标记
@@ -327,6 +345,7 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  if (stream2) {
  let stream2ChunkCount = 0;
+ let integrateStepDone = false;
  for await (const parsed of deps.parseSSEStream(stream2)) {
  stream2ChunkCount++;
  let delta = parsed.choices?.[0]?.delta?.content || '';
@@ -335,9 +354,18 @@ async function handleUnifiedChatStream(req, res, deps) {
  delta = delta.replace(/<\|tool[\u2581_].*?\|>/g, '').replace(/<｜tool[\u2581_].*?｜>/g, '');
  }
  if (delta) {
+ // 第一个有内容的 delta 到达时，标记整合步骤完成
+ if (!integrateStepDone) {
+ streamer.updateStep(integrateStepId, '整合信息，生成回答', 'done');
+ integrateStepDone = true;
+ }
  fullMessage += delta;
  streamer.sendDelta(delta);
  }
+ }
+ // 如果 stream2 结束但整合步骤未完成（空响应），也标记完成
+ if (!integrateStepDone) {
+ streamer.updateStep(integrateStepId, '整合信息，生成回答', 'done');
  }
  console.log(`[Stream2] 完成, 共收到 ${stream2ChunkCount} 个chunk, 输出长度: ${fullMessage.length}`);
  // 降级：如果 stream2 返回了但没有任何内容，直接输出工具结果摘要

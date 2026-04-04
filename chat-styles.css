@@ -1176,56 +1176,114 @@
     }
     .upgrade-banner-close:hover { color: var(--text); }
 
-  
-    /* ===== 专家模式动态步骤卡片 ===== */
+    /* ===== EXPERT STEPS - Thinking Process ===== */
     .expert-steps-container {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
-      padding: 10px 14px;
-      background: #f8f8f8;
+      gap: 0;
+      margin-bottom: 14px;
+      padding: 12px 16px 10px;
+      background: #fafafa;
       border-radius: 10px;
       border: 1px solid #eee;
       font-size: 13px;
     }
-    .expert-step-item {
+    .expert-steps-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: #555;
-      line-height: 1.4;
-      transition: color 0.3s;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
     }
-    .expert-step-item.done { color: #222; }
-    .expert-step-item.error { color: #c0392b; }
+    .expert-steps-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #888;
+      letter-spacing: 0.02em;
+    }
+    .expert-steps-progress {
+      font-size: 11px;
+      color: #aaa;
+      font-variant-numeric: tabular-nums;
+    }
+    .expert-steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .expert-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: #999;
+      line-height: 1.5;
+      transition: color 0.3s, opacity 0.3s;
+      font-size: 13px;
+    }
+    .expert-step-item.running {
+      color: #333;
+    }
+    .expert-step-item.done {
+      color: #555;
+    }
+    .expert-step-item.error {
+      color: #c0392b;
+    }
     .expert-step-icon {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
+      margin-top: 1px;
     }
+    /* Pending: empty circle */
+    .expert-step-icon .pending {
+      width: 12px;
+      height: 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 50%;
+    }
+    /* Running: spinning loader */
     .expert-step-icon .spin {
       width: 14px;
       height: 14px;
-      border: 2px solid #ccc;
-      border-top-color: #555;
+      border: 2px solid #e0e0e0;
+      border-top-color: #27ae60;
       border-radius: 50%;
-      animation: expert-spin 0.8s linear infinite;
+      animation: expert-spin 0.7s linear infinite;
     }
+    /* Done: green checkmark */
     .expert-step-icon .check {
-      color: #27ae60;
-      font-size: 14px;
-      font-weight: bold;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+    .expert-step-icon .check svg {
+      width: 16px;
+      height: 16px;
+    }
+    /* Error: red X */
     .expert-step-icon .err {
       color: #c0392b;
       font-size: 14px;
+      font-weight: bold;
+    }
+    .expert-step-text {
+      flex: 1;
     }
     @keyframes expert-spin {
       to { transform: rotate(360deg); }
+    }
+    /* Collapsed state after answer starts */
+    .expert-steps-container[data-collapsed='1'] {
+      margin-bottom: 10px;
+      padding: 10px 14px 8px;
+      background: #f5f5f5;
     }
 
     /* ===== WORKSPACE SPLIT LAYOUT ===== */

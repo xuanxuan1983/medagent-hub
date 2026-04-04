@@ -1240,34 +1240,47 @@
  } else if (evt.type === 'search') {
  searchResults = evt.results;
  } else if (evt.type === 'step') {
- // 动态步骤卡片（专家模式）
+ // 动态步骤卡片（专家模式 - 思考过程）
  let stepsContainer = bubble.querySelector('.expert-steps-container');
  if (!stepsContainer) {
  stepsContainer = document.createElement('div');
  stepsContainer.className = 'expert-steps-container';
+ stepsContainer.innerHTML = '<div class="expert-steps-header"><span class="expert-steps-title">思考过程</span><span class="expert-steps-progress"></span></div><div class="expert-steps-list"></div>';
  bubble.insertBefore(stepsContainer, bubble.firstChild);
  }
+ const stepsList = stepsContainer.querySelector('.expert-steps-list');
  // 查找已有步骤
- let stepEl = stepsContainer.querySelector(`[data-step-id="${evt.id}"]`);
+ let stepEl = stepsList.querySelector(`[data-step-id="${evt.id}"]`);
  if (!stepEl) {
  stepEl = document.createElement('div');
  stepEl.className = 'expert-step-item';
  stepEl.dataset.stepId = evt.id;
  stepEl.innerHTML = `<span class="expert-step-icon"><span class="spin"></span></span><span class="expert-step-text"></span>`;
- stepsContainer.appendChild(stepEl);
+ stepsList.appendChild(stepEl);
  }
  // 更新文字
  stepEl.querySelector('.expert-step-text').textContent = evt.text;
  // 更新状态
  const iconEl = stepEl.querySelector('.expert-step-icon');
+ const checkSvg = '<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
  if (evt.status === 'done') {
+ stepEl.classList.remove('running');
  stepEl.classList.add('done');
- iconEl.innerHTML = '<span class="check"></span>';
+ iconEl.innerHTML = checkSvg;
  } else if (evt.status === 'error') {
+ stepEl.classList.remove('running');
  stepEl.classList.add('error');
- iconEl.innerHTML = '<span class="err"></span>';
+ iconEl.innerHTML = '<span class="err">&#10005;</span>';
  } else {
+ stepEl.classList.add('running');
  iconEl.innerHTML = '<span class="spin"></span>';
+ }
+ // 更新进度计数
+ const allSteps = stepsList.querySelectorAll('.expert-step-item');
+ const doneSteps = stepsList.querySelectorAll('.expert-step-item.done');
+ const progressEl = stepsContainer.querySelector('.expert-steps-progress');
+ if (progressEl) {
+ progressEl.textContent = `${doneSteps.length}/${allSteps.length} 已完成`;
  }
  container.scrollTop = container.scrollHeight;
  } else if (evt.type === 'delta') {
@@ -1277,11 +1290,20 @@
  const stepsBox = bubble.querySelector('.expert-steps-container');
  if (stepsBox && !stepsBox.dataset.collapsed) {
  stepsBox.dataset.collapsed = '1';
+ const checkSvgCollapse = '<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';
  // 把所有仍在 running 的步骤标记为 done
  stepsBox.querySelectorAll('.expert-step-item:not(.done):not(.error)').forEach(el => {
+ el.classList.remove('running');
  el.classList.add('done');
- el.querySelector('.expert-step-icon').innerHTML = '<span class="check"></span>';
+ el.querySelector('.expert-step-icon').innerHTML = checkSvgCollapse;
  });
+ // 更新进度为全部完成
+ const stepsList2 = stepsBox.querySelector('.expert-steps-list');
+ if (stepsList2) {
+ const total = stepsList2.querySelectorAll('.expert-step-item').length;
+ const progressEl2 = stepsBox.querySelector('.expert-steps-progress');
+ if (progressEl2) progressEl2.textContent = `${total}/${total} 已完成`;
+ }
  }
  fullText += evt.content;
  // Re-render markdown on each delta with incomplete marker fix
