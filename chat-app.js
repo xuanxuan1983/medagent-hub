@@ -2383,7 +2383,7 @@
     const label = document.getElementById('expertModeLabel');
     if (_expertModeEnabled) {
       bar && bar.classList.add('active');
-      if (label) label.textContent = '专家模式已开启';
+      if (label) label.textContent = '专家模式';
     } else {
       bar && bar.classList.remove('active');
       if (label) label.textContent = '专家模式';

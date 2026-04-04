@@ -1082,9 +1082,9 @@
       margin-bottom: -1px;
     }
     .expert-mode-bar.active {
-      background: #1a1a1a;
-      color: #f0f0f0;
-      border-color: #333;
+      background: #f8f8f8;
+      color: #666;
+      border-color: #e0e0e0;
     }
     .expert-toggle {
       position: relative;
@@ -1113,12 +1113,12 @@
       transition: 0.25s;
       box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
-    .expert-toggle input:checked + .expert-slider { background: #1a1a1a; }
+    .expert-toggle input:checked + .expert-slider { background: #22c55e; }
     .expert-toggle input:checked + .expert-slider:before { transform: translateX(14px); }
     .expert-toggle input:disabled + .expert-slider { opacity: 0.4; cursor: not-allowed; }
     .expert-badge {
-      background: #1a1a1a;
-      color: white;
+      background: #f0f0f0;
+      color: #999;
       font-size: 0.6rem;
       padding: 1px 5px;
       border-radius: 3px;
@@ -1126,8 +1126,8 @@
       letter-spacing: 0.03em;
     }
     .expert-mode-bar.active .expert-badge {
-      background: white;
-      color: #1a1a1a;
+      background: #dcfce7;
+      color: #16a34a;
     }
     .expert-locked-tip {
       font-size: 0.7rem;
