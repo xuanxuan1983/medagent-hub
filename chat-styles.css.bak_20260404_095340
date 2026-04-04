@@ -1391,28 +1391,3 @@
     .resource-tab.active { color: var(--coral); border-bottom-color: var(--coral); font-weight: 600; }
     .resource-tab-content { display: none; }
     .resource-tab-content.active { display: block; }
-
-    /* ===== KB ITEM STYLES ===== */
-    .kb-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-    }
-    .kb-item-info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
-    }
-    .kb-item-meta {
-      font-size: 0.65rem;
-      color: var(--text-3);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .kb-item:hover .resource-item-cite {
-      opacity: 1;
-    }

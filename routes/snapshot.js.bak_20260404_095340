@@ -104,7 +104,6 @@ ${fileContext}
     skillPath: skillFileName,
     messageCount: messages.length,
     fileCount: uploadedFiles.length,
-    attachedFiles: uploadedFiles.map(f => ({ name: f.original_name, type: f.content_type })),
     createdAt: now.toISOString(),
     summary: extractedContent.substring(0, 300)
   };
@@ -263,9 +262,7 @@ function loadSkillForChat(skillId, userCode) {
       success: true,
       skillName: meta.skillName,
       agentName: meta.agentName,
-      content: body.trim(),
-      attachedFiles: meta.attachedFiles || [],
-      sourceAgent: meta.agentId
+      content: body.trim()
     };
   } catch (e) {
     return { success: false, error: e.message };

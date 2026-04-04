@@ -914,12 +914,6 @@
         draggedResourceIdx = null;
         return;
       }
-      // 支持知识库条目拖拽
-      const kbIdx = e.dataTransfer.getData('application/x-kb-idx');
-      if (kbIdx !== '' && kbIdx !== null && kbIdx !== undefined) {
-        citeKBInInput(parseInt(kbIdx, 10));
-        return;
-      }
       const files = e.dataTransfer.files;
       if (files && files.length > 0) {
         const file = files[0];
@@ -2536,11 +2530,7 @@
       if (data.success) {
         loadedSkillContext = data;
         // 在输入框上方显示已加载的技能标记
-        const fileCount = (data.attachedFiles || []).length;
-        const badgeText = fileCount > 0
-          ? data.skillName + ' (' + fileCount + '个关联文件)'
-          : data.skillName;
-        showLoadedSkillBadge(badgeText);
+        showLoadedSkillBadge(data.skillName);
         // 将技能内容作为下一次发送消息的前缀上下文
         const input = document.getElementById('messageInput');
         if (input && !input.value.trim()) {
@@ -2578,88 +2568,11 @@
   // ===== 资源面板标签页切换 =====
   function switchResourceTab(tab) {
     document.querySelectorAll('.resource-tab').forEach((el, i) => {
-      el.classList.toggle('active', (tab === 'files' && i === 0) || (tab === 'kb' && i === 1) || (tab === 'skills' && i === 2));
+      el.classList.toggle('active', (tab === 'files' && i === 0) || (tab === 'skills' && i === 1));
     });
     document.getElementById('resourceTabFiles').classList.toggle('active', tab === 'files');
-    document.getElementById('resourceTabKB').classList.toggle('active', tab === 'kb');
     document.getElementById('resourceTabSkills').classList.toggle('active', tab === 'skills');
-    if (tab === 'kb') loadKBList();
     if (tab === 'skills') loadSkillsList();
-  }
-
-  // ===== 知识库列表 =====
-  let kbFiles = [];
-  async function loadKBList() {
-    const container = document.getElementById('kbFileList');
-    try {
-      const resp = await fetch('/api/kb/list');
-      const data = await resp.json();
-      kbFiles = data.files || [];
-      if (kbFiles.length === 0) {
-        container.innerHTML = '<div class="resource-empty">知识库暂无文档<br><span style="font-size:0.7rem">管理员可在知识库管理页上传文档</span></div>';
-        return;
-      }
-      container.innerHTML = kbFiles.map((f, idx) => {
-        const icon = getKBFileIcon(f.name);
-        const date = new Date(f.addedAt).toLocaleDateString('zh-CN');
-        const scopeLabel = f.scope === 'global' ? '全局' : f.scope.replace('agent:', '');
-        return '<div class="resource-item kb-item" draggable="true" ondragstart="onKBItemDragStart(event,' + idx + ')" onclick="citeKBInInput(' + idx + ')" title="' + f.name + '">' +
-          '<span class="resource-item-icon">' + icon + '</span>' +
-          '<div class="kb-item-info">' +
-            '<span class="resource-item-name">' + truncateFileName(f.name, 28) + '</span>' +
-            '<span class="kb-item-meta">' + scopeLabel + ' | ' + f.chunks + '块 | ' + date + '</span>' +
-          '</div>' +
-          '<button class="resource-item-cite" onclick="event.stopPropagation();citeKBInInput(' + idx + ')">引用</button>' +
-        '</div>';
-      }).join('');
-    } catch (e) {
-      container.innerHTML = '<div class="resource-empty">加载失败</div>';
-    }
-  }
-
-  function getKBFileIcon(name) {
-    const ext = (name.split('.').pop() || '').toLowerCase();
-    const icons = {
-      pdf: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-      doc: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2980b9" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
-      docx: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2980b9" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
-      md: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-      txt: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7f8c8d" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
-    };
-    return icons[ext] || icons.txt;
-  }
-
-  function truncateFileName(name, maxLen) {
-    if (name.length <= maxLen) return name;
-    const ext = name.lastIndexOf('.');
-    if (ext > 0) {
-      const base = name.substring(0, ext);
-      const suffix = name.substring(ext);
-      const keep = maxLen - suffix.length - 3;
-      if (keep > 4) return base.substring(0, keep) + '...' + suffix;
-    }
-    return name.substring(0, maxLen - 3) + '...';
-  }
-
-  function citeKBInInput(idx) {
-    const f = kbFiles[idx];
-    if (!f) return;
-    const input = document.getElementById('messageInput');
-    const citeText = '[引用知识库《' + truncateFileName(f.name, 30) + '》] ';
-    if (!input.value.trim()) {
-      input.value = citeText;
-    } else {
-      input.value = input.value.trimEnd() + ' ' + citeText;
-    }
-    input.focus();
-    autoResize(input);
-  }
-
-  function onKBItemDragStart(event, idx) {
-    const f = kbFiles[idx];
-    event.dataTransfer.effectAllowed = 'copy';
-    event.dataTransfer.setData('text/plain', '[引用知识库《' + truncateFileName(f.name, 30) + '》] ');
-    event.dataTransfer.setData('application/x-kb-idx', String(idx));
   }
 
   // ===== 技能包列表管理 =====
@@ -2683,7 +2596,6 @@
           <div class="skill-card-meta">来源: ${s.agentName || '未知'} | ${date}</div>
           <div class="skill-card-actions">
             <button class="skill-action-btn" onclick="event.stopPropagation();loadSkillToCurrentChat('${s.id}')">加载</button>
-            <button class="skill-action-btn" onclick="event.stopPropagation();shareSkill('${s.id}')">分享</button>
             <button class="skill-action-btn" onclick="event.stopPropagation();downloadSkill('${s.id}')">下载</button>
             <button class="skill-action-btn danger" onclick="event.stopPropagation();deleteSkill('${s.id}')">删除</button>
           </div>
@@ -2741,67 +2653,6 @@
       alert('网络错误');
     }
   }
-
-  // 分享技能包
-  async function shareSkill(skillId) {
-    try {
-      const resp = await fetch('/api/chat/snapshot/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skillId })
-      });
-      const data = await resp.json();
-      if (data.success) {
-        const shareUrl = window.location.origin + '?import=' + data.shareCode;
-        // 复制到剪贴板
-        try {
-          await navigator.clipboard.writeText(shareUrl);
-          alert('分享链接已复制\n\n' + shareUrl + '\n\n发送给同事即可加载此技能包');
-        } catch (clipErr) {
-          prompt('请复制以下分享链接：', shareUrl);
-        }
-      } else {
-        alert(data.error || '分享失败');
-      }
-    } catch (e) {
-      alert('网络错误，请重试');
-    }
-  }
-
-  // 通过分享码导入技能包
-  async function importSkillByCode(shareCode) {
-    try {
-      const resp = await fetch('/api/chat/snapshot/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shareCode })
-      });
-      const data = await resp.json();
-      if (data.success) {
-        loadedSkillContext = data;
-        showLoadedSkillBadge(data.skillName + ' (分享)');
-        const input = document.getElementById('messageInput');
-        if (input) input.placeholder = `已加载分享技能「${data.skillName}」（来自 ${data.sharedBy}），请输入问题...`;
-        alert(`成功加载技能包「${data.skillName}」\n来源: ${data.agentName}\n分享者: ${data.sharedBy}`);
-      } else {
-        alert(data.error || '导入失败，分享码可能无效');
-      }
-    } catch (e) {
-      alert('网络错误，请重试');
-    }
-  }
-
-  // 页面加载时检查 URL 中是否有分享码
-  (function checkImportParam() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const importCode = urlParams.get('import');
-    if (importCode) {
-      // 延迟执行，等页面加载完成
-      setTimeout(() => importSkillByCode(importCode), 1500);
-      // 清除 URL 参数
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  })();
 
   // 对话超过 4 条消息时显示快照按钮
   function updateSnapshotBtnVisibility() {

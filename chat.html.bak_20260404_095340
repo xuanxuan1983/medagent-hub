@@ -283,7 +283,6 @@
       <div class="resource-panel-body" id="resourcePanelBody">
         <div class="resource-tabs">
           <div class="resource-tab active" onclick="switchResourceTab('files')">文件 & 快捷</div>
-          <div class="resource-tab" onclick="switchResourceTab('kb')">知识库</div>
           <div class="resource-tab" onclick="switchResourceTab('skills')">我的技能包</div>
         </div>
         <div class="resource-tab-content active" id="resourceTabFiles">
@@ -317,11 +316,6 @@
               </span>
               <span class="resource-item-name">整理为结构化报告</span>
             </div>
-          </div>
-        </div>
-        <div class="resource-tab-content" id="resourceTabKB">
-          <div id="kbFileList">
-            <div class="resource-empty">加载中...</div>
           </div>
         </div>
         <div class="resource-tab-content" id="resourceTabSkills">
