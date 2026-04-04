@@ -43,6 +43,15 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.1; }
+    }
+    .blink-cursor {
+      animation: blink-cursor 1s ease-in-out infinite;
+      font-size: 14px;
+      color: #999;
+    }
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-6px); }

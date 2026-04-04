@@ -1242,7 +1242,10 @@
  } else if (evt.type === 'step') {
  // 动态步骤卡片（专家模式 - 思考过程）
  let stepsContainer = bubble.querySelector('.expert-steps-container');
- if (!stepsContainer) {
+     if (!stepsContainer) {
+ // 清除初始的 blink cursor
+ const blinkCursor = bubble.querySelector('.blink-cursor');
+ if (blinkCursor) blinkCursor.remove();
  stepsContainer = document.createElement('div');
  stepsContainer.className = 'expert-steps-container';
  stepsContainer.innerHTML = '<div class="expert-steps-header"><span class="expert-steps-title">思考过程</span><span class="expert-steps-progress"></span></div><div class="expert-steps-list"></div>';
@@ -1350,10 +1353,28 @@
  // Count unmatched ~~ for strikethrough (prevent mid-stream del rendering)
  const tildes = (renderText.match(/~~/g) || []).length;
  if (tildes % 2 !== 0) renderText += '~~';
- bubble.innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(renderText)) : marked.parse(renderText);
- wrapTables(bubble);
+ // 渲染到专用的回答内容区域，保留步骤卡片
+ let answerDiv = bubble.querySelector('.expert-answer-content');
+ if (!answerDiv) {
+ // 清除 blink cursor
+ const blinkCur = bubble.querySelector('.blink-cursor');
+ if (blinkCur) blinkCur.remove();
+ answerDiv = document.createElement('div');
+ answerDiv.className = 'expert-answer-content';
+ bubble.appendChild(answerDiv);
+ }
+ answerDiv.innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(renderText)) : marked.parse(renderText);
+ wrapTables(answerDiv);
  } else {
- bubble.textContent = fullText;
+ let answerDiv = bubble.querySelector('.expert-answer-content');
+ if (!answerDiv) {
+ const blinkCur = bubble.querySelector('.blink-cursor');
+ if (blinkCur) blinkCur.remove();
+ answerDiv = document.createElement('div');
+ answerDiv.className = 'expert-answer-content';
+ bubble.appendChild(answerDiv);
+ }
+ answerDiv.textContent = fullText;
  }
  container.scrollTop = container.scrollHeight;
  } else if (evt.type === 'done') {
@@ -1455,7 +1476,7 @@
  } else { avatar.textContent = ''; }
  const bubble = document.createElement('div');
  bubble.className = 'msg-bubble';
- bubble.innerHTML = '<span style="opacity:0.5">█</span>'; // blinking cursor
+ bubble.innerHTML = '<span class="blink-cursor">█</span>'; // blinking cursor
  row.appendChild(avatar);
  row.appendChild(bubble);
  container.appendChild(row);
@@ -1533,12 +1554,25 @@
  }
  return out.join('\n');
  })(mainContent);
- bubble.innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(mainContent)) : marked.parse(mainContent);
- injectCodeCopyBtns(bubble);
- wrapTables(bubble);
- injectAgentLinks(bubble);
+ // 渲染到专用的回答内容区域，保留步骤卡片
+ let answerDiv2 = bubble.querySelector('.expert-answer-content');
+ if (!answerDiv2) {
+ answerDiv2 = document.createElement('div');
+ answerDiv2.className = 'expert-answer-content';
+ bubble.appendChild(answerDiv2);
+ }
+ answerDiv2.innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(mainContent)) : marked.parse(mainContent);
+ injectCodeCopyBtns(answerDiv2);
+ wrapTables(answerDiv2);
+ injectAgentLinks(answerDiv2);
  } else {
- bubble.textContent = mainContent;
+ let answerDiv2 = bubble.querySelector('.expert-answer-content');
+ if (!answerDiv2) {
+ answerDiv2 = document.createElement('div');
+ answerDiv2.className = 'expert-answer-content';
+ bubble.appendChild(answerDiv2);
+ }
+ answerDiv2.textContent = mainContent;
  }
 
  // Search sources
