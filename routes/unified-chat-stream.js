@@ -246,6 +246,8 @@ async function handleUnifiedChatStream(req, res, deps) {
  let toolCallName = null;
  let toolCallArgsBuf = '';
  let firstRoundContent = '';
+ let firstRoundContentBuf = ''; // 缓冲区，等确认不是工具调用后再发送
+ let hasToolCalls = false;
  let assistantMsg1 = null;
 
  // 第一轮对话（可能包含工具调用）
@@ -256,10 +258,14 @@ async function handleUnifiedChatStream(req, res, deps) {
  
  if (delta.content) {
  firstRoundContent += delta.content;
- streamer.sendDelta(delta.content);
+ // 如果已检测到 tool_calls，不发送 content（可能是 JSON 参数泄露）
+ if (!hasToolCalls) {
+ firstRoundContentBuf += delta.content;
+ }
  }
  
  if (delta.tool_calls) {
+ hasToolCalls = true;
  for (const tc of delta.tool_calls) {
  if (tc.id) toolCallId = tc.id;
  if (tc.function?.name) toolCallName = tc.function.name;
@@ -273,6 +279,20 @@ async function handleUnifiedChatStream(req, res, deps) {
  content: firstRoundContent || null,
  tool_calls: [{ id: toolCallId, type: 'function', function: { name: toolCallName, arguments: toolCallArgsBuf } }]
  };
+ }
+ }
+
+ // 如果没有工具调用，才把缓冲的内容发送给前端
+ if (!hasToolCalls && firstRoundContentBuf) {
+ streamer.sendDelta(firstRoundContentBuf);
+ } else if (hasToolCalls && firstRoundContentBuf) {
+ // 检查缓冲内容是否是 JSON（工具参数泄露），如果不是则发送
+ const trimmed = firstRoundContentBuf.trim();
+ const looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'));
+ if (!looksLikeJson) {
+ streamer.sendDelta(firstRoundContentBuf);
+ } else {
+ console.log(`[Stream1] 拦截了疑似工具参数的 content 输出 (${trimmed.length} 字符)`);
  }
  }
 
