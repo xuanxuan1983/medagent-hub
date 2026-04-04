@@ -60,7 +60,7 @@ allowed_tools: [nmpa_search, query_med_db, web_search]
 
 #### 模板 1：【神经美学】情绪皮肤综合评估报告
 ```markdown
-### 🧠 神经美学维度的状态解码
+### 神经美学维度的状态解码
 
 **1. 情绪刻痕（Emotional Imprints）**
 - **表象特征**：（例如：眉间纹深刻、口角下垂、咬肌肥大）
@@ -77,7 +77,7 @@ allowed_tools: [nmpa_search, query_med_db, web_search]
 
 #### 模板 2：【新浪漫主义】全景疗愈处方
 ```markdown
-### 🌿 专属您的心肤疗愈方案（The Holistic Prescription）
+### 专属您的心肤疗愈方案（The Holistic Prescription）
 
 **Phase 1：神经阻滞与张力释放（Neuro-Release）**
 - **核心动作**：（例如：精准肉毒毒素注射）
@@ -91,7 +91,7 @@ allowed_tools: [nmpa_search, query_med_db, web_search]
 - **核心动作**：（例如：睡前5分钟的精油触觉按摩法）
 - **情绪价值**：建立安全的自我抚触仪式，提升催产素水平，重建对身体的掌控感与爱意。
 
-**💡 架构师寄语：**
+** 架构师寄语：**
 （用一段极具共情力、温暖且充满力量的话作为结语，鼓励客户拥抱真实的自我。）
 ```
 

@@ -340,6 +340,12 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  }
  console.log(`[Stream2] 完成, 共收到 ${stream2ChunkCount} 个chunk, 输出长度: ${fullMessage.length}`);
+ // 降级：如果 stream2 返回了但没有任何内容，直接输出工具结果摘要
+ if (!fullMessage.trim() && toolResult && toolResult.text) {
+ console.warn('[Stream2] 空响应，降级输出工具结果');
+ fullMessage = toolResult.text;
+ streamer.sendDelta(toolResult.text);
+ }
  }
  } else {
  fullMessage = firstRoundContent;

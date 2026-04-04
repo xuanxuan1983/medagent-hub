@@ -1523,10 +1523,14 @@
  if (searchResults && searchResults.length > 0) {
  const srcDiv = document.createElement('div');
  srcDiv.className = 'search-source-list';
- const links = searchResults.slice(0, 5).map((s, i) =>
- '<a href="' + s.url + '" target="_blank" rel="noopener" title="' + (s.title || s.url) + '">[' + (i+1) + '] ' + (s.title || s.url) + '</a>'
- ).join('');
- srcDiv.innerHTML = '<span class="src-label">联网参考：</span>' + links;
+ const isKb = searchResults.some(s => s.fileName && !s.url);
+ const label = isKb ? '知识库参考：' : '联网参考：';
+ const links = searchResults.slice(0, 5).map((s, i) => {
+ const name = s.title || s.fileName || s.url || '来源';
+ if (s.url) return '<a href="' + s.url + '" target="_blank" rel="noopener" title="' + name + '">[' + (i+1) + '] ' + name + '</a>';
+ return '<span class="src-tag">[' + (i+1) + '] ' + name + '</span>';
+ }).join('');
+ srcDiv.innerHTML = '<span class="src-label">' + label + '</span>' + links;
  bubble.appendChild(srcDiv);
  }
 
@@ -1760,10 +1764,14 @@
  if (searchResults && searchResults.length > 0) {
  const srcDiv = document.createElement('div');
  srcDiv.className = 'search-source-list';
- const links = searchResults.slice(0, 5).map((s, i) =>
- `<a href="${s.url}" target="_blank" rel="noopener" title="${s.title || s.url}">[${i+1}] ${s.title || s.url}</a>`
- ).join('');
- srcDiv.innerHTML = `<span class="src-label">联网参考：</span>${links}`;
+ const isKb = searchResults.some(s => s.fileName && !s.url);
+ const label = isKb ? '知识库参考：' : '联网参考：';
+ const links = searchResults.slice(0, 5).map((s, i) => {
+ const name = s.title || s.fileName || s.url || '来源';
+ if (s.url) return `<a href="${s.url}" target="_blank" rel="noopener" title="${name}">[${i+1}] ${name}</a>`;
+ return `<span class="src-tag">[${i+1}] ${name}</span>`;
+ }).join('');
+ srcDiv.innerHTML = `<span class="src-label">${label}</span>${links}`;
  bubble.appendChild(srcDiv);
  }
  const feedback = document.createElement('div');
