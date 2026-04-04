@@ -14,7 +14,8 @@
  <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
- <link rel="stylesheet" href="/chat-styles.css?v=20260404j">
+ <link rel="stylesheet" id="dynamicCSS">
+ <script>document.getElementById('dynamicCSS').href='/chat-styles.css?v='+Date.now();</script>
 </head>
 <body>
 
@@ -618,6 +619,6 @@
  </div>
 </div>
 
-<script src="/chat-app.js?v=20260404j"></script>
+<script>document.write('<scr'+'ipt src="/chat-app.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 </body>
 </html>
