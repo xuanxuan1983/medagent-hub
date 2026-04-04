@@ -78,6 +78,52 @@ async function handleUnifiedChatStream(req, res, deps) {
     session.messages.push({ role: 'user', content: userContent });
     console.log(`💬 [${session.agentName}] User (${isExpertMode ? 'Expert' : 'Normal'}): ${message.substring(0, 50)}...`);
 
+    // 3.1 智能会话压缩：当消息超过阈值时，自动摘要早期对话而非硬截断
+    const MAX_MESSAGES = 60; // 30轮 = 60条消息 (user+assistant)
+    const COMPRESS_THRESHOLD = 40; // 超过 20 轮开始压缩
+    const KEEP_RECENT = 20; // 压缩后保留最近 10 轮
+    if (session.messages.length > COMPRESS_THRESHOLD && !session._compressing) {
+      session._compressing = true;
+      try {
+        const earlyMessages = session.messages.slice(0, session.messages.length - KEEP_RECENT);
+        const earlyText = earlyMessages.map(m => `${m.role === 'user' ? '用户' : (m.role === 'assistant' ? 'AI' : '系统')}: ${(m.content || '').substring(0, 200)}`).join('\n');
+        if (earlyText.length > 100) {
+          const summaryPrompt = '请用 2-3 句话概括以下对话的核心内容和关键信息，保留重要的事实、数据和结论：';
+          const summaryMessages = [{ role: 'user', content: summaryPrompt + '\n\n' + earlyText.substring(0, 3000) }];
+          let summary = null;
+          try {
+            const summaryResult = await aiProvider.chat('你是一个对话摘要助手。只输出摘要，不要添加任何前缀或解释。', summaryMessages);
+            summary = summaryResult.message;
+          } catch (sumErr) {
+            console.warn(`[📝 Compress] 摘要生成失败，降级为硬截断:`, sumErr.message);
+          }
+          if (summary && summary.length > 10) {
+            const recentMessages = session.messages.slice(session.messages.length - KEEP_RECENT);
+            session.messages = [
+              { role: 'system', content: `[对话历史摘要] ${summary}` },
+              ...recentMessages
+            ];
+            console.log(`[📝 Compress] 压缩了 ${earlyMessages.length} 条早期消息为摘要，当前历史: ${session.messages.length} 条`);
+          } else {
+            const trimmed = session.messages.length - MAX_MESSAGES;
+            session.messages = session.messages.slice(trimmed);
+            console.log(`[✂️ Trim] 摘要失败，截断了 ${trimmed} 条早期消息`);
+          }
+        }
+      } catch (compressErr) {
+        console.error(`[📝 Compress] 压缩异常:`, compressErr.message);
+        if (session.messages.length > MAX_MESSAGES) {
+          session.messages = session.messages.slice(session.messages.length - MAX_MESSAGES);
+        }
+      } finally {
+        session._compressing = false;
+      }
+    } else if (session.messages.length > MAX_MESSAGES) {
+      const trimmed = session.messages.length - MAX_MESSAGES;
+      session.messages = session.messages.slice(trimmed);
+      console.log(`[✂️ Trim] 截断了 ${trimmed} 条早期消息，当前历史: ${session.messages.length} 条`);
+    }
+
     // 3.5 注入已加载的技能包上下文
     if (skillContext) {
       session.messages.push({
@@ -108,6 +154,41 @@ async function handleUnifiedChatStream(req, res, deps) {
     if (isExpertMode) {
       enrichedSystemPrompt += '\n\n【专家模式指令】请以专业医美顾问的身份，给出深度、结构化的分析。回答需包含：核心判断、关键数据/依据、具体建议（分步骤）、注意事项。使用 Markdown 格式，层次清晰。遇到不确定的信息，必须使用工具查询，不要编造。';
       streamer.sendStep(`分析问题意图：${intentResult.intent} (专家模式)`, 'done');
+    }
+
+    // 4.5 检测用户消息中的 [引用知识库《xxx》] 标签，强制触发 knowledge_search
+    const kbCitePattern = /\[引用知识库《(.+?)》\]/g;
+    const kbCiteMatches = [...message.matchAll(kbCitePattern)];
+    let forcedKbResults = null;
+    if (kbCiteMatches.length > 0) {
+      const citeNames = kbCiteMatches.map(m => m[1]);
+      console.log(`[📚 KB Force] 检测到知识库引用标签: ${citeNames.join(', ')}`);
+      try {
+        const kbQuery = message.replace(kbCitePattern, '').trim() || citeNames.join(' ');
+        const kbResult = await toolRegistry.executeTool('knowledge_search', { query: kbQuery, top_k: 5 }, {
+          kb: deps.kb, agentId: session.agentId,
+          sfKey: process.env.SILICONFLOW_API_KEY,
+          bm25Retrieve: deps.bm25Retrieve,
+          mergeRetrievalResults: deps.mergeRetrievalResults,
+          rerankChunks: deps.rerankChunks,
+          message: kbQuery
+        });
+        if (kbResult && kbResult.text) {
+          forcedKbResults = kbResult;
+          enrichedSystemPrompt += `\n\n【强制知识库检索结果】用户引用了知识库文档，以下是检索结果，请基于这些内容回答用户问题：\n${kbResult.text}`;
+          if (kbResult.searchResults && kbResult.searchResults.length > 0) {
+            searchResults = searchResults.concat(kbResult.searchResults);
+          }
+          console.log(`[📚 KB Force] 强制检索成功，注入 ${kbResult.text.length} 字符上下文`);
+          streamer.sendToolCall('knowledge_search', { query: kbQuery, source: 'forced_cite' });
+          streamer.sendStep('已从知识库检索引用内容', 'done');
+          if (kbResult.searchResults && kbResult.searchResults.length > 0) {
+            streamer.sendSearch(kbResult.searchResults);
+          }
+        }
+      } catch (kbErr) {
+        console.error(`[📚 KB Force] 强制检索失败:`, kbErr.message);
+      }
     }
 
     // 5. 准备可用的工具列表

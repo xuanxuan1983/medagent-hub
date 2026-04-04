@@ -58,3 +58,6 @@ fix_team_api.py
 team_api_addon.js
 node_modules/
 ecosystem.config.js
+
+# PM2 logs
+logs/
