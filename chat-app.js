@@ -199,6 +199,7 @@
     openai:      ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
     anthropic:   ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
     gemini:      ['gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+    gemma4:      ['gemma-4-31b-it', 'gemma-4-27b-a4b-it', 'gemma-4-e4b-it'],
     deepseek:    ['deepseek-chat', 'deepseek-reasoner'],
     siliconflow: ['deepseek-ai/DeepSeek-V3', 'Pro/deepseek-ai/DeepSeek-R1', 'Qwen/Qwen2.5-72B-Instruct'],
     kimi:        ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'],

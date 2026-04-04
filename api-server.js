@@ -1794,17 +1794,21 @@ setInterval(() => {
 
 // AI Provider adapters
 class GeminiProvider {
-  constructor() {
+  constructor(model) {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.baseUrl = 'generativelanguage.googleapis.com';
+    this.model = model || 'gemini-2.0-flash-exp';
   }
 
-  async chat(systemPrompt, messages) {
-    const contents = messages.map(msg => ({
+  _buildContents(messages) {
+    return messages.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
+  }
 
+  async chat(systemPrompt, messages) {
+    const contents = this._buildContents(messages);
     const requestBody = JSON.stringify({
       system_instruction: { parts: [{ text: systemPrompt }] },
       contents: contents
@@ -1813,7 +1817,7 @@ class GeminiProvider {
     return new Promise((resolve, reject) => {
       const options = {
         hostname: this.baseUrl,
-        path: `/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${this.apiKey}`,
+        path: `/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1848,6 +1852,29 @@ class GeminiProvider {
       req.write(requestBody);
       req.end();
     });
+  }
+
+  async chatStream(systemPrompt, messages) {
+    const contents = this._buildContents(messages);
+    const requestBody = JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: contents
+    });
+
+    const response = await fetch(
+      `https://${this.baseUrl}/v1beta/models/${this.model}:streamGenerateContent?alt=sse&key=${this.apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody
+      }
+    );
+    if (!response.ok) {
+      const errData = await response.text();
+      throw new Error(`Gemini stream error: ${errData}`);
+    }
+    // 返回一个异步可迭代对象，适配 parseSSEStream 的 Gemini 格式
+    return response.body;
   }
 }
 
@@ -2237,6 +2264,7 @@ const PROVIDERS_CONFIG = {
     { id: 'openai',     name: 'OpenAI',              baseUrl: 'https://api.openai.com/v1',                          models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],                                          keyHint: 'sk-...' },
     { id: 'anthropic',  name: 'Anthropic (Claude)',   baseUrl: null,                                                 models: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],             keyHint: 'sk-ant-...' },
     { id: 'gemini',     name: 'Google Gemini',        baseUrl: null,                                                 models: ['gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-1.5-flash'],                    keyHint: 'AIza...' },
+    { id: 'gemma4',      name: 'Google Gemma 4 (Free)', baseUrl: null,                                                 models: ['gemma-4-31b-it', 'gemma-4-27b-a4b-it', 'gemma-4-e4b-it'],                       keyHint: 'AIza...' },
   ],
   domestic: [
     { id: 'deepseek',    name: 'DeepSeek',            baseUrl: 'https://api.deepseek.com/v1',                        models: ['deepseek-chat', 'deepseek-reasoner'],                                             keyHint: 'sk-...' },
@@ -2300,7 +2328,13 @@ function createProviderFromConfig(providerId, apiKey, model) {
   if (!config) throw new Error(`Unknown provider: ${providerId}`);
 
   if (providerId === 'gemini') {
-    const p = new GeminiProvider();
+    const p = new GeminiProvider(model || 'gemini-2.0-flash-exp');
+    p.apiKey = apiKey;
+    return p;
+  }
+
+  if (providerId === 'gemma4') {
+    const p = new GeminiProvider(model || 'gemma-4-31b-it');
     p.apiKey = apiKey;
     return p;
   }

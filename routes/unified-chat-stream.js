@@ -412,7 +412,13 @@ async function fallbackStream(provider, systemPrompt, messages, streamer, deps) 
   }
   const stream = await provider.chatStream(systemPrompt, messages);
   for await (const parsed of deps.parseSSEStream(stream)) {
-    const delta = parsed.choices?.[0]?.delta?.content || '';
+    // 兼容 OpenAI 格式 (choices[0].delta.content) 和 Gemini/Gemma 格式 (candidates[0].content.parts[0].text)
+    let delta = '';
+    if (parsed.choices?.[0]?.delta?.content) {
+      delta = parsed.choices[0].delta.content;
+    } else if (parsed.candidates?.[0]?.content?.parts?.[0]?.text) {
+      delta = parsed.candidates[0].content.parts[0].text;
+    }
     if (delta) {
       fullMessage += delta;
       streamer.sendDelta(delta);
