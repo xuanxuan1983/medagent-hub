@@ -3724,6 +3724,55 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ===== 知识库文件内容预览 API =====
+  if (url.pathname === '/api/kb/preview' && req.method === 'GET') {
+    try {
+      const fileId = url.searchParams.get('id');
+      if (!fileId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing file id' }));
+        return;
+      }
+      const meta = kb.loadMeta();
+      const fileMeta = meta.files.find(f => f.id === fileId);
+      if (!fileMeta) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'File not found' }));
+        return;
+      }
+      const scope = fileMeta.scope || 'global';
+      const vectorIndex = kb.loadVectorIndex(scope);
+      const chunks = vectorIndex
+        .filter(v => v.fileId === fileId)
+        .sort((a, b) => (a.chunkIdx || 0) - (b.chunkIdx || 0))
+        .map(v => v.text);
+      let rawContent = '';
+      const possiblePaths = [path.join(kb.GLOBAL_DIR, fileMeta.name)];
+      if (fs.existsSync(kb.GLOBAL_DIR)) {
+        const files = fs.readdirSync(kb.GLOBAL_DIR);
+        const match = files.find(f => f.includes(fileId));
+        if (match) possiblePaths.unshift(path.join(kb.GLOBAL_DIR, match));
+      }
+      for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+          rawContent = fs.readFileSync(p, 'utf8').substring(0, 50000);
+          break;
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        id: fileId, name: fileMeta.name, scope: fileMeta.scope,
+        chunks: fileMeta.chunks, textLen: fileMeta.textLen, addedAt: fileMeta.addedAt,
+        content: rawContent || chunks.join('\n\n'), chunkCount: chunks.length
+      }));
+    } catch (e) {
+      console.error('[KB Preview Error]', e.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
   // ===== Admin 统一鉴权拦截 =====
   if (url.pathname.startsWith('/api/admin') && !isAdmin(req)) {
     res.writeHead(403, { 'Content-Type': 'application/json' });

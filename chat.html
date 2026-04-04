@@ -325,6 +325,9 @@
           </div>
         </div>
         <div class="resource-tab-content" id="resourceTabSkills">
+          <div style="padding:0.3rem 0.5rem;border-bottom:1px solid var(--border);display:flex;gap:0.4rem">
+            <button class="resource-item-cite" onclick="importMhubFile()" style="font-size:0.7rem;padding:0.2rem 0.5rem">导入 .mhub 文件</button>
+          </div>
           <div id="skillsList">
             <div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击“快照”按钮提炼技能包</span></div>
           </div>
@@ -335,6 +338,30 @@
 
 </main>
 
+
+<!-- KB PREVIEW MODAL -->
+<div class="modal-overlay" id="kbPreviewModal" style="display:none" onclick="if(event.target===this)closeKBPreview()">
+  <div class="kb-preview-container">
+    <div class="kb-preview-header">
+      <div class="kb-preview-title" id="kbPreviewTitle">文档预览</div>
+      <div class="kb-preview-meta" id="kbPreviewMeta"></div>
+      <div class="kb-preview-actions">
+        <button class="kb-preview-btn" onclick="askAboutPreview()" title="基于当前文档向 Agent 提问">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          问 Agent
+        </button>
+        <button class="kb-preview-btn" onclick="citePreviewInInput()" title="将当前文档引用到输入框">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          引用
+        </button>
+        <button class="modal-close" onclick="closeKBPreview()">&#10005;</button>
+      </div>
+    </div>
+    <div class="kb-preview-body" id="kbPreviewBody">
+      <div style="text-align:center;color:var(--text-3);padding:3rem">加载中...</div>
+    </div>
+  </div>
+</div>
 <!-- HISTORY PANEL -->
 <div class="modal-overlay" id="historyModal" style="display:none">
   <div class="modal-card" style="position:relative;max-width:480px;max-height:80vh;display:flex;flex-direction:column">

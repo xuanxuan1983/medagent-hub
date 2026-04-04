@@ -2609,6 +2609,7 @@
             '<span class="resource-item-name">' + truncateFileName(f.name, 28) + '</span>' +
             '<span class="kb-item-meta">' + scopeLabel + ' | ' + f.chunks + '块 | ' + date + '</span>' +
           '</div>' +
+          '<button class="resource-item-cite" onclick="event.stopPropagation();openKBPreview(\'' + f.id + '\')" style="margin-right:2px">预览</button>' +
           '<button class="resource-item-cite" onclick="event.stopPropagation();citeKBInInput(' + idx + ')">引用</button>' +
         '</div>';
       }).join('');
@@ -2685,6 +2686,7 @@
             <button class="skill-action-btn" onclick="event.stopPropagation();loadSkillToCurrentChat('${s.id}')">加载</button>
             <button class="skill-action-btn" onclick="event.stopPropagation();shareSkill('${s.id}')">分享</button>
             <button class="skill-action-btn" onclick="event.stopPropagation();downloadSkill('${s.id}')">下载</button>
+            <button class="skill-action-btn" onclick="event.stopPropagation();exportSkillAsMhub('${s.id}')" title="导出为 .mhub 格式">.mhub</button>
             <button class="skill-action-btn danger" onclick="event.stopPropagation();deleteSkill('${s.id}')">删除</button>
           </div>
         </div>`;
@@ -2836,3 +2838,163 @@
       setTimeout(() => { reconBanner.classList.remove('show'); reconBanner.style.background = ''; reconBanner.textContent = '正在重新连接...'; }, 3000);
     }
   });
+
+  // ===== 知识库全屏预览 + 多模态上下文感知 =====
+  let currentPreviewDoc = null; // 当前预览的文档数据
+
+  async function openKBPreview(fileId) {
+    const modal = document.getElementById('kbPreviewModal');
+    const titleEl = document.getElementById('kbPreviewTitle');
+    const metaEl = document.getElementById('kbPreviewMeta');
+    const bodyEl = document.getElementById('kbPreviewBody');
+    modal.style.display = 'flex';
+    bodyEl.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:3rem">加载中...</div>';
+    titleEl.textContent = '文档预览';
+    metaEl.textContent = '';
+    try {
+      const resp = await fetch('/api/kb/preview?id=' + encodeURIComponent(fileId));
+      if (!resp.ok) throw new Error('加载失败');
+      const doc = await resp.json();
+      currentPreviewDoc = doc;
+      titleEl.textContent = doc.name;
+      const date = new Date(doc.addedAt).toLocaleDateString('zh-CN');
+      const scopeLabel = doc.scope === 'global' ? '全局知识库' : doc.scope;
+      metaEl.textContent = scopeLabel + ' | ' + (doc.chunkCount || doc.chunks) + ' 块 | ' + (doc.textLen ? Math.round(doc.textLen / 1000) + 'K字符' : '') + ' | ' + date;
+      // 渲染内容
+      if (doc.content) {
+        const ext = (doc.name.split('.').pop() || '').toLowerCase();
+        if (ext === 'md' || doc.content.includes('# ') || doc.content.includes('## ')) {
+          // Markdown 渲染
+          if (typeof marked !== 'undefined') {
+            bodyEl.innerHTML = '<div class="kb-preview-markdown">' + DOMPurify.sanitize(marked.parse(doc.content)) + '</div>';
+          } else {
+            bodyEl.innerHTML = '<pre class="kb-preview-text">' + escapeHtml(doc.content) + '</pre>';
+          }
+        } else {
+          bodyEl.innerHTML = '<pre class="kb-preview-text">' + escapeHtml(doc.content) + '</pre>';
+        }
+      } else {
+        bodyEl.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:3rem">该文档内容暂不可预览（原始文件可能为 PDF/Word 格式）<br><br>可通过"引用"按钮将其注入对话上下文</div>';
+      }
+    } catch (e) {
+      bodyEl.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:3rem">加载失败: ' + (e.message || '未知错误') + '</div>';
+    }
+  }
+
+  function closeKBPreview() {
+    document.getElementById('kbPreviewModal').style.display = 'none';
+    currentPreviewDoc = null;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // 多模态上下文感知：基于当前预览文档向 Agent 提问
+  function askAboutPreview() {
+    if (!currentPreviewDoc) return;
+    const input = document.getElementById('messageInput');
+    const docName = currentPreviewDoc.name;
+    // 将文档内容注入为上下文（截取前 3000 字符避免过长）
+    const contextSnippet = (currentPreviewDoc.content || '').substring(0, 3000);
+    const contextPrefix = '[正在阅读知识库文档《' + docName + '》，以下是文档内容摘要：]\n' + contextSnippet + '\n\n';
+    input.value = contextPrefix + '请帮我解读这份文档的核心要点';
+    input.focus();
+    autoResize(input);
+    closeKBPreview();
+  }
+
+  // 将预览文档引用到输入框
+  function citePreviewInInput() {
+    if (!currentPreviewDoc) return;
+    citeKBInInputById(currentPreviewDoc.id, currentPreviewDoc.name);
+    closeKBPreview();
+  }
+
+  function citeKBInInputById(fileId, fileName) {
+    const input = document.getElementById('messageInput');
+    const citeText = '[引用知识库《' + truncateFileName(fileName, 30) + '》] ';
+    if (!input.value.trim()) {
+      input.value = citeText;
+    } else {
+      input.value = input.value.trimEnd() + ' ' + citeText;
+    }
+    input.focus();
+    autoResize(input);
+  }
+
+  // ===== .mhub 技能包导出 =====
+  async function exportSkillAsMhub(skillId) {
+    try {
+      // 获取技能包内容
+      const resp = await fetch('/api/chat/snapshot/preview?skillId=' + encodeURIComponent(skillId));
+      if (!resp.ok) throw new Error('获取技能包失败');
+      const skill = await resp.json();
+
+      // 构建 .mhub 包内容
+      const mhubPackage = {
+        format: 'mhub',
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        source: 'MedAgent Hub',
+        skill: {
+          id: skill.skillId || skillId,
+          name: skill.name || '未命名技能包',
+          agentId: skill.agentId || '',
+          agentName: skill.agentName || '',
+          prompt: skill.prompt || '',
+          attachedFiles: skill.attachedFiles || [],
+          createdAt: skill.createdAt || ''
+        },
+        metadata: {
+          description: '由 MedAgent Hub 导出的技能包，包含对话经验和专家知识',
+          tags: ['medagent', skill.agentId || 'general']
+        }
+      };
+
+      // 下载为 .mhub 文件
+      const blob = new Blob([JSON.stringify(mhubPackage, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (skill.name || 'skill') + '.mhub';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('技能包已导出为 .mhub 文件');
+    } catch (e) {
+      showToast('导出失败: ' + e.message);
+    }
+  }
+
+  // 导入 .mhub 文件
+  function importMhubFile() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.mhub,.json';
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const pkg = JSON.parse(text);
+        if (pkg.format !== 'mhub' || !pkg.skill) {
+          showToast('无效的 .mhub 文件格式');
+          return;
+        }
+        // 将技能包内容注入到当前对话
+        const input = document.getElementById('messageInput');
+        const skillInfo = pkg.skill;
+        input.value = '[导入技能包《' + (skillInfo.name || '未命名') + '》来自 ' + (skillInfo.agentName || '专家') + ']\n\n' +
+          '技能包提示词：\n' + (skillInfo.prompt || '(无)') + '\n\n' +
+          '请基于以上技能包的经验继续对话。';
+        input.focus();
+        autoResize(input);
+        showToast('已导入技能包《' + (skillInfo.name || '未命名') + '》');
+      } catch (err) {
+        showToast('导入失败: ' + err.message);
+      }
+    };
+    fileInput.click();
+  }
