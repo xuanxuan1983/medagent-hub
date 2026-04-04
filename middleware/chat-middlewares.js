@@ -1,16 +1,14 @@
 /**
- * 提取的聊天中间件和公共逻辑
- * 将 expert-stream 和 message-stream 中重复的权限检查、意图分类等逻辑抽取出来
+ * 提取的聊天中间件和公共逻辑 v2
+ * 增强：搜索结果分组展示、任务计划步骤描述更新
  */
 
 /**
  * 权限检查中间件
- * 整合了试用期、Agent权限、每日配额、搜索配额的检查
  */
 function checkChatPermissions(req, res, session, userCode, planStatus, webSearch, envConfig) {
   const { TRIAL_AGENTS, CONTENT_AGENTS_META, PRO_MONTHLY_SEARCH_LIMIT, loadProfiles } = envConfig;
 
-  // 1. 检查试用期是否到期
   if (planStatus.isTrialExpired) {
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -21,9 +19,7 @@ function checkChatPermissions(req, res, session, userCode, planStatus, webSearch
     return false;
   }
 
-  // 2. 检查 Agent 访问权限（内测期间分级控制）
   if (session.agentId && TRIAL_AGENTS && !TRIAL_AGENTS.includes(session.agentId)) {
-    // 内容创作类Agent：需要Pro+或已解锁beta权益
     if (CONTENT_AGENTS_META && CONTENT_AGENTS_META.has(session.agentId)) {
       const userProfile = loadProfiles()[userCode] || {};
       const hasBetaUnlock = userProfile.beta_unlock === true;
@@ -39,7 +35,6 @@ function checkChatPermissions(req, res, session, userCode, planStatus, webSearch
     }
   }
 
-  // 3. 检查每日消息配额
   if (planStatus.dailyRemaining <= 0) {
     res.writeHead(429, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -50,7 +45,6 @@ function checkChatPermissions(req, res, session, userCode, planStatus, webSearch
     return false;
   }
 
-  // 4. 检查联网搜索权限
   if (webSearch && !planStatus.canSearch) {
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -82,7 +76,8 @@ function checkExpertPermissions(req, res, planStatus) {
 }
 
 /**
- * SSE 流式响应辅助工具
+ * SSE 流式响应辅助工具 v2
+ * 新增：搜索结果分组展示、任务计划步骤描述更新
  */
 class SSEStreamer {
   constructor(res) {
@@ -125,6 +120,26 @@ class SSEStreamer {
     this.res.write(`data: ${JSON.stringify({ type: 'search', results })}\n\n`);
   }
 
+  /**
+   * 发送带来源分组的搜索结果
+   * @param {string} source 来源工具名称 (nmpa_search/web_search/knowledge_search)
+   * @param {Array} results 搜索结果数组
+   */
+  sendSearchGrouped(source, results) {
+    const sourceLabels = {
+      'nmpa_search': '药监局数据',
+      'web_search': '联网搜索',
+      'knowledge_search': '知识库',
+      'query_med_db': '价格数据'
+    };
+    this.res.write(`data: ${JSON.stringify({
+      type: 'search',
+      source: source,
+      sourceLabel: sourceLabels[source] || source,
+      results: results
+    })}\n\n`);
+  }
+
   sendToolCall(tool, args) {
     this.res.write(`data: ${JSON.stringify({ type: 'tool_call', tool, ...args })}\n\n`);
   }
@@ -135,6 +150,21 @@ class SSEStreamer {
 
   updateTaskPlan(stepId, status) {
     this.res.write(`data: ${JSON.stringify({ type: 'task_plan_update', stepId, status })}\n\n`);
+  }
+
+  /**
+   * 更新任务计划步骤的状态和描述（附加结果摘要）
+   * @param {number} stepId 步骤 ID
+   * @param {string} status 状态
+   * @param {string} description 新的描述文本
+   */
+  updateTaskPlanDesc(stepId, status, description) {
+    this.res.write(`data: ${JSON.stringify({
+      type: 'task_plan_update',
+      stepId,
+      status,
+      description
+    })}\n\n`);
   }
 }
 

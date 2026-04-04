@@ -2674,6 +2674,19 @@ const server = http.createServer(async (req, res) => {
  return;
  }
 
+ // Get output templates
+ if (url.pathname === '/api/templates' && req.method === 'GET') {
+ try {
+ const { OUTPUT_TEMPLATES, TEMPLATE_CATEGORIES } = require('./output-templates');
+ res.writeHead(200, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ templates: OUTPUT_TEMPLATES, categories: TEMPLATE_CATEGORIES }));
+ } catch (e) {
+ res.writeHead(200, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ templates: [], categories: [] }));
+ }
+ return;
+ }
+
  // Get medical aesthetics image prompt templates
  if (url.pathname === '/api/image/prompts' && req.method === 'GET') {
  const templates = Object.entries(MEDAESTHETIC_IMAGE_PROMPTS).map(([key, val]) => ({

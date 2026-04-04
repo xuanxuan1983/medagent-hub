@@ -948,6 +948,105 @@
  return webSearchEnabled;
  }
 
+ // ===== 输出模板 =====
+ let templateData = null;
+ let templatePanelVisible = false;
+ let activeTemplateCategory = 'all';
+
+ async function loadTemplates() {
+ if (templateData) return templateData;
+ try {
+ const res = await fetch('/api/templates');
+ templateData = await res.json();
+ return templateData;
+ } catch (e) {
+ console.error('Failed to load templates:', e);
+ return { templates: [], categories: [] };
+ }
+ }
+
+ async function toggleTemplatePanel() {
+ const panel = document.getElementById('templatePanel');
+ const btn = document.getElementById('templateBtn');
+ templatePanelVisible = !templatePanelVisible;
+ if (templatePanelVisible) {
+ panel.style.display = 'block';
+ btn.classList.add('active');
+ const data = await loadTemplates();
+ renderTemplateGrid(data);
+ } else {
+ panel.style.display = 'none';
+ btn.classList.remove('active');
+ }
+ }
+
+ function renderTemplateGrid(data) {
+ const grid = document.getElementById('templateGrid');
+ if (!data || !data.templates) { grid.innerHTML = '<p>暂无模板</p>'; return; }
+ 
+ // 分类标签
+ let html = '<div class="template-categories">';
+ (data.categories || []).forEach(function(cat) {
+ html += '<button class="template-cat-btn' + (activeTemplateCategory === cat.id ? ' active' : '') + '" onclick="filterTemplates(\'' + cat.id + '\')">' + cat.name + '</button>';
+ });
+ html += '</div><div class="template-cards">';
+ 
+ // 模板卡片
+ data.templates.forEach(function(tpl) {
+ if (activeTemplateCategory !== 'all' && tpl.category !== activeTemplateCategory) return;
+ html += '<div class="template-card" onclick="selectTemplate(\'' + tpl.id + '\')">';
+ html += '<div class="template-card-icon">' + tpl.icon + '</div>';
+ html += '<div class="template-card-body">';
+ html += '<div class="template-card-name">' + tpl.name + '</div>';
+ html += '<div class="template-card-desc">' + tpl.description + '</div>';
+ html += '</div></div>';
+ });
+ html += '</div>';
+ grid.innerHTML = html;
+ }
+
+ function filterTemplates(catId) {
+ activeTemplateCategory = catId;
+ if (templateData) renderTemplateGrid(templateData);
+ }
+
+ function selectTemplate(tplId) {
+ if (!templateData) return;
+ var tpl = templateData.templates.find(function(t) { return t.id === tplId; });
+ if (!tpl) return;
+ // 关闭面板
+ toggleTemplatePanel();
+ // 填充输入框
+ var input = document.getElementById('messageInput');
+ var placeholder = tpl.placeholder || '输入主题';
+ // 显示模板提示词，用户只需填写主题
+ input.value = tpl.prompt.replace('{topic}', '');
+ input.placeholder = placeholder;
+ input.focus();
+ autoResize(input);
+ // 显示模板标签
+ showTemplateTag(tpl.name);
+ }
+
+ function showTemplateTag(name) {
+ var existing = document.querySelector('.template-active-tag');
+ if (existing) existing.remove();
+ var tag = document.createElement('div');
+ tag.className = 'template-active-tag';
+ tag.innerHTML = '<span>模板: ' + name + '</span><button onclick="clearTemplate(this)">&times;</button>';
+ var inputBox = document.querySelector('.chat-input-box');
+ if (inputBox) inputBox.insertBefore(tag, inputBox.firstChild);
+ }
+
+ function clearTemplate(btn) {
+ var tag = btn.parentNode;
+ if (tag) tag.remove();
+ var input = document.getElementById('messageInput');
+ input.value = '';
+ input.placeholder = '输入问题...';
+ autoResize(input);
+ }
+
  // ===== 语音输入 =====
  let recognition = null;
  let isRecording = false;
@@ -1238,7 +1337,18 @@
  showToolStatusIndicator(evt.tool, '正在调用工具...');
  }
  } else if (evt.type === 'search') {
- searchResults = evt.results;
+ // 搜索结果分组收集
+ if (!searchResults) searchResults = [];
+ if (evt.results) {
+   // 为每个结果附加来源标签
+   const source = evt.source || 'unknown';
+   const sourceLabel = evt.sourceLabel || '';
+   evt.results.forEach(function(r) {
+     r._source = source;
+     r._sourceLabel = sourceLabel;
+   });
+   searchResults = searchResults.concat(evt.results);
+ }
  } else if (evt.type === 'task_plan') {
  // 任务计划：显示步骤清单
  let planContainer = bubble.querySelector('.task-plan-container');
@@ -1265,7 +1375,7 @@
  }
  container.scrollTop = container.scrollHeight;
  } else if (evt.type === 'task_plan_update') {
- // 任务计划更新：更新单个步骤状态
+ // 任务计划更新：更新单个步骤状态和描述
  const planContainer = bubble.querySelector('.task-plan-container');
  if (planContainer) {
  const stepEl = planContainer.querySelector('[data-plan-step-id="' + evt.stepId + '"]');
@@ -1279,6 +1389,21 @@
  iconEl.innerHTML = '<span class="spin"></span>';
  } else if (evt.status === 'error') {
  iconEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2.5" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+ }
+ // 更新描述（结果摘要）
+ if (evt.description) {
+ const descEl = stepEl.querySelector('.task-plan-step-desc');
+ if (descEl) {
+ descEl.textContent = evt.description;
+ } else {
+ const contentEl = stepEl.querySelector('.task-plan-step-content');
+ if (contentEl) {
+ const newDesc = document.createElement('span');
+ newDesc.className = 'task-plan-step-desc';
+ newDesc.textContent = evt.description;
+ contentEl.appendChild(newDesc);
+ }
+ }
  }
  }
  // 更新进度计数
@@ -1626,18 +1751,59 @@
  answerDiv2.textContent = mainContent;
  }
 
- // Search sources
+ // Search sources - 分组展示
  if (searchResults && searchResults.length > 0) {
- const srcDiv = document.createElement('div');
- srcDiv.className = 'search-source-list';
- const isKb = searchResults.some(s => s.fileName && !s.url);
- const label = isKb ? '知识库参考：' : '联网参考：';
- const links = searchResults.slice(0, 5).map((s, i) => {
- const name = s.title || s.fileName || s.url || '来源';
- if (s.url) return '<a href="' + s.url + '" target="_blank" rel="noopener" title="' + name + '">[' + (i+1) + '] ' + name + '</a>';
- return '<span class="src-tag">[' + (i+1) + '] ' + name + '</span>';
- }).join('');
- srcDiv.innerHTML = '<span class="src-label">' + label + '</span>' + links;
+ var srcDiv = document.createElement('div');
+ srcDiv.className = 'search-source-panel';
+ // 按来源分组
+ var groups = {};
+ var globalIdx = 0;
+ searchResults.forEach(function(s) {
+   var src = s._source || (s.fileName && !s.url ? 'knowledge_search' : 'web_search');
+   if (!groups[src]) groups[src] = [];
+   groups[src].push(s);
+ });
+ var sourceIcons = {
+   'nmpa_search': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+   'web_search': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+   'knowledge_search': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+   'query_med_db': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
+ };
+ var sourceLabels = {
+   'nmpa_search': '药监局数据',
+   'web_search': '联网搜索',
+   'knowledge_search': '知识库',
+   'query_med_db': '价格数据'
+ };
+ var panelHtml = '<div class="search-panel-header"><span class="search-panel-title">参考来源</span><span class="search-panel-count">' + searchResults.length + ' 条结果</span></div>';
+ Object.keys(groups).forEach(function(src) {
+   var items = groups[src];
+   var icon = sourceIcons[src] || sourceIcons['web_search'];
+   var label = sourceLabels[src] || (items[0] && items[0]._sourceLabel) || src;
+   panelHtml += '<div class="search-group">';
+   panelHtml += '<div class="search-group-header" onclick="this.parentNode.classList.toggle(\'collapsed\')">';
+   panelHtml += '<span class="search-group-icon">' + icon + '</span>';
+   panelHtml += '<span class="search-group-label">' + label + '</span>';
+   panelHtml += '<span class="search-group-count">' + items.length + ' 条</span>';
+   panelHtml += '<span class="search-group-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg></span>';
+   panelHtml += '</div>';
+   panelHtml += '<div class="search-group-items">';
+   items.slice(0, 5).forEach(function(s) {
+     globalIdx++;
+     var name = s.title || s.fileName || s.url || '来源';
+     var shortName = name.length > 40 ? name.substring(0, 40) + '...' : name;
+     if (s.url) {
+       panelHtml += '<a class="search-item" href="' + s.url + '" target="_blank" rel="noopener"><span class="search-item-idx">' + globalIdx + '</span><span class="search-item-title">' + shortName + '</span></a>';
+     } else {
+       panelHtml += '<span class="search-item"><span class="search-item-idx">' + globalIdx + '</span><span class="search-item-title">' + shortName + '</span></span>';
+     }
+   });
+   if (items.length > 5) {
+     panelHtml += '<span class="search-item-more">… 还有 ' + (items.length - 5) + ' 条</span>';
+   }
+   panelHtml += '</div></div>';
+ });
+ srcDiv.innerHTML = panelHtml;
  bubble.appendChild(srcDiv);
  }
 

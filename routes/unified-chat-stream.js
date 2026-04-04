@@ -1,7 +1,11 @@
 /**
- * 统一聊天流式路由 (Unified Chat Stream)
- * 合并了原本分离的 expert-stream 和 message-stream
- * 使用 Function Calling 架构动态调用工具，替代硬编码触发
+ * 统一聊天流式路由 (Unified Chat Stream) v3
+ * 
+ * v3 改进：
+ * - 任务计划步骤与工具调用深度绑定
+ * - 搜索过程可视化增强（每个工具对应一个可见步骤）
+ * - 步骤结果摘要（工具执行后显示结果数量）
+ * - 搜索结果结构化分组展示
  */
 
 const { checkChatPermissions, checkExpertPermissions, SSEStreamer } = require('../middleware/chat-middlewares');
@@ -32,7 +36,7 @@ async function handleUnifiedChatStream(req, res, deps) {
  incrementMonthlySearch,
  recordBochaUsage,
  SiliconFlowProvider,
- isExpertMode // 新增参数：区分是否为专家模式调用
+ isExpertMode
  } = deps;
 
  try {
@@ -78,10 +82,10 @@ async function handleUnifiedChatStream(req, res, deps) {
  session.messages.push({ role: 'user', content: userContent });
  console.log(` [${session.agentName}] User (${isExpertMode ? 'Expert' : 'Normal'}): ${message.substring(0, 50)}...`);
 
- // 3.1 智能会话压缩：当消息超过阈值时，自动摘要早期对话而非硬截断
- const MAX_MESSAGES = 60; // 30轮 = 60条消息 (user+assistant)
- const COMPRESS_THRESHOLD = 40; // 超过 20 轮开始压缩
- const KEEP_RECENT = 20; // 压缩后保留最近 10 轮
+ // 3.1 智能会话压缩
+ const MAX_MESSAGES = 60;
+ const COMPRESS_THRESHOLD = 40;
+ const KEEP_RECENT = 20;
  if (session.messages.length > COMPRESS_THRESHOLD && !session._compressing) {
  session._compressing = true;
  try {
@@ -103,11 +107,10 @@ async function handleUnifiedChatStream(req, res, deps) {
  { role: 'system', content: `[对话历史摘要] ${summary}` },
  ...recentMessages
  ];
- console.log(`[ Compress] 压缩了 ${earlyMessages.length} 条早期消息为摘要，当前历史: ${session.messages.length} 条`);
+ console.log(`[ Compress] 压缩了 ${earlyMessages.length} 条早期消息为摘要`);
  } else {
  const trimmed = session.messages.length - MAX_MESSAGES;
  session.messages = session.messages.slice(trimmed);
- console.log(`[ Trim] 摘要失败，截断了 ${trimmed} 条早期消息`);
  }
  }
  } catch (compressErr) {
@@ -121,7 +124,6 @@ async function handleUnifiedChatStream(req, res, deps) {
  } else if (session.messages.length > MAX_MESSAGES) {
  const trimmed = session.messages.length - MAX_MESSAGES;
  session.messages = session.messages.slice(trimmed);
- console.log(`[ Trim] 截断了 ${trimmed} 条早期消息，当前历史: ${session.messages.length} 条`);
  }
 
  // 3.5 注入已加载的技能包上下文
@@ -150,27 +152,29 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  } catch (e) { /* 静默失败 */ }
 
- // 专家模式专属指令增强
- let taskPlanSteps = null; // 任务计划步骤
+ // 专家模式专属指令增强 + 任务规划
+ let taskPlanSteps = null;
  if (isExpertMode) {
  enrichedSystemPrompt += '\n\n【专家模式指令】请以专业医美顾问的身份，给出深度、结构化的分析。回答需包含：核心判断、关键数据/依据、具体建议（分步骤）、注意事项。使用 Markdown 格式，层次清晰。遇到不确定的信息，必须使用工具查询，不要编造。';
  
- // 任务拆解：生成步骤计划并推送给前端
+ // 任务拆解：生成与工具绑定的步骤计划
  try {
  const taskPlanner = require('../task-planner');
  const sfKey = process.env.SILICONFLOW_API_KEY;
  if (sfKey && taskPlanner.needsPlanning(message)) {
  console.log(`[TaskPlan] 检测到复杂任务，开始生成计划...`);
- taskPlanSteps = await taskPlanner.generatePlan(message, session.agentName || 'MedAgent', sfKey, 'Qwen/Qwen2.5-7B-Instruct');
+ taskPlanSteps = await taskPlanner.generatePlan(
+   message, session.agentName || 'MedAgent', sfKey,
+   'Qwen/Qwen2.5-7B-Instruct', webSearch || isExpertMode
+ );
  if (taskPlanSteps && taskPlanSteps.length > 0) {
  streamer.sendTaskPlan(taskPlanSteps);
- // 标记第一步为 running
+ // 标记第一步（分析问题）为 running
  streamer.updateTaskPlan(taskPlanSteps[0].id, 'running');
- console.log(`[TaskPlan] 生成 ${taskPlanSteps.length} 个步骤: ${taskPlanSteps.map(s => s.title).join(' -> ')}`);
+ console.log(`[TaskPlan] 生成 ${taskPlanSteps.length} 个步骤: ${taskPlanSteps.map(s => `${s.title}${s.toolId ? '('+s.toolId+')' : ''}`).join(' → ')}`);
  }
  } else {
  console.log(`[TaskPlan] 简单问答，跳过任务规划`);
- // 简单问答仍发送分析步骤
  streamer.sendStep(`分析问题意图：${intentResult.intent} (专家模式)`, 'done');
  }
  } catch (planErr) {
@@ -224,7 +228,6 @@ async function handleUnifiedChatStream(req, res, deps) {
  if (webSearch || isExpertMode) {
  availableToolIds.push('web_search');
  }
- // 豆子（导航 Agent）需要 skill_dispatch 工具来路由到对应专家
  if (session.agentId === 'doudou') {
  availableToolIds.push('skill_dispatch');
  }
@@ -234,7 +237,6 @@ async function handleUnifiedChatStream(req, res, deps) {
  // 6. 确定使用的模型 Provider
  let activeProvider = aiProvider;
  if (isExpertMode) {
- // 专家模式强制使用 R1 或指定的专家模型
  activeProvider = new SiliconFlowProvider();
  activeProvider.model = process.env.EXPERT_MODEL || 'Pro/deepseek-ai/DeepSeek-R1';
  activeProvider.apiKey = process.env.SILICONFLOW_API_KEY || '';
@@ -259,16 +261,93 @@ async function handleUnifiedChatStream(req, res, deps) {
  // 8. 执行支持 Function Calling 的流式对话
  let fullMessage = '';
  let searchResults = [];
+ 
+ // 引入 task-planner 和 deep-research 工具方法
+ let taskPlanner = null;
+ try { taskPlanner = require('../task-planner'); } catch (e) {}
+ let deepResearch = null;
+ try { deepResearch = require('../deep-research'); } catch (e) {}
+
+ // 8.1 深度研究模式：多源并行搜索
+ let deepResearchContext = '';
+ if (isExpertMode && deepResearch && deepResearch.needsDeepResearch(message)) {
+ console.log(`[DeepResearch] 检测到深度研究需求，启动多源并行搜索...`);
+ 
+ // 标记分析步骤完成
+ if (taskPlanSteps) {
+   const analyzeStep = taskPlanSteps.find(s => s.phase === 'analyze');
+   if (analyzeStep) streamer.updateTaskPlan(analyzeStep.id, 'done');
+ }
+ 
+ try {
+   const sfKey = process.env.SILICONFLOW_API_KEY;
+   // 拆解子查询
+   const researchStepId = streamer.sendStep('拆解研究主题，生成子查询', 'running');
+   const queries = await deepResearch.decomposeQueries(message, sfKey);
+   streamer.updateStep(researchStepId, `已拆解为 ${queries.length} 个子查询`, 'done');
+   console.log(`[DeepResearch] 拆解为 ${queries.length} 个子查询: ${queries.join(' | ')}`);
+   
+   // 标记工具步骤为 running
+   if (taskPlanSteps) {
+     const toolSteps = taskPlanSteps.filter(s => s.phase === 'tool');
+     toolSteps.forEach(s => streamer.updateTaskPlan(s.id, 'running'));
+   }
+   
+   // 执行多源并行搜索
+   const allResults = await deepResearch.executeParallelSearch({
+     queries,
+     toolContext,
+     toolRegistry,
+     streamer,
+     taskPlanSteps,
+     taskPlanner
+   });
+   
+   // 标记工具步骤完成
+   if (taskPlanSteps) {
+     const toolSteps = taskPlanSteps.filter(s => s.phase === 'tool');
+     toolSteps.forEach(s => {
+       streamer.updateTaskPlan(s.id, 'done');
+       s.status = 'done';
+     });
+   }
+   
+   // 整合搜索结果为上下文
+   deepResearchContext = deepResearch.buildResearchContext(allResults);
+   
+   // 收集所有搜索结果
+   searchResults = searchResults.concat(
+     allResults.knowledge, allResults.nmpa, allResults.web, allResults.meddb
+   );
+   
+   console.log(`[DeepResearch] 搜索完成，共 ${allResults.totalSources} 条结果，上下文 ${deepResearchContext.length} 字符`);
+   
+   // 注入研究上下文到 system prompt
+   if (deepResearchContext) {
+     enrichedSystemPrompt += `\n\n【深度研究结果】以下是多源并行搜索的结果，请基于这些信息进行深度分析和整合：${deepResearchContext}`;
+   }
+ } catch (drErr) {
+   console.error('[DeepResearch] 深度研究失败，继续正常流程:', drErr.message);
+ }
+ }
 
  if (typeof activeProvider.chatStreamWithTools === 'function') {
  try {
+ // ===== 任务计划：标记“分析问题”步骤完成 =====
+ if (taskPlanSteps && taskPlanSteps.length > 0 && !deepResearchContext) {
+   const analyzeStep = taskPlanSteps.find(s => s.phase === 'analyze');
+   if (analyzeStep && analyzeStep.status !== 'done') {
+     streamer.updateTaskPlan(analyzeStep.id, 'done');
+   }
+ }
+
  const stream1 = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, session.messages, tools);
  
  let toolCallId = null;
  let toolCallName = null;
  let toolCallArgsBuf = '';
  let firstRoundContent = '';
- let firstRoundContentBuf = ''; // 缓冲区，等确认不是工具调用后再发送
+ let firstRoundContentBuf = '';
  let hasToolCalls = false;
  let assistantMsg1 = null;
 
@@ -280,7 +359,6 @@ async function handleUnifiedChatStream(req, res, deps) {
  
  if (delta.content) {
  firstRoundContent += delta.content;
- // 如果已检测到 tool_calls，不发送 content（可能是 JSON 参数泄露）
  if (!hasToolCalls) {
  firstRoundContentBuf += delta.content;
  }
@@ -308,7 +386,6 @@ async function handleUnifiedChatStream(req, res, deps) {
  if (!hasToolCalls && firstRoundContentBuf) {
  streamer.sendDelta(firstRoundContentBuf);
  } else if (hasToolCalls && firstRoundContentBuf) {
- // 检查缓冲内容是否是 JSON（工具参数泄露），如果不是则发送
  const trimmed = firstRoundContentBuf.trim();
  const looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'));
  if (!looksLikeJson) {
@@ -323,24 +400,33 @@ async function handleUnifiedChatStream(req, res, deps) {
  let toolArgs = {};
  try { toolArgs = JSON.parse(toolCallArgsBuf); } catch (e) {}
  
- // 任务计划进度更新：标记第一步完成，第二步开始
- if (taskPlanSteps && taskPlanSteps.length > 0) {
- streamer.updateTaskPlan(taskPlanSteps[0].id, 'done');
- if (taskPlanSteps.length > 1) {
- streamer.updateTaskPlan(taskPlanSteps[1].id, 'running');
- }
+ // ===== 任务计划：查找并标记对应工具步骤为 running =====
+ let matchedToolStep = null;
+ if (taskPlanSteps && taskPlanner) {
+   matchedToolStep = taskPlanner.findStepByTool(taskPlanSteps, toolCallName);
+   if (matchedToolStep) {
+     streamer.updateTaskPlan(matchedToolStep.id, 'running');
+     // 更新描述为具体的查询内容
+     const queryText = toolArgs.query || toolArgs.keyword || '';
+     if (queryText) {
+       streamer.updateTaskPlanDesc(matchedToolStep.id, 'running', `正在查询: ${queryText.substring(0, 30)}...`);
+     }
+   } else {
+     // 没有匹配的工具步骤，找第一个 pending 的步骤标记
+     const nextPending = taskPlanSteps.find(s => s.status === 'pending' && s.phase !== 'analyze_deep' && s.phase !== 'output');
+     if (nextPending) {
+       nextPending.status = 'running';
+       streamer.updateTaskPlan(nextPending.id, 'running');
+       matchedToolStep = nextPending;
+     }
+   }
  }
  
  streamer.sendToolCall(toolCallName, toolArgs);
+ 
  // 生成可读的工具步骤描述
- const toolStepNames = {
- 'knowledge_search': '检索内部知识库',
- 'nmpa_search': '查询国家药监局数据库',
- 'web_search': '联网搜索最新信息',
- 'query_med_db': '查询价格数据库',
- 'skill_dispatch': `转接专家：${toolArgs.skill_id || ''}`
- };
- const toolStepText = toolStepNames[toolCallName] || `调用工具：${toolCallName}`;
+ const toolMeta = (taskPlanner && taskPlanner.TOOL_META) ? taskPlanner.TOOL_META[toolCallName] : null;
+ const toolStepText = toolMeta ? toolMeta.label : (toolCallName || '调用工具');
  const stepId = streamer.sendStep(toolStepText, 'running');
  
  // 执行工具
@@ -348,44 +434,47 @@ async function handleUnifiedChatStream(req, res, deps) {
  
  if (toolResult.searchResults && toolResult.searchResults.length > 0) {
  searchResults = searchResults.concat(toolResult.searchResults);
- streamer.sendSearch(toolResult.searchResults);
+ // 发送带来源分组的搜索结果
+ streamer.sendSearchGrouped(toolCallName, toolResult.searchResults);
  }
  
  streamer.updateStep(stepId, toolStepText, 'done');
  
- // 任务计划进度更新：工具执行完成，标记第二步完成
- if (taskPlanSteps && taskPlanSteps.length > 1) {
- streamer.updateTaskPlan(taskPlanSteps[1].id, 'done');
+ // ===== 任务计划：标记工具步骤完成，附加结果摘要 =====
+ if (matchedToolStep && taskPlanner) {
+   const summary = taskPlanner.getToolResultSummary(toolCallName, toolResult);
+   matchedToolStep.status = 'done';
+   streamer.updateTaskPlanDesc(matchedToolStep.id, 'done', summary);
  }
 
- // skill_dispatch 特殊处理：用专家的 skillPrompt 替换 system prompt
+ // skill_dispatch 特殊处理
  let stream2SystemPrompt = enrichedSystemPrompt;
  if (toolResult.skillPrompt) {
  stream2SystemPrompt = toolResult.skillPrompt;
  console.log(`[SkillDispatch] 切换到专家: ${toolResult.skillDisplayName || toolCallName}`);
- // 发送专家切换事件给前端
  if (toolResult.toolEvent) {
  streamer.sendDelta('');
  }
  }
 
- // 任务计划进度更新：标记最后一步为 running
- if (taskPlanSteps && taskPlanSteps.length > 2) {
- streamer.updateTaskPlan(taskPlanSteps[taskPlanSteps.length - 1].id, 'running');
+ // ===== 任务计划：标记"深度分析"步骤为 running =====
+ if (taskPlanSteps) {
+   const analyzeDeepStep = taskPlanSteps.find(s => s.phase === 'analyze_deep');
+   if (analyzeDeepStep) {
+     streamer.updateTaskPlan(analyzeDeepStep.id, 'running');
+   }
  }
  
  // 发送"整合信息"步骤
  const integrateStepId = streamer.sendStep('整合信息，生成回答', 'running');
 
  // 第二轮对话（携带工具结果）
- // 将 tool/assistant(with tool_calls) 消息转换为普通消息，避免 DeepSeek 再次输出 tool_calls 标记
  const messagesForStream2 = [
  ...session.messages,
  { role: 'assistant', content: assistantMsg1.content || '（正在查询数据）' },
  { role: 'user', content: '工具查询结果：' + toolResult.text }
  ];
 
- // 使用不带工具的 chatStream，避免模型再次调用工具
  let stream2;
  console.log(`[Stream2] 开始第二轮对话, systemPrompt长度: ${stream2SystemPrompt.length}, messages数: ${messagesForStream2.length}`);
  try {
@@ -394,18 +483,20 @@ async function handleUnifiedChatStream(req, res, deps) {
  } else {
  stream2 = await activeProvider.chatStreamWithTools(stream2SystemPrompt, messagesForStream2, []);
  }
- console.log(`[Stream2] API 请求成功, stream类型: ${typeof stream2}`);
+ console.log(`[Stream2] API 请求成功`);
  } catch (stream2Err) {
  console.error(`[Stream2] API 请求失败:`, stream2Err.message);
- // 降级：直接输出工具结果摘要
  const fallbackMsg = toolResult.text || '抱歉，专家回复暂时不可用，请稍后重试。';
  fullMessage = fallbackMsg;
  streamer.sendDelta(fallbackMsg);
  stream2 = null;
  }
+ 
  if (stream2) {
  let stream2ChunkCount = 0;
  let integrateStepDone = false;
+ let outputStepMarked = false;
+ 
  for await (const parsed of deps.parseSSEStream(stream2)) {
  stream2ChunkCount++;
  let delta = parsed.choices?.[0]?.delta?.content || '';
@@ -414,27 +505,41 @@ async function handleUnifiedChatStream(req, res, deps) {
  delta = delta.replace(/<\|tool[\u2581_].*?\|>/g, '').replace(/<｜tool[\u2581_].*?｜>/g, '');
  }
  if (delta) {
- // 第一个有内容的 delta 到达时，标记整合步骤完成
  if (!integrateStepDone) {
  streamer.updateStep(integrateStepId, '整合信息，生成回答', 'done');
  integrateStepDone = true;
+ // ===== 任务计划：标记"深度分析"完成，"生成回答"开始 =====
+ if (taskPlanSteps) {
+   const analyzeDeepStep = taskPlanSteps.find(s => s.phase === 'analyze_deep');
+   if (analyzeDeepStep) streamer.updateTaskPlan(analyzeDeepStep.id, 'done');
+   const outputStep = taskPlanSteps.find(s => s.phase === 'output');
+   if (outputStep) {
+     streamer.updateTaskPlan(outputStep.id, 'running');
+     outputStepMarked = true;
+   }
+ }
  }
  fullMessage += delta;
  streamer.sendDelta(delta);
  }
  }
- // 如果 stream2 结束但整合步骤未完成（空响应），也标记完成
+ 
  if (!integrateStepDone) {
  streamer.updateStep(integrateStepId, '整合信息，生成回答', 'done');
  }
- // 任务计划进度更新：标记所有步骤完成
+ 
+ // ===== 任务计划：标记所有步骤完成 =====
  if (taskPlanSteps) {
  for (const step of taskPlanSteps) {
- streamer.updateTaskPlan(step.id, 'done');
+ if (step.status !== 'done') {
+   streamer.updateTaskPlan(step.id, 'done');
+   step.status = 'done';
  }
  }
+ }
+ 
  console.log(`[Stream2] 完成, 共收到 ${stream2ChunkCount} 个chunk, 输出长度: ${fullMessage.length}`);
- // 降级：如果 stream2 返回了但没有任何内容，直接输出工具结果摘要
+ 
  if (!fullMessage.trim() && toolResult && toolResult.text) {
  console.warn('[Stream2] 空响应，降级输出工具结果');
  fullMessage = toolResult.text;
@@ -443,20 +548,25 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  } else {
  fullMessage = firstRoundContent;
- // 没有工具调用的直接回答，也标记所有任务计划步骤完成
+ // 没有工具调用的直接回答，标记所有任务计划步骤完成
  if (taskPlanSteps) {
  for (const step of taskPlanSteps) {
  streamer.updateTaskPlan(step.id, 'done');
+ step.status = 'done';
  }
  }
  }
  } catch (err) {
  console.error('[UnifiedStream] 工具调用流式处理失败:', err.message);
- // 降级处理
  fullMessage = await fallbackStream(activeProvider, enrichedSystemPrompt, session.messages, streamer, deps);
+ // 降级时也标记所有步骤完成
+ if (taskPlanSteps) {
+ for (const step of taskPlanSteps) {
+   streamer.updateTaskPlan(step.id, 'done');
+ }
+ }
  }
  } else {
- // 不支持工具调用的 Provider，直接流式输出
  fullMessage = await fallbackStream(activeProvider, enrichedSystemPrompt, session.messages, streamer, deps);
  }
 
@@ -468,13 +578,11 @@ async function handleUnifiedChatStream(req, res, deps) {
  stmtUpdateSessionTime.run(sessionId);
  } catch (dbErr) { console.error('DB error:', dbErr.message); }
 
- // 记录日志
  const logTs = new Date().toISOString();
  const logEntry = JSON.stringify({ ts: logTs, agent: session.agentId, agent_name: session.agentName, user_code: userCode, user_name: session.userName, user: message, assistant: fullMessage, feedback: null });
  fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logEntry + '\n', () => {});
  try { stmtInsertConvLog.run(logTs, 'chat', session.agentId, session.agentName, userCode, session.userName, message, fullMessage, null); } catch (e) { /* non-fatal */ }
  
- // 配额记录
  const estInputTokens = Math.ceil((message.length + (session.systemPrompt || '').length) / 4);
  const estOutputTokens = Math.ceil(fullMessage.length / 4);
  const providerName = isExpertMode ? 'SiliconFlow(Expert)' : (userProvider || deps.AI_PROVIDER);
@@ -506,7 +614,6 @@ async function handleUnifiedChatStream(req, res, deps) {
  */
 async function fallbackStream(provider, systemPrompt, messages, streamer, deps) {
  let fullMessage = '';
- // 如果 provider 没有 chatStream 方法，降级为非流式 chat
  if (typeof provider.chatStream !== 'function') {
  if (typeof provider.chat === 'function') {
  const result = await provider.chat(systemPrompt, messages);
@@ -518,7 +625,6 @@ async function fallbackStream(provider, systemPrompt, messages, streamer, deps) 
  }
  const stream = await provider.chatStream(systemPrompt, messages);
  for await (const parsed of deps.parseSSEStream(stream)) {
- // 兼容 OpenAI 格式 (choices[0].delta.content) 和 Gemini/Gemma 格式 (candidates[0].content.parts[0].text)
  let delta = '';
  if (parsed.choices?.[0]?.delta?.content) {
  delta = parsed.choices[0].delta.content;

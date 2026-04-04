@@ -240,6 +240,14 @@
  </div>
  </div>
  <div class="guided-questions" id="guidedQuestions"></div>
+ <!-- 模板选择面板 -->
+ <div class="template-panel" id="templatePanel" style="display:none">
+ <div class="template-panel-header">
+ <span class="template-panel-title">输出模板</span>
+ <button class="template-panel-close" onclick="toggleTemplatePanel()">&times;</button>
+ </div>
+ <div class="template-panel-grid" id="templateGrid"></div>
+ </div>
  <div class="chat-input-area">
  <!-- File preview card -->
  <div id="filePreviewArea" style="display:none"></div>
@@ -260,6 +268,10 @@
  </button>
  <button class="draw-btn" id="snapshotBtn" onclick="openSnapshotModal()" title="保存快照" style="display:none">
  <span class="btn-label">快照</span>
+ </button>
+ <button class="template-btn" id="templateBtn" onclick="toggleTemplatePanel()" title="输出模板">
+ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+ <span class="btn-label">模板</span>
  </button>
  <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
  </div>
