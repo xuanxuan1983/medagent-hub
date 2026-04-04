@@ -1,50 +1,50 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-    <meta name="color-scheme" content="light only">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MedAgent Hub</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-  <link rel="stylesheet" href="/chat-styles.css?v=20260404f">
+ <meta charset="UTF-8">
+ <meta name="color-scheme" content="light only">
+ <link rel="icon" type="image/x-icon" href="/favicon.ico">
+ <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+ <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+ <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+ <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>MedAgent Hub</title>
+ <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+ <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+ <link rel="stylesheet" href="/chat-styles.css?v=20260404f">
 </head>
 <body>
 
 <!-- 快照模态框 -->
 <div class="snapshot-overlay" id="snapshotOverlay" onclick="if(event.target===this)closeSnapshotModal()">
-  <div class="snapshot-modal">
-    <h3>保存对话快照</h3>
-    <p>将当前对话中的专业知识和方法论提炼为可复用的技能包，供团队内部学习和流转。</p>
-    <input type="text" id="snapshotNameInput" placeholder="输入技能名称，如：玻尿酸填充咨询话术" maxlength="50">
-    <div class="snapshot-status" id="snapshotStatus"></div>
-    <div class="snapshot-preview" id="snapshotPreview"></div>
-    <div class="snapshot-preview-actions" id="snapshotPreviewActions">
-      <button class="snapshot-dl-btn" onclick="downloadSnapshot()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        下载 Markdown
-      </button>
-      <button class="snapshot-dl-btn" onclick="copySnapshotMarkdown()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        复制内容
-      </button>
-      <button class="snapshot-dl-btn" onclick="loadSnapshotToChat()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10m0 0l-3-3m3 3l3-3"/><path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
-        加载到对话
-      </button>
-    </div>
-    <div class="snapshot-modal-actions">
-      <button class="snapshot-cancel" onclick="closeSnapshotModal()">关闭</button>
-      <button class="snapshot-confirm" id="snapshotConfirmBtn" onclick="confirmSnapshot()">提炼并保存</button>
-    </div>
-  </div>
+ <div class="snapshot-modal">
+ <h3>保存对话快照</h3>
+ <p>将当前对话中的专业知识和方法论提炼为可复用的技能包，供团队内部学习和流转。</p>
+ <input type="text" id="snapshotNameInput" placeholder="输入技能名称，如：玻尿酸填充咨询话术" maxlength="50">
+ <div class="snapshot-status" id="snapshotStatus"></div>
+ <div class="snapshot-preview" id="snapshotPreview"></div>
+ <div class="snapshot-preview-actions" id="snapshotPreviewActions">
+ <button class="snapshot-dl-btn" onclick="downloadSnapshot()">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+ 下载 Markdown
+ </button>
+ <button class="snapshot-dl-btn" onclick="copySnapshotMarkdown()">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+ 复制内容
+ </button>
+ <button class="snapshot-dl-btn" onclick="loadSnapshotToChat()">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10m0 0l-3-3m3 3l3-3"/><path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
+ 加载到对话
+ </button>
+ </div>
+ <div class="snapshot-modal-actions">
+ <button class="snapshot-cancel" onclick="closeSnapshotModal()">关闭</button>
+ <button class="snapshot-confirm" id="snapshotConfirmBtn" onclick="confirmSnapshot()">提炼并保存</button>
+ </div>
+ </div>
 </div>
 
 <!-- 网络状态提示 -->
@@ -53,569 +53,569 @@
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <div class="sidebar-top">
-    <a href="/index.html" class="sidebar-logo">
-      <div class="sidebar-logo-icon">M</div>
-      MedAgent Hub
-    </a>
-    <button class="sidebar-nav-btn active" id="navDesktop" onclick="switchView('desktop')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
-      工作台
-    </button>
-    <button class="sidebar-nav-btn" id="navStore" onclick="switchView('store')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      Agent 商店
-    </button>
-    <a href="/daily-brief.html" class="sidebar-nav-btn" id="navBrief" style="text-decoration:none;display:flex;align-items:center;gap:0.4rem;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      行业日报
-      <span class="sidebar-nav-badge" style="margin-left:auto;font-size:0.6rem;background:var(--coral);color:white;padding:0.1rem 0.35rem;border-radius:3px;font-weight:700;">NEW</span>
-    </a>
-  </div>
+ <div class="sidebar-top">
+ <a href="/index.html" class="sidebar-logo">
+ <div class="sidebar-logo-icon">M</div>
+ MedAgent Hub
+ </a>
+ <button class="sidebar-nav-btn active" id="navDesktop" onclick="switchView('desktop')">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+ 工作台
+ </button>
+ <button class="sidebar-nav-btn" id="navStore" onclick="switchView('store')">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+ Agent 商店
+ </button>
+ <a href="/daily-brief.html" class="sidebar-nav-btn" id="navBrief" style="text-decoration:none;display:flex;align-items:center;gap:0.4rem;">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+ 行业日报
+ <span class="sidebar-nav-badge" style="margin-left:auto;font-size:0.6rem;background:var(--coral);color:white;padding:0.1rem 0.35rem;border-radius:3px;font-weight:700;">NEW</span>
+ </a>
+ </div>
 
-  <div class="sidebar-scroll" id="sidebarScroll">
-    <!-- Favorites Section -->
-    <div class="sidebar-section-label">
-      <span>收藏</span>
-      <button class="sidebar-collapse-btn" id="favCollapseBtn" onclick="toggleSection('fav')">▾</button>
-    </div>
-    <div id="favSection">
-      <div id="favList">
-        <div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">暂无收藏对话</div>
-      </div>
-    </div>
+ <div class="sidebar-scroll" id="sidebarScroll">
+ <!-- Favorites Section -->
+ <div class="sidebar-section-label">
+ <span>收藏</span>
+ <button class="sidebar-collapse-btn" id="favCollapseBtn" onclick="toggleSection('fav')">▾</button>
+ </div>
+ <div id="favSection">
+ <div id="favList">
+ <div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">暂无收藏对话</div>
+ </div>
+ </div>
 
-    <!-- History Section -->
-    <div class="sidebar-section-label" style="margin-top:0.25rem">
-      <span>历史对话</span>
-      <button class="sidebar-collapse-btn" id="histCollapseBtn" onclick="toggleSection('hist')">▾</button>
-    </div>
-    <div id="histSection">
-      <div id="sidebarHistList">
-        <div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">加载中...</div>
-      </div>
-    </div>
+ <!-- History Section -->
+ <div class="sidebar-section-label" style="margin-top:0.25rem">
+ <span>历史对话</span>
+ <button class="sidebar-collapse-btn" id="histCollapseBtn" onclick="toggleSection('hist')">▾</button>
+ </div>
+ <div id="histSection">
+ <div id="sidebarHistList">
+ <div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">加载中...</div>
+ </div>
+ </div>
 
-    <!-- Divider -->
-    <div style="height:1px;background:var(--border-light);margin:0.5rem 0.625rem"></div>
+ <!-- Divider -->
+ <div style="height:1px;background:var(--border-light);margin:0.5rem 0.625rem"></div>
 
-    <!-- Agent Groups -->
-    <div id="agentGroupsSection">
-      <!-- Groups injected by JS -->
-    </div>
-  </div>
+ <!-- Agent Groups -->
+ <div id="agentGroupsSection">
+ <!-- Groups injected by JS -->
+ </div>
+ </div>
 
-  <div class="sidebar-bottom">
-    <div class="sidebar-user" id="sidebarUser" onclick="toggleUserMenu()">
-      <div class="sidebar-user-avatar" id="userAvatar">U</div>
-      <div class="sidebar-user-info">
-        <div class="sidebar-user-name" id="userName">用户</div>
-        <div class="sidebar-user-plan">免费版</div>
-      </div>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-3);flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>
-      <div class="sidebar-user-menu" id="userMenu">
-        <div class="user-menu-item" onclick="openSettings('account')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-          账户设置
-        </div>
-        <div class="user-menu-item" onclick="openSettings('api')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-          API 配置
-        </div>
-        <div class="user-menu-item" onclick="openSettings('pricing')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-          升级套餐
-        </div>
-        <div class="user-menu-divider"></div>
-        <div class="user-menu-item" onclick="openSettings('invite')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-          邀请好友
-        </div>
-        <div class="user-menu-item" onclick="window.location.href='/team.html'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M19 8v6M22 11h-6"/></svg>
-          团队管理
-        </div>
-        <div class="user-menu-divider"></div>
-        <div class="user-menu-item danger" onclick="doLogout()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-          退出登录
-        </div>
-      </div>
-    </div>
-  </div>
+ <div class="sidebar-bottom">
+ <div class="sidebar-user" id="sidebarUser" onclick="toggleUserMenu()">
+ <div class="sidebar-user-avatar" id="userAvatar">U</div>
+ <div class="sidebar-user-info">
+ <div class="sidebar-user-name" id="userName">用户</div>
+ <div class="sidebar-user-plan">免费版</div>
+ </div>
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-3);flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>
+ <div class="sidebar-user-menu" id="userMenu">
+ <div class="user-menu-item" onclick="openSettings('account')">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+ 账户设置
+ </div>
+ <div class="user-menu-item" onclick="openSettings('api')">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+ API 配置
+ </div>
+ <div class="user-menu-item" onclick="openSettings('pricing')">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+ 升级套餐
+ </div>
+ <div class="user-menu-divider"></div>
+ <div class="user-menu-item" onclick="openSettings('invite')">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+ 邀请好友
+ </div>
+ <div class="user-menu-item" onclick="window.location.href='/team.html'">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M19 8v6M22 11h-6"/></svg>
+ 团队管理
+ </div>
+ <div class="user-menu-divider"></div>
+ <div class="user-menu-item danger" onclick="doLogout()">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+ 退出登录
+ </div>
+ </div>
+ </div>
+ </div>
 </aside>
 
 <!-- MAIN AREA -->
 <main class="main-area">
 
-  <!-- DESKTOP VIEW -->
-  <div class="desktop-view active" id="desktopView">
-    <div class="desktop-welcome">
-      <div class="desktop-mascot">
-        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png" alt="豆子" id="desktopMascotImg" onerror="this.src='https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png'">
-      </div>
-      <div class="desktop-greeting" id="desktopGreeting">你好！我叫小豆豆</div>
-      <div class="desktop-sub" id="desktopSub">一颗正在努力学习医美知识的小种子。有什么可以帮到你的吗？<br>也许你的问题，就是我长出第一片新叶的开始。</div>
-      <!-- 专家模式升级横幅 v3.0 -->
-      <div class="upgrade-banner" id="expertUpgradeBanner">
-        <span>v3.0 新增「专家模式」— DeepSeek-R1 深度推理 + NMPA 合规校验</span>
-        <a href="/pricing.html" target="_blank">了解 Pro+</a>
-        <button class="upgrade-banner-close" onclick="document.getElementById('expertUpgradeBanner').classList.remove('show');localStorage.setItem('ma_v30_seen','1')">✕</button>
-      </div>
-      <!-- 专家模式切换栏 v3.0 -->
-      <div class="expert-mode-bar" id="expertModeBar">
-        <label class="expert-toggle" title="专家模式：DeepSeek-R1 深度推理 + NMPA 合规校验">
-          <input type="checkbox" id="expertModeToggle" onchange="onExpertModeToggle(this)">
-          <span class="expert-slider"></span>
-        </label>
-        <span id="expertModeLabel">专家模式</span>
-        <span class="expert-badge" id="expertBadge" style="display:none">Pro+</span>
-        <span class="expert-locked-tip" id="expertLockedTip" style="display:none">— <a href="/pricing.html" target="_blank">升级 Pro+ 解锁</a></span>
-      </div>
-      <div class="desktop-input-wrap">
-        <textarea class="desktop-input" id="desktopInput" placeholder="向我提问，开始我们的成长之旅..." rows="1" onkeydown="desktopKeydown(event)" oninput="autoResize(this)"></textarea>
-        <div class="desktop-input-footer">
-          <div class="desktop-input-left">
-            <button class="desktop-input-btn" onclick="openSettings('api')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-              <span id="modelLabel">默认模型</span>
-            </button>
-          </div>
-          <button class="desktop-send-btn" onclick="desktopSend()" title="发送">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-      </div>
-      <div class="desktop-quick-btns" id="quickBtns">
-        <button class="desktop-quick-btn" onclick="quickStart('senior-consultant')">🥇 金牌咨询师</button>
-        <button class="desktop-quick-btn" onclick="quickStart('sparring-robot')">🥊 话术陪练</button>
-        <button class="desktop-quick-btn" onclick="quickStart('aesthetic-design')">💎 美学设计</button>
-        <button class="desktop-quick-btn" onclick="quickStart('trend-setter')">🔥 爆款种草</button>
-        <button class="desktop-quick-btn" onclick="quickStart('materials-mentor')">🧬 材料学导师</button>
-      </div>
-    </div>
-  </div>
+ <!-- DESKTOP VIEW -->
+ <div class="desktop-view active" id="desktopView">
+ <div class="desktop-welcome">
+ <div class="desktop-mascot">
+ <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png" alt="豆子" id="desktopMascotImg" onerror="this.src='https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png'">
+ </div>
+ <div class="desktop-greeting" id="desktopGreeting">你好！我叫小豆豆</div>
+ <div class="desktop-sub" id="desktopSub">一颗正在努力学习医美知识的小种子。有什么可以帮到你的吗？<br>也许你的问题，就是我长出第一片新叶的开始。</div>
+ <!-- 专家模式升级横幅 v3.0 -->
+ <div class="upgrade-banner" id="expertUpgradeBanner">
+ <span>v3.0 新增「专家模式」— DeepSeek-R1 深度推理 + NMPA 合规校验</span>
+ <a href="/pricing.html" target="_blank">了解 Pro+</a>
+ <button class="upgrade-banner-close" onclick="document.getElementById('expertUpgradeBanner').classList.remove('show');localStorage.setItem('ma_v30_seen','1')"></button>
+ </div>
+ <!-- 专家模式切换栏 v3.0 -->
+ <div class="expert-mode-bar" id="expertModeBar">
+ <label class="expert-toggle" title="专家模式：DeepSeek-R1 深度推理 + NMPA 合规校验">
+ <input type="checkbox" id="expertModeToggle" onchange="onExpertModeToggle(this)">
+ <span class="expert-slider"></span>
+ </label>
+ <span id="expertModeLabel">专家模式</span>
+ <span class="expert-badge" id="expertBadge" style="display:none">Pro+</span>
+ <span class="expert-locked-tip" id="expertLockedTip" style="display:none">— <a href="/pricing.html" target="_blank">升级 Pro+ 解锁</a></span>
+ </div>
+ <div class="desktop-input-wrap">
+ <textarea class="desktop-input" id="desktopInput" placeholder="向我提问，开始我们的成长之旅..." rows="1" onkeydown="desktopKeydown(event)" oninput="autoResize(this)"></textarea>
+ <div class="desktop-input-footer">
+ <div class="desktop-input-left">
+ <button class="desktop-input-btn" onclick="openSettings('api')">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+ <span id="modelLabel">默认模型</span>
+ </button>
+ </div>
+ <button class="desktop-send-btn" onclick="desktopSend()" title="发送">
+ <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+ </button>
+ </div>
+ </div>
+ <div class="desktop-quick-btns" id="quickBtns">
+ <button class="desktop-quick-btn" onclick="quickStart('senior-consultant')">金牌咨询师</button>
+ <button class="desktop-quick-btn" onclick="quickStart('sparring-robot')">话术陪练</button>
+ <button class="desktop-quick-btn" onclick="quickStart('aesthetic-design')">美学设计</button>
+ <button class="desktop-quick-btn" onclick="quickStart('trend-setter')">爆款种草</button>
+ <button class="desktop-quick-btn" onclick="quickStart('materials-mentor')">材料学导师</button>
+ </div>
+ </div>
+ </div>
 
-  <!-- AGENT STORE VIEW -->
-  <div class="store-view" id="storeView">
-    <div class="store-header">
-      <h2>Agent 商店</h2>
-      <p>21 个专为医美行业打造的 AI 搭档，找到最适合你的那一个</p>
-      <div class="store-filters">
-        <button class="store-filter-btn active" onclick="filterStore(this,'all')">全部</button>
-        <button class="store-filter-btn" onclick="filterStore(this,'上游厂商')">上游厂商</button>
-        <button class="store-filter-btn" onclick="filterStore(this,'下游机构')">下游机构</button>
-        <button class="store-filter-btn" id="btnFilterHidden" onclick="filterStore(this,'hidden')" style="display:none;border-color:#f59e0b;color:#92400e">🔒 隐藏</button>
-      </div>
-    </div>
-    <div class="store-grid" id="storeGrid"></div>
-  </div>
+ <!-- AGENT STORE VIEW -->
+ <div class="store-view" id="storeView">
+ <div class="store-header">
+ <h2>Agent 商店</h2>
+ <p>21 个专为医美行业打造的 AI 搭档，找到最适合你的那一个</p>
+ <div class="store-filters">
+ <button class="store-filter-btn active" onclick="filterStore(this,'all')">全部</button>
+ <button class="store-filter-btn" onclick="filterStore(this,'上游厂商')">上游厂商</button>
+ <button class="store-filter-btn" onclick="filterStore(this,'下游机构')">下游机构</button>
+ <button class="store-filter-btn" id="btnFilterHidden" onclick="filterStore(this,'hidden')" style="display:none;border-color:#f59e0b;color:#92400e">隐藏</button>
+ </div>
+ </div>
+ <div class="store-grid" id="storeGrid"></div>
+ </div>
 
-  <!-- CHAT VIEW -->
-  <div class="chat-view" id="chatView">
-    <div class="chat-main-panel">
-    <div class="chat-topbar">
-      <div class="chat-agent-avatar" id="topbarAvatar">🤖</div>
-      <div>
-        <div class="chat-agent-name" id="topbarName">加载中...</div>
-        <div class="chat-agent-desc" id="topbarDesc">正在初始化...</div>
-      </div>
-      <div class="chat-status" id="chatStatus" style="display:none">
-        <div class="chat-status-dot"></div>在线
-      </div>
-      <button class="chat-topbar-btn" onclick="showHistory()">📜<span class="btn-label"> 历史</span></button>
-      <button class="chat-topbar-btn" onclick="clearChat()"><span class="btn-label">清空对话</span></button>
-      <button class="chat-topbar-btn" onclick="openSettings('api')">⚙<span class="btn-label"> 设置</span></button>
-      <button class="resource-panel-open-btn" id="resourcePanelBtn" onclick="toggleResourcePanel()" title="工作区资源面板" style="margin-left:auto">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
-        <span class="btn-label">资源</span>
-      </button>
-    </div>
-    <div class="chat-messages" id="chatMessages">
-      <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
-        <div class="welcome-title" id="welcomeTitle">你好！</div>
-        <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
-      </div>
-    </div>
-          <div class="guided-questions" id="guidedQuestions"></div>
-      <div class="chat-input-area">
-        <!-- File preview card -->
-        <div id="filePreviewArea" style="display:none"></div>
-        <!-- Hidden file input -->
-        <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.md,.png,.jpg,.jpeg,.gif,.webp,.bmp" onchange="handleFileSelect(event)">
-      <div class="chat-input-box">
-        <textarea class="chat-textarea" id="messageInput" placeholder="输入问题..." rows="1" disabled oninput="autoResize(this)" onkeydown="chatKeydown(event)"></textarea>
-        <div class="chat-input-footer">
-          <div class="chat-input-left">
-            <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
-              📎<span class="btn-label"> 上传文件</span>
-            </button>
-            <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
-              🌐<span class="btn-label"> 联网</span>
-            </button>
-            <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图" style="display:none">
-              🎨<span class="btn-label"> 绘图</span>
-            </button>
-            <button class="draw-btn" id="snapshotBtn" onclick="openSnapshotModal()" title="保存快照" style="display:none">
-              📌<span class="btn-label"> 快照</span>
-            </button>
-            <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
-          </div>
-          <div class="chat-input-right">
-            <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入" style="display:none">
-              🎙️<span class="btn-label"> 语音</span>
-            </button>
-            <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    </div><!-- /.chat-main-panel -->
-    <!-- RESOURCE PANEL -->
-    <div class="resource-panel collapsed" id="resourcePanel">
-      <div class="resource-panel-header">
-        <span class="resource-panel-title">工作区资源</span>
-        <button class="resource-panel-toggle" onclick="toggleResourcePanel()" title="收起">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-      </div>
-      <div class="resource-panel-body" id="resourcePanelBody">
-        <div class="resource-tabs">
-          <div class="resource-tab active" onclick="switchResourceTab('files')">文件 & 快捷</div>
-          <div class="resource-tab" onclick="switchResourceTab('kb')">知识库</div>
-          <div class="resource-tab" onclick="switchResourceTab('skills')">我的技能包</div>
-        </div>
-        <div class="resource-tab-content active" id="resourceTabFiles">
-          <div class="resource-section-label">已上传文件</div>
-          <div id="resourceFileList">
-            <div class="resource-empty">暂无上传文件<br><span style="font-size:0.7rem">上传文件后可在此快速引用</span></div>
-          </div>
-          <div class="resource-section-label" style="margin-top:0.5rem">快捷提问</div>
-          <div id="resourceQuickList">
-            <div class="resource-item" onclick="insertQuickRef('请帮我总结以上文件的核心要点')">
-              <span class="resource-item-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              </span>
-              <span class="resource-item-name">总结核心要点</span>
-            </div>
-            <div class="resource-item" onclick="insertQuickRef('请根据以上内容生成一份话术模板')">
-              <span class="resource-item-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-              </span>
-              <span class="resource-item-name">生成话术模板</span>
-            </div>
-            <div class="resource-item" onclick="insertQuickRef('请提取其中的关键数据和结论')">
-              <span class="resource-item-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              </span>
-              <span class="resource-item-name">提取关键数据</span>
-            </div>
-            <div class="resource-item" onclick="insertQuickRef('请将以上内容整理成结构化的报告')">
-              <span class="resource-item-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
-              </span>
-              <span class="resource-item-name">整理为结构化报告</span>
-            </div>
-          </div>
-        </div>
-        <div class="resource-tab-content" id="resourceTabKB">
-          <div id="kbFileList">
-            <div class="resource-empty">加载中...</div>
-          </div>
-        </div>
-        <div class="resource-tab-content" id="resourceTabSkills">
-          <div style="padding:0.3rem 0.5rem;border-bottom:1px solid var(--border);display:flex;gap:0.4rem">
-            <button class="resource-item-cite" onclick="importMhubFile()" style="font-size:0.7rem;padding:0.2rem 0.5rem">导入 .mhub 文件</button>
-          </div>
-          <div id="skillsList">
-            <div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击“快照”按钮提炼技能包</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div><!-- /.chat-view -->
+ <!-- CHAT VIEW -->
+ <div class="chat-view" id="chatView">
+ <div class="chat-main-panel">
+ <div class="chat-topbar">
+ <div class="chat-agent-avatar" id="topbarAvatar"></div>
+ <div>
+ <div class="chat-agent-name" id="topbarName">加载中...</div>
+ <div class="chat-agent-desc" id="topbarDesc">正在初始化...</div>
+ </div>
+ <div class="chat-status" id="chatStatus" style="display:none">
+ <div class="chat-status-dot"></div>在线
+ </div>
+ <button class="chat-topbar-btn" onclick="showHistory()"><span class="btn-label">历史</span></button>
+ <button class="chat-topbar-btn" onclick="clearChat()"><span class="btn-label">清空对话</span></button>
+ <button class="chat-topbar-btn" onclick="openSettings('api')"><span class="btn-label">设置</span></button>
+ <button class="resource-panel-open-btn" id="resourcePanelBtn" onclick="toggleResourcePanel()" title="工作区资源面板" style="margin-left:auto">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+ <span class="btn-label">资源</span>
+ </button>
+ </div>
+ <div class="chat-messages" id="chatMessages">
+ <div class="welcome-wrap" id="welcomeWrap">
+ <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
+ <div class="welcome-title" id="welcomeTitle">你好！</div>
+ <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
+ </div>
+ </div>
+ <div class="guided-questions" id="guidedQuestions"></div>
+ <div class="chat-input-area">
+ <!-- File preview card -->
+ <div id="filePreviewArea" style="display:none"></div>
+ <!-- Hidden file input -->
+ <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.md,.png,.jpg,.jpeg,.gif,.webp,.bmp" onchange="handleFileSelect(event)">
+ <div class="chat-input-box">
+ <textarea class="chat-textarea" id="messageInput" placeholder="输入问题..." rows="1" disabled oninput="autoResize(this)" onkeydown="chatKeydown(event)"></textarea>
+ <div class="chat-input-footer">
+ <div class="chat-input-left">
+ <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
+ <span class="btn-label">上传文件</span>
+ </button>
+ <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
+ <span class="btn-label">联网</span>
+ </button>
+ <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图" style="display:none">
+ <span class="btn-label">绘图</span>
+ </button>
+ <button class="draw-btn" id="snapshotBtn" onclick="openSnapshotModal()" title="保存快照" style="display:none">
+ <span class="btn-label">快照</span>
+ </button>
+ <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
+ </div>
+ <div class="chat-input-right">
+ <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入" style="display:none">
+ <span class="btn-label">语音</span>
+ </button>
+ <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div><!-- /.chat-main-panel -->
+ <!-- RESOURCE PANEL -->
+ <div class="resource-panel collapsed" id="resourcePanel">
+ <div class="resource-panel-header">
+ <span class="resource-panel-title">工作区资源</span>
+ <button class="resource-panel-toggle" onclick="toggleResourcePanel()" title="收起">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+ </button>
+ </div>
+ <div class="resource-panel-body" id="resourcePanelBody">
+ <div class="resource-tabs">
+ <div class="resource-tab active" onclick="switchResourceTab('files')">文件 & 快捷</div>
+ <div class="resource-tab" onclick="switchResourceTab('kb')">知识库</div>
+ <div class="resource-tab" onclick="switchResourceTab('skills')">我的技能包</div>
+ </div>
+ <div class="resource-tab-content active" id="resourceTabFiles">
+ <div class="resource-section-label">已上传文件</div>
+ <div id="resourceFileList">
+ <div class="resource-empty">暂无上传文件<br><span style="font-size:0.7rem">上传文件后可在此快速引用</span></div>
+ </div>
+ <div class="resource-section-label" style="margin-top:0.5rem">快捷提问</div>
+ <div id="resourceQuickList">
+ <div class="resource-item" onclick="insertQuickRef('请帮我总结以上文件的核心要点')">
+ <span class="resource-item-icon">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+ </span>
+ <span class="resource-item-name">总结核心要点</span>
+ </div>
+ <div class="resource-item" onclick="insertQuickRef('请根据以上内容生成一份话术模板')">
+ <span class="resource-item-icon">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+ </span>
+ <span class="resource-item-name">生成话术模板</span>
+ </div>
+ <div class="resource-item" onclick="insertQuickRef('请提取其中的关键数据和结论')">
+ <span class="resource-item-icon">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+ </span>
+ <span class="resource-item-name">提取关键数据</span>
+ </div>
+ <div class="resource-item" onclick="insertQuickRef('请将以上内容整理成结构化的报告')">
+ <span class="resource-item-icon">
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+ </span>
+ <span class="resource-item-name">整理为结构化报告</span>
+ </div>
+ </div>
+ </div>
+ <div class="resource-tab-content" id="resourceTabKB">
+ <div id="kbFileList">
+ <div class="resource-empty">加载中...</div>
+ </div>
+ </div>
+ <div class="resource-tab-content" id="resourceTabSkills">
+ <div style="padding:0.3rem 0.5rem;border-bottom:1px solid var(--border);display:flex;gap:0.4rem">
+ <button class="resource-item-cite" onclick="importMhubFile()" style="font-size:0.7rem;padding:0.2rem 0.5rem">导入 .mhub 文件</button>
+ </div>
+ <div id="skillsList">
+ <div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击“快照”按钮提炼技能包</span></div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div><!-- /.chat-view -->
 
 </main>
 
 
 <!-- KB PREVIEW MODAL -->
 <div class="modal-overlay" id="kbPreviewModal" style="display:none" onclick="if(event.target===this)closeKBPreview()">
-  <div class="kb-preview-container">
-    <div class="kb-preview-header">
-      <div class="kb-preview-title" id="kbPreviewTitle">文档预览</div>
-      <div class="kb-preview-meta" id="kbPreviewMeta"></div>
-      <div class="kb-preview-actions">
-        <button class="kb-preview-btn" onclick="askAboutPreview()" title="基于当前文档向 Agent 提问">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          问 Agent
-        </button>
-        <button class="kb-preview-btn" onclick="citePreviewInInput()" title="将当前文档引用到输入框">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-          引用
-        </button>
-        <button class="modal-close" onclick="closeKBPreview()">&#10005;</button>
-      </div>
-    </div>
-    <div class="kb-preview-body" id="kbPreviewBody">
-      <div style="text-align:center;color:var(--text-3);padding:3rem">加载中...</div>
-    </div>
-  </div>
+ <div class="kb-preview-container">
+ <div class="kb-preview-header">
+ <div class="kb-preview-title" id="kbPreviewTitle">文档预览</div>
+ <div class="kb-preview-meta" id="kbPreviewMeta"></div>
+ <div class="kb-preview-actions">
+ <button class="kb-preview-btn" onclick="askAboutPreview()" title="基于当前文档向 Agent 提问">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+ 问 Agent
+ </button>
+ <button class="kb-preview-btn" onclick="citePreviewInInput()" title="将当前文档引用到输入框">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+ 引用
+ </button>
+ <button class="modal-close" onclick="closeKBPreview()">&#10005;</button>
+ </div>
+ </div>
+ <div class="kb-preview-body" id="kbPreviewBody">
+ <div style="text-align:center;color:var(--text-3);padding:3rem">加载中...</div>
+ </div>
+ </div>
 </div>
 <!-- HISTORY PANEL -->
 <div class="modal-overlay" id="historyModal" style="display:none">
-  <div class="modal-card" style="position:relative;max-width:480px;max-height:80vh;display:flex;flex-direction:column">
-    <button class="modal-close" onclick="closeHistory()">✕</button>
-    <div style="font-weight:700;font-size:1rem;margin-bottom:0.75rem;padding-right:2rem">📜 历史对话记录</div>
-    <div id="historyList" style="flex:1;overflow-y:auto;min-height:200px">
-      <div style="text-align:center;color:var(--text-3);padding:2rem;font-size:0.85rem">加载中...</div>
-    </div>
-  </div>
+ <div class="modal-card" style="position:relative;max-width:480px;max-height:80vh;display:flex;flex-direction:column">
+ <button class="modal-close" onclick="closeHistory()"></button>
+ <div style="font-weight:700;font-size:1rem;margin-bottom:0.75rem;padding-right:2rem">历史对话记录</div>
+ <div id="historyList" style="flex:1;overflow-y:auto;min-height:200px">
+ <div style="text-align:center;color:var(--text-3);padding:2rem;font-size:0.85rem">加载中...</div>
+ </div>
+ </div>
 </div>
 
 <!-- SETTINGS MODAL -->
 <div class="modal-overlay" id="settingsModal">
-  <div class="modal-card" style="position:relative">
-    <button class="modal-close" onclick="closeSettings()">✕</button>
-    <div class="modal-sidebar">
-      <div class="modal-sidebar-title">设置</div>
-      <div class="modal-tab active" id="tab-account" onclick="switchTab('account')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        账户
-      </div>
-      <div class="modal-tab" id="tab-api" onclick="switchTab('api')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        API 配置
-      </div>
-      <div class="modal-tab" id="tab-invite" onclick="switchTab('invite')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-        邀请
-      </div>
-      <div class="modal-tab" id="tab-pricing" onclick="switchTab('pricing')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-        套餐
-      </div>
-      <div class="modal-tab" id="tab-feedback" onclick="switchTab('feedback')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        反馈有礼
-      </div>
-    </div>
-    <div class="modal-content">
-      <!-- Account -->
-      <div class="modal-pane active" id="pane-account">
-        <div class="modal-pane-title">账户信息</div>
-        <div class="info-row"><span class="info-row-label">用户</span><span class="info-row-val" id="infoUser">—</span></div>
-        <div class="info-row"><span class="info-row-label">套餐</span><span class="info-row-val">免费版</span></div>
-        <div class="info-row"><span class="info-row-label">今日使用</span><span class="info-row-val" id="infoUsage">—</span></div>
-        <!-- 管理员专属入口 -->
-        <div id="adminEntrySection" style="display:none;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
-          <div style="font-size:0.75rem;color:var(--text-3);margin-bottom:0.75rem;font-weight:600;letter-spacing:0.05em">管理员工具</div>
-          <a href="/admin.html" target="_blank" style="display:flex;align-items:center;gap:0.6rem;background:#191919;color:#fff;border-radius:8px;padding:0.7rem 1rem;text-decoration:none;font-size:0.875rem;font-weight:600;transition:opacity 0.15s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            数据管理中心
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          </a>
-        </div>
-      </div>
-      <!-- API -->
-      <div class="modal-pane" id="pane-api">
-        <div class="modal-pane-title">自定义 API</div>
-        <label class="modal-label">AI 提供商</label>
-        <select class="modal-select" id="settingsProvider" onchange="onProviderChange()">
-          <option value="">使用服务器默认</option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic (Claude)</option>
-          <option value="gemini">Google Gemini</option>
-          <option value="gemma4">Google Gemma 4 (Free)</option>
-          <option value="deepseek">DeepSeek</option>
-          <option value="siliconflow">硅基流动</option>
-          <option value="kimi">Kimi (月之暗面)</option>
-          <option value="qwen">通义千问</option>
-        </select>
-        <div id="gemma4Notice" style="display:none; margin:0.5rem 0; padding:0.5rem 0.75rem; background:#FFF8E1; border-left:3px solid #F9A825; border-radius:4px; font-size:0.78rem; color:#5D4037; line-height:1.5">免费模型 · 对话内容可能被 Google 用于产品改进。敏感信息建议使用 DeepSeek 等国内模型。</div>
-        <label class="modal-label">API Key</label>
-        <input class="modal-input" id="settingsApiKey" type="password" placeholder="输入你的 API Key（可选）">
-        <label class="modal-label">模型</label>
-        <select class="modal-select" id="settingsModel">
-          <option value="">使用服务器默认</option>
-        </select>
-        <label class="modal-label" style="margin-top:0.75rem">自定义 Base URL <span style="font-size:0.7rem;color:var(--text-3);font-weight:400">（第三方中转，可选）</span></label>
-        <input class="modal-input" id="settingsBaseUrl" type="text" placeholder="例：https://your-proxy.com/v1">
-        <div class="modal-actions">
-          <button class="btn-cancel" onclick="closeSettings( )">取消</button>
-          <button class="btn-save" onclick="saveSettings()">保存</button>
-        </div>
-      </div>
-      <!-- Invite -->
-      <div class="modal-pane" id="pane-invite">
-        <div class="modal-pane-title">邀请好友 · 共享权益</div>
-        <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1rem;line-height:1.6">每成功邀请 1 位好友订阅，你和好友各获得 <b style="color:var(--text)">¥30 账户余额</b>，可直接抵扣下月订阅费。</p>
-        <!-- 赠金统计卡片 -->
-        <div style="display:flex;gap:0.75rem;margin-bottom:1rem">
-          <div style="flex:1;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;padding:0.75rem;text-align:center">
-            <div style="font-size:0.7rem;color:#166534;margin-bottom:0.25rem">已邀请</div>
-            <div id="inviteCount" style="font-size:1.5rem;font-weight:700;color:#166534">0</div>
-            <div style="font-size:0.65rem;color:#166534;opacity:0.7">人</div>
-          </div>
-          <div style="flex:1;background:linear-gradient(135deg,#fffbeb,#fef3c7);border-radius:10px;padding:0.75rem;text-align:center">
-            <div style="font-size:0.7rem;color:#92400e;margin-bottom:0.25rem">累计余额</div>
-            <div id="totalCredit" style="font-size:1.5rem;font-weight:700;color:#92400e">¥0</div>
-            <div id="creditMax" style="font-size:0.65rem;color:#92400e;opacity:0.7">可抵扣订阅费</div>
-          </div>
-        </div>
-        <label class="modal-label">你的专属推荐码</label>
-        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
-          <input class="modal-input" id="inviteCode" readonly style="margin-bottom:0;flex:1;font-family:monospace;letter-spacing:0.05em" value="加载中...">
-          <button class="btn-save" onclick="copyInviteCode()" style="white-space:nowrap">复制码</button>
-        </div>
-        <label class="modal-label">邀请链接（可直接分享）</label>
-        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
-          <input class="modal-input" id="inviteLink" readonly style="margin-bottom:0;flex:1;font-size:0.75rem" value="加载中...">
-          <button class="btn-save" onclick="copyInviteLink()" style="white-space:nowrap">复制链接</button>
-        </div>
-        <div style="background:var(--bg-2);border-radius:8px;padding:0.75rem;margin-top:0.25rem">
-          <div style="font-size:0.775rem;font-weight:600;margin-bottom:0.375rem">余额如何使用？</div>
-          <p style="font-size:0.725rem;color:var(--text-3);line-height:1.6;margin:0 0 0.75rem 0">账户余额可直接抵扣下月订阅费。点击下方按钮提交申请，管理员将在 24 小时内处理。</p>
-          <button class="btn-save" onclick="openCreditApply()" style="width:100%;font-size:0.8rem">申请余额抵扣</button>
-        </div>
-      </div>
+ <div class="modal-card" style="position:relative">
+ <button class="modal-close" onclick="closeSettings()"></button>
+ <div class="modal-sidebar">
+ <div class="modal-sidebar-title">设置</div>
+ <div class="modal-tab active" id="tab-account" onclick="switchTab('account')">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+ 账户
+ </div>
+ <div class="modal-tab" id="tab-api" onclick="switchTab('api')">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+ API 配置
+ </div>
+ <div class="modal-tab" id="tab-invite" onclick="switchTab('invite')">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+ 邀请
+ </div>
+ <div class="modal-tab" id="tab-pricing" onclick="switchTab('pricing')">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+ 套餐
+ </div>
+ <div class="modal-tab" id="tab-feedback" onclick="switchTab('feedback')">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+ 反馈有礼
+ </div>
+ </div>
+ <div class="modal-content">
+ <!-- Account -->
+ <div class="modal-pane active" id="pane-account">
+ <div class="modal-pane-title">账户信息</div>
+ <div class="info-row"><span class="info-row-label">用户</span><span class="info-row-val" id="infoUser">—</span></div>
+ <div class="info-row"><span class="info-row-label">套餐</span><span class="info-row-val">免费版</span></div>
+ <div class="info-row"><span class="info-row-label">今日使用</span><span class="info-row-val" id="infoUsage">—</span></div>
+ <!-- 管理员专属入口 -->
+ <div id="adminEntrySection" style="display:none;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
+ <div style="font-size:0.75rem;color:var(--text-3);margin-bottom:0.75rem;font-weight:600;letter-spacing:0.05em">管理员工具</div>
+ <a href="/admin.html" target="_blank" style="display:flex;align-items:center;gap:0.6rem;background:#191919;color:#fff;border-radius:8px;padding:0.7rem 1rem;text-decoration:none;font-size:0.875rem;font-weight:600;transition:opacity 0.15s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+ 数据管理中心
+ <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+ </a>
+ </div>
+ </div>
+ <!-- API -->
+ <div class="modal-pane" id="pane-api">
+ <div class="modal-pane-title">自定义 API</div>
+ <label class="modal-label">AI 提供商</label>
+ <select class="modal-select" id="settingsProvider" onchange="onProviderChange()">
+ <option value="">使用服务器默认</option>
+ <option value="openai">OpenAI</option>
+ <option value="anthropic">Anthropic (Claude)</option>
+ <option value="gemini">Google Gemini</option>
+ <option value="gemma4">Google Gemma 4 (Free)</option>
+ <option value="deepseek">DeepSeek</option>
+ <option value="siliconflow">硅基流动</option>
+ <option value="kimi">Kimi (月之暗面)</option>
+ <option value="qwen">通义千问</option>
+ </select>
+ <div id="gemma4Notice" style="display:none; margin:0.5rem 0; padding:0.5rem 0.75rem; background:#FFF8E1; border-left:3px solid #F9A825; border-radius:4px; font-size:0.78rem; color:#5D4037; line-height:1.5">免费模型 · 对话内容可能被 Google 用于产品改进。敏感信息建议使用 DeepSeek 等国内模型。</div>
+ <label class="modal-label">API Key</label>
+ <input class="modal-input" id="settingsApiKey" type="password" placeholder="输入你的 API Key（可选）">
+ <label class="modal-label">模型</label>
+ <select class="modal-select" id="settingsModel">
+ <option value="">使用服务器默认</option>
+ </select>
+ <label class="modal-label" style="margin-top:0.75rem">自定义 Base URL <span style="font-size:0.7rem;color:var(--text-3);font-weight:400">（第三方中转，可选）</span></label>
+ <input class="modal-input" id="settingsBaseUrl" type="text" placeholder="例：https://your-proxy.com/v1">
+ <div class="modal-actions">
+ <button class="btn-cancel" onclick="closeSettings( )">取消</button>
+ <button class="btn-save" onclick="saveSettings()">保存</button>
+ </div>
+ </div>
+ <!-- Invite -->
+ <div class="modal-pane" id="pane-invite">
+ <div class="modal-pane-title">邀请好友 · 共享权益</div>
+ <p style="font-size:0.825rem;color:var(--text-3);margin-bottom:1rem;line-height:1.6">每成功邀请 1 位好友订阅，你和好友各获得 <b style="color:var(--text)">¥30 账户余额</b>，可直接抵扣下月订阅费。</p>
+ <!-- 赠金统计卡片 -->
+ <div style="display:flex;gap:0.75rem;margin-bottom:1rem">
+ <div style="flex:1;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;padding:0.75rem;text-align:center">
+ <div style="font-size:0.7rem;color:#166534;margin-bottom:0.25rem">已邀请</div>
+ <div id="inviteCount" style="font-size:1.5rem;font-weight:700;color:#166534">0</div>
+ <div style="font-size:0.65rem;color:#166534;opacity:0.7">人</div>
+ </div>
+ <div style="flex:1;background:linear-gradient(135deg,#fffbeb,#fef3c7);border-radius:10px;padding:0.75rem;text-align:center">
+ <div style="font-size:0.7rem;color:#92400e;margin-bottom:0.25rem">累计余额</div>
+ <div id="totalCredit" style="font-size:1.5rem;font-weight:700;color:#92400e">¥0</div>
+ <div id="creditMax" style="font-size:0.65rem;color:#92400e;opacity:0.7">可抵扣订阅费</div>
+ </div>
+ </div>
+ <label class="modal-label">你的专属推荐码</label>
+ <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+ <input class="modal-input" id="inviteCode" readonly style="margin-bottom:0;flex:1;font-family:monospace;letter-spacing:0.05em" value="加载中...">
+ <button class="btn-save" onclick="copyInviteCode()" style="white-space:nowrap">复制码</button>
+ </div>
+ <label class="modal-label">邀请链接（可直接分享）</label>
+ <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+ <input class="modal-input" id="inviteLink" readonly style="margin-bottom:0;flex:1;font-size:0.75rem" value="加载中...">
+ <button class="btn-save" onclick="copyInviteLink()" style="white-space:nowrap">复制链接</button>
+ </div>
+ <div style="background:var(--bg-2);border-radius:8px;padding:0.75rem;margin-top:0.25rem">
+ <div style="font-size:0.775rem;font-weight:600;margin-bottom:0.375rem">余额如何使用？</div>
+ <p style="font-size:0.725rem;color:var(--text-3);line-height:1.6;margin:0 0 0.75rem 0">账户余额可直接抵扣下月订阅费。点击下方按钮提交申请，管理员将在 24 小时内处理。</p>
+ <button class="btn-save" onclick="openCreditApply()" style="width:100%;font-size:0.8rem">申请余额抵扣</button>
+ </div>
+ </div>
 
-      <!-- Credit Apply Modal -->
-      <div id="creditApplyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">
-        <div style="background:var(--bg);border-radius:16px;padding:1.5rem;width:min(360px,90vw);box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-          <div style="font-size:1rem;font-weight:700;margin-bottom:0.25rem">申请余额抵扣</div>
-          <p style="font-size:0.775rem;color:var(--text-3);margin-bottom:1rem;line-height:1.5">填写联系方式，管理员核实后将为您抵扣订阅费用。</p>
-          <label class="modal-label">手机号或微信号 <span style="color:#ef4444">*</span></label>
-          <input class="modal-input" id="creditContact" placeholder="请填写手机号或微信号" style="margin-bottom:0.75rem">
-          <label class="modal-label">申请抵扣金额（元）<span style="color:#ef4444">*</span></label>
-          <input class="modal-input" id="creditAmount" type="number" placeholder="例如：30" min="1" style="margin-bottom:0.75rem">
-          <label class="modal-label">备注（选填）</label>
-          <input class="modal-input" id="creditNote" placeholder="如：邀请了张三、李四" style="margin-bottom:1rem">
-          <div style="display:flex;gap:0.5rem">
-            <button onclick="closeCreditApply()" style="flex:1;padding:0.6rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:0.85rem">取消</button>
-            <button onclick="submitCreditApply()" class="btn-save" style="flex:2;font-size:0.85rem" id="btnSubmitCredit">提交申请</button>
-          </div>
-        </div>
-      </div>
-      <!-- Pricing -->
-      <div class="modal-pane" id="pane-pricing">
-        <!-- Notion 风格套餐升级 -->
-        <!-- 内测期间提示条 -->
-        <div style="background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem">
-          <div style="font-size:0.825rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">🎉 内测期间权益</div>
-          <div style="font-size:0.775rem;color:var(--text-3);line-height:1.6">内测期间所有用户默认开放全部 21 个医美专属 Agent。提交反馈可额外解锁内容创作全套工具。</div>
-        </div>
+ <!-- Credit Apply Modal -->
+ <div id="creditApplyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">
+ <div style="background:var(--bg);border-radius:16px;padding:1.5rem;width:min(360px,90vw);box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+ <div style="font-size:1rem;font-weight:700;margin-bottom:0.25rem">申请余额抵扣</div>
+ <p style="font-size:0.775rem;color:var(--text-3);margin-bottom:1rem;line-height:1.5">填写联系方式，管理员核实后将为您抵扣订阅费用。</p>
+ <label class="modal-label">手机号或微信号 <span style="color:#ef4444">*</span></label>
+ <input class="modal-input" id="creditContact" placeholder="请填写手机号或微信号" style="margin-bottom:0.75rem">
+ <label class="modal-label">申请抵扣金额（元）<span style="color:#ef4444">*</span></label>
+ <input class="modal-input" id="creditAmount" type="number" placeholder="例如：30" min="1" style="margin-bottom:0.75rem">
+ <label class="modal-label">备注（选填）</label>
+ <input class="modal-input" id="creditNote" placeholder="如：邀请了张三、李四" style="margin-bottom:1rem">
+ <div style="display:flex;gap:0.5rem">
+ <button onclick="closeCreditApply()" style="flex:1;padding:0.6rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:0.85rem">取消</button>
+ <button onclick="submitCreditApply()" class="btn-save" style="flex:2;font-size:0.85rem" id="btnSubmitCredit">提交申请</button>
+ </div>
+ </div>
+ </div>
+ <!-- Pricing -->
+ <div class="modal-pane" id="pane-pricing">
+ <!-- Notion 风格套餐升级 -->
+ <!-- 内测期间提示条 -->
+ <div style="background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem">
+ <div style="font-size:0.825rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">内测期间权益</div>
+ <div style="font-size:0.775rem;color:var(--text-3);line-height:1.6">内测期间所有用户默认开放全部 21 个医美专属 Agent。提交反馈可额外解锁内容创作全套工具。</div>
+ </div>
 
-        <div style="margin-bottom:1.25rem">
-          <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:0.375rem">升级套餐</div>
-          <div style="font-size:0.825rem;color:var(--text-3);line-height:1.6">内测期后正式上线，升级可解锁全部 Agent + 内容创作工具。</div>
-        </div>
+ <div style="margin-bottom:1.25rem">
+ <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:0.375rem">升级套餐</div>
+ <div style="font-size:0.825rem;color:var(--text-3);line-height:1.6">内测期后正式上线，升级可解锁全部 Agent + 内容创作工具。</div>
+ </div>
 
-        <!-- 免费版 -->
-        <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div>
-              <div style="font-size:0.875rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">免费版</div>
-              <div style="font-size:0.775rem;color:var(--text-3)">内测期间：21 个医美Agent 全部开放 · 反馈可解锁内容创作</div>
-            </div>
-            <div style="font-size:1rem;font-weight:700;color:var(--text)">¥0</div>
-          </div>
-        </div>
+ <!-- 免费版 -->
+ <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
+ <div style="display:flex;align-items:center;justify-content:space-between">
+ <div>
+ <div style="font-size:0.875rem;font-weight:600;color:var(--text);margin-bottom:0.2rem">免费版</div>
+ <div style="font-size:0.775rem;color:var(--text-3)">内测期间：21 个医美Agent 全部开放 · 反馈可解锁内容创作</div>
+ </div>
+ <div style="font-size:1rem;font-weight:700;color:var(--text)">¥0</div>
+ </div>
+ </div>
 
-        <!-- 专业版 Pro -->
-        <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
-            <div>
-              <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
-                <span style="font-size:0.875rem;font-weight:600;color:var(--text)">专业版 Pro</span>
-                <span style="font-size:0.65rem;background:var(--text);color:white;padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">厂商首选</span>
-              </div>
-              <div style="font-size:0.775rem;color:var(--text-3)">全部 21 个医美Agent + 内容创作工具 · 50 张图/月</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:0.5rem">
-            <button class="btn-save" id="btnBuyPro" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem" onclick="startPayment({name:'专业版Pro',price:29900})">¥299 / 月</button>
-            <button class="btn-save" id="btnBuyProYear" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem;background:var(--text)" onclick="startPayment({name:'专业版Pro年付',price:238000})">¥2,380 / 年 &nbsp;<span style="font-size:0.7rem;opacity:0.65">省 ¥200</span></button>
-          </div>
-        </div>
+ <!-- 专业版 Pro -->
+ <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
+ <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
+ <div>
+ <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
+ <span style="font-size:0.875rem;font-weight:600;color:var(--text)">专业版 Pro</span>
+ <span style="font-size:0.65rem;background:var(--text);color:white;padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">厂商首选</span>
+ </div>
+ <div style="font-size:0.775rem;color:var(--text-3)">全部 21 个医美Agent + 内容创作工具 · 50 张图/月</div>
+ </div>
+ </div>
+ <div style="display:flex;gap:0.5rem">
+ <button class="btn-save" id="btnBuyPro" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem" onclick="startPayment({name:'专业版Pro',price:29900})">¥299 / 月</button>
+ <button class="btn-save" id="btnBuyProYear" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem;background:var(--text)" onclick="startPayment({name:'专业版Pro年付',price:238000})">¥2,380 / 年 &nbsp;<span style="font-size:0.7rem;opacity:0.65">省 ¥200</span></button>
+ </div>
+ </div>
 
-        <!-- 全能版 Pro+ -->
-        <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
-            <div>
-              <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
-                <span style="font-size:0.875rem;font-weight:600;color:var(--text)">全能版 Pro+</span>
-                <span style="font-size:0.65rem;background:var(--text);color:white;padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">推荐</span>
-              </div>
-              <div style="font-size:0.775rem;color:var(--text-3)">全部 Agent + 内容创作工具 · 100 张图/月 · 联网搜索</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:0.5rem">
-            <button class="btn-save" id="btnBuyProPlus" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem" onclick="startPayment({name:'全能版Pro+',price:49900})">¥499 / 月</button>
-            <button class="btn-save" id="btnBuyProPlusYear" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem;background:var(--text)" onclick="startPayment({name:'全能版Pro+年付',price:398000})">¥3,980 / 年 &nbsp;<span style="font-size:0.7rem;opacity:0.65">省 ¥608</span></button>
-          </div>
-        </div>
+ <!-- 全能版 Pro+ -->
+ <div style="padding:1rem 0;border-bottom:1px solid var(--border);margin-bottom:0">
+ <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
+ <div>
+ <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
+ <span style="font-size:0.875rem;font-weight:600;color:var(--text)">全能版 Pro+</span>
+ <span style="font-size:0.65rem;background:var(--text);color:white;padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">推荐</span>
+ </div>
+ <div style="font-size:0.775rem;color:var(--text-3)">全部 Agent + 内容创作工具 · 100 张图/月 · 联网搜索</div>
+ </div>
+ </div>
+ <div style="display:flex;gap:0.5rem">
+ <button class="btn-save" id="btnBuyProPlus" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem" onclick="startPayment({name:'全能版Pro+',price:49900})">¥499 / 月</button>
+ <button class="btn-save" id="btnBuyProPlusYear" style="flex:1;border-radius:6px;padding:0.5rem;font-size:0.825rem;background:var(--text)" onclick="startPayment({name:'全能版Pro+年付',price:398000})">¥3,980 / 年 &nbsp;<span style="font-size:0.7rem;opacity:0.65">省 ¥608</span></button>
+ </div>
+ </div>
 
-        <!-- Level 2 全案服务 -->
-        <div style="padding:1rem 0">
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
-            <span style="font-size:0.875rem;font-weight:600;color:var(--text)">数字孪生全案服务</span>
-            <span style="font-size:0.65rem;border:1px solid var(--text);color:var(--text);padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">Level 2</span>
-          </div>
-          <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem;line-height:1.6">专属顾问 1-on-1 深度诊断 + 21 天陪跑，赠全能版终身码。</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem">
-            <span style="font-size:0.875rem;font-weight:700;color:var(--text)">¥29,800</span>
-            <span style="font-size:0.75rem;color:var(--text-3)">前 5 名限额</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:1rem">
-            <img src="/dmy-qrcode.jpg" alt="DMY小程序码" style="width:72px;height:72px;border-radius:6px;object-fit:cover;flex-shrink:0">
-            <div style="font-size:0.775rem;color:var(--text-3);line-height:1.6">扫码进入 DMY 小程序，了解全案服务详情</div>
-          </div>
-        </div>
-      </div>
+ <!-- Level 2 全案服务 -->
+ <div style="padding:1rem 0">
+ <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.2rem">
+ <span style="font-size:0.875rem;font-weight:600;color:var(--text)">数字孪生全案服务</span>
+ <span style="font-size:0.65rem;border:1px solid var(--text);color:var(--text);padding:1px 7px;border-radius:3px;font-weight:600;letter-spacing:0.02em">Level 2</span>
+ </div>
+ <div style="font-size:0.775rem;color:var(--text-3);margin-bottom:0.75rem;line-height:1.6">专属顾问 1-on-1 深度诊断 + 21 天陪跑，赠全能版终身码。</div>
+ <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem">
+ <span style="font-size:0.875rem;font-weight:700;color:var(--text)">¥29,800</span>
+ <span style="font-size:0.75rem;color:var(--text-3)">前 5 名限额</span>
+ </div>
+ <div style="display:flex;align-items:center;gap:1rem">
+ <img src="/dmy-qrcode.jpg" alt="DMY小程序码" style="width:72px;height:72px;border-radius:6px;object-fit:cover;flex-shrink:0">
+ <div style="font-size:0.775rem;color:var(--text-3);line-height:1.6">扫码进入 DMY 小程序，了解全案服务详情</div>
+ </div>
+ </div>
+ </div>
 
-      <!-- 内测反馈有礼 -->
-      <div class="modal-pane" id="pane-feedback">
-        <!-- 已解锁状态提示 -->
-        <div id="feedbackUnlockedBanner" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem">
-          <div style="font-size:0.875rem;font-weight:600;color:#15803d;margin-bottom:0.2rem">✅ 内容创作类 Agent 已解锁</div>
-          <div style="font-size:0.775rem;color:#166534">感谢你的宝贵反馈！你已获得内容创作全套工具的使用权限。</div>
-        </div>
+ <!-- 内测反馈有礼 -->
+ <div class="modal-pane" id="pane-feedback">
+ <!-- 已解锁状态提示 -->
+ <div id="feedbackUnlockedBanner" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.875rem 1rem;margin-bottom:1.25rem">
+ <div style="font-size:0.875rem;font-weight:600;color:#15803d;margin-bottom:0.2rem">内容创作类 Agent 已解锁</div>
+ <div style="font-size:0.775rem;color:#166534">感谢你的宝贵反馈！你已获得内容创作全套工具的使用权限。</div>
+ </div>
 
-        <div id="feedbackFormArea">
-          <div style="margin-bottom:1.25rem">
-            <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.375rem">内测反馈有礼</div>
-            <div style="font-size:0.8rem;color:var(--text-3);line-height:1.6">内测期间，提交一条有价值的建议即可解锁全部内容创作类 Agent，包括小红书、PPT、公众号、漫画、社交媒体等 7 个内容工具。</div>
-          </div>
+ <div id="feedbackFormArea">
+ <div style="margin-bottom:1.25rem">
+ <div style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.375rem">内测反馈有礼</div>
+ <div style="font-size:0.8rem;color:var(--text-3);line-height:1.6">内测期间，提交一条有价值的建议即可解锁全部内容创作类 Agent，包括小红书、PPT、公众号、漫画、社交媒体等 7 个内容工具。</div>
+ </div>
 
-          <div style="margin-bottom:0.875rem">
-            <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">反馈类型</label>
-            <select id="feedbackCategory" style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none">
-              <option value="体验建议">体验建议（界面、交互、功能）</option>
-              <option value="Agent内容">Agent 内容建议（回答质量、专业度）</option>
-              <option value="新功能">新功能需求（希望增加的功能）</option>
-              <option value="bug反馈">Bug 反馈（遇到的问题）</option>
-              <option value="行业洞察">行业洞察（医美行业观察）</option>
-              <option value="其他">其他</option>
-            </select>
-          </div>
+ <div style="margin-bottom:0.875rem">
+ <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">反馈类型</label>
+ <select id="feedbackCategory" style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none">
+ <option value="体验建议">体验建议（界面、交互、功能）</option>
+ <option value="Agent内容">Agent 内容建议（回答质量、专业度）</option>
+ <option value="新功能">新功能需求（希望增加的功能）</option>
+ <option value="bug反馈">Bug 反馈（遇到的问题）</option>
+ <option value="行业洞察">行业洞察（医美行业观察）</option>
+ <option value="其他">其他</option>
+ </select>
+ </div>
 
-          <div style="margin-bottom:0.875rem">
-            <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">建议内容 <span style="color:var(--text-3);font-weight:400">(至少 20 字)</span></label>
-            <textarea id="feedbackContent" rows="5" placeholder="例如：建议在销售作战总监中增加客户异议处理模块，并支持根据客户类型自动切换话术风格…" style="width:100%;padding:0.625rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none;resize:vertical;font-family:inherit;line-height:1.5;box-sizing:border-box"></textarea>
-          </div>
+ <div style="margin-bottom:0.875rem">
+ <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">建议内容 <span style="color:var(--text-3);font-weight:400">(至少 20 字)</span></label>
+ <textarea id="feedbackContent" rows="5" placeholder="例如：建议在销售作战总监中增加客户异议处理模块，并支持根据客户类型自动切换话术风格…" style="width:100%;padding:0.625rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none;resize:vertical;font-family:inherit;line-height:1.5;box-sizing:border-box"></textarea>
+ </div>
 
-          <div style="margin-bottom:1.25rem">
-            <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">联系方式 <span style="color:var(--text-3);font-weight:400">(可选，微信/手机)</span></label>
-            <input id="feedbackContact" type="text" placeholder="方便我们进一步沟通——可不填" style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none;box-sizing:border-box">
-          </div>
+ <div style="margin-bottom:1.25rem">
+ <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.375rem">联系方式 <span style="color:var(--text-3);font-weight:400">(可选，微信/手机)</span></label>
+ <input id="feedbackContact" type="text" placeholder="方便我们进一步沟通——可不填" style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:6px;font-size:0.825rem;background:var(--bg);color:var(--text);outline:none;box-sizing:border-box">
+ </div>
 
-          <button id="btnSubmitFeedback" onclick="submitBetaFeedback()" style="width:100%;padding:0.625rem;background:var(--text);color:white;border:none;border-radius:6px;font-size:0.875rem;font-weight:600;cursor:pointer">提交反馈，解锁内容创作工具 🎁</button>
-          <div id="feedbackSubmitMsg" style="display:none;margin-top:0.75rem;font-size:0.8rem;text-align:center"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+ <button id="btnSubmitFeedback" onclick="submitBetaFeedback()" style="width:100%;padding:0.625rem;background:var(--text);color:white;border:none;border-radius:6px;font-size:0.875rem;font-weight:600;cursor:pointer">提交反馈，解锁内容创作工具</button>
+ <div id="feedbackSubmitMsg" style="display:none;margin-top:0.75rem;font-size:0.8rem;text-align:center"></div>
+ </div>
+ </div>
+ </div>
+ </div>
 </div>
 
 <script src="/chat-app.js?v=20260404f"></script>
