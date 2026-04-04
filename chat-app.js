@@ -1502,9 +1502,9 @@
  var donePlanSteps = planContainer.querySelectorAll('.task-plan-step.done');
  var progressEl = planContainer.querySelector('.task-plan-progress');
  if (progressEl) {
- var total = allPlanSteps.length;
- var done = donePlanSteps.length;
- progressEl.textContent = done + '/' + total + ' 已完成';
+ var tpTotal = allPlanSteps.length;
+ var tpDone = donePlanSteps.length;
+ progressEl.textContent = tpDone + '/' + tpTotal + ' 已完成';
  // 进度条
  var bar = planContainer.querySelector('.task-plan-bar');
  if (!bar) {
@@ -1515,9 +1515,9 @@
  if (header) header.after(bar);
  }
  var fill = bar.querySelector('.task-plan-bar-fill');
- if (fill) fill.style.width = (total > 0 ? (done / total * 100) : 0) + '%';
+ if (fill) fill.style.width = (tpTotal > 0 ? (tpDone / tpTotal * 100) : 0) + '%';
  // 全部完成时标记
- if (done === total && total > 0) {
+ if (tpDone === tpTotal && tpTotal > 0) {
  planContainer.classList.add('tp-all-done');
  }
  }
