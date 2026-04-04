@@ -3191,25 +3191,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         document.getElementById('searchToggleBtn').title = '开启联网搜索';
       }
 
-      // Try streaming endpoint first (with retry)
-      let res, retryCount = 0;
-      const MAX_RETRIES = 2;
-      while (true) {
-        try {
-          res = await fetch('/api/chat/message-stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-          });
-          if (res.ok) break;
-          throw new Error('HTTP ' + res.status);
-        } catch (fetchErr) {
-          retryCount++;
-          if (retryCount > MAX_RETRIES) throw fetchErr;
-          console.warn('[SSE] 连接失败，' + retryCount + '/' + MAX_RETRIES + ' 次重试...', fetchErr.message);
-          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, retryCount - 1))); // 指数退避: 1s, 2s
-        }
-      }
+      // Try streaming endpoint first
+      const res = await fetch('/api/chat/message-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) throw new Error('send failed');
 
       const contentType = res.headers.get('content-type') || '';
 
@@ -4519,7 +4508,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         statusEl.textContent = '技能包已生成！请预览并选择操作：';
         statusEl.style.color = '#66bb6a';
         // 显示预览
-        previewEl.innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(data.markdown || data.summary || '')) : marked.parse(data.markdown || data.summary || '');
+        previewEl.innerHTML = marked.parse(data.markdown || data.summary || '');
         previewEl.style.display = 'block';
         previewActions.style.display = 'flex';
         confirmBtn.style.display = 'none';
@@ -4668,7 +4657,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         document.getElementById('snapshotNameInput').disabled = true;
         document.getElementById('snapshotStatus').textContent = '';
         document.getElementById('snapshotConfirmBtn').style.display = 'none';
-        document.getElementById('snapshotPreview').innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(data.markdown || '')) : marked.parse(data.markdown || '');
+        document.getElementById('snapshotPreview').innerHTML = marked.parse(data.markdown || '');
         document.getElementById('snapshotPreview').style.display = 'block';
         document.getElementById('snapshotPreviewActions').style.display = 'flex';
         document.getElementById('snapshotOverlay').classList.add('active');
