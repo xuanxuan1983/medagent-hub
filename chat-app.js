@@ -2016,6 +2016,8 @@
         sel.appendChild(opt);
       });
     }
+    const notice = document.getElementById('gemma4Notice');
+    if (notice) notice.style.display = (p === 'gemma4') ? 'block' : 'none';
   }
   function updateModelLabel() {
     const m = (_cachedApiConfig && _cachedApiConfig.model) || localStorage.getItem('ma_model');
