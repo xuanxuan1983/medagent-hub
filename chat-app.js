@@ -1805,28 +1805,28 @@
   // CDN 图片 URL 映射
   const IP_IMAGES = {
     douzai: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png',
-      coffee:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rJcjoSULfwDshywp.png',
-      sunglasses: 'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/jYOWNiRUyEvLypVK.png',
-      report:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aupTInjkDYGWHQZw.png',
-      sleepy:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/tyMugFuBhiHGazel.png',
-      happy:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/HXUhLsdKlxAVnrOX.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/lkleXNWjvNBnZSFf.png',
+      coffee:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rjPpzzLlGpyvxbqt.png',
+      sunglasses: 'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/NOVaxZGFzklFfZWl.png',
+      report:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/ckMnXdDaGftHiMsE.png',
+      sleepy:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/ceWeFipQIhwrhMma.png',
+      happy:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/SUMTPQTiSPDTeymf.png'
     },
     douding: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/owNRYStTXHONGuNk.png',
-      flower:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/amGXwiWJukeVrApc.png',
-      mic:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/FUXToJndeiZTKbzJ.png',
-      thumbsup:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/gYAbNPtZtiEqfBgU.png',
-      shy:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/PuVHCCTmJzppcVbD.png',
-      drink:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/DruqwjMUtHeKCnOm.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/mCgIAyciTIFSktIr.png',
+      flower:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/pRLZVoDDAMIMQjQv.png',
+      mic:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/HIFmVxrUNuGQfJiM.png',
+      thumbsup:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/EEfIJXWniWUbSaWX.png',
+      shy:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/epLEHiXZlZnuGdnD.png',
+      drink:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/AdylnJBCAhLndjvK.png'
     },
     douya: {
-      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/GgMEvsMLAyXIubDF.png',
-      think:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/fKgyTLGOmpokvoHJ.png',
-      writing:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/OPptYAnRovlCOmzi.png',
-      run:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/PoAScGLLnDEAcYVk.png',
-      flag:       'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/koYOZXMmvdeBeavQ.png',
-      confused:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/zKpYKEHvnUVthQdj.png'
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/nFMiXmuQZFLIAcqJ.png',
+      think:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/cNOoLRxvVJbDUcTJ.png',
+      writing:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/SBXxIVevjtrXMimJ.png',
+      run:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/wBCnhqAwZvRnaWuv.png',
+      flag:       'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/TOaZzkCOmXMzrVqI.png',
+      confused:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/wOhspvFbxIPEdMjb.png'
     }
   };
 
