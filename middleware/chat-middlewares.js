@@ -128,6 +128,14 @@ class SSEStreamer {
   sendToolCall(tool, args) {
     this.res.write(`data: ${JSON.stringify({ type: 'tool_call', tool, ...args })}\n\n`);
   }
+
+  sendTaskPlan(steps) {
+    this.res.write(`data: ${JSON.stringify({ type: 'task_plan', steps })}\n\n`);
+  }
+
+  updateTaskPlan(stepId, status) {
+    this.res.write(`data: ${JSON.stringify({ type: 'task_plan_update', stepId, status })}\n\n`);
+  }
 }
 
 module.exports = {

@@ -151,10 +151,32 @@ async function handleUnifiedChatStream(req, res, deps) {
  } catch (e) { /* 静默失败 */ }
 
  // 专家模式专属指令增强
+ let taskPlanSteps = null; // 任务计划步骤
  if (isExpertMode) {
  enrichedSystemPrompt += '\n\n【专家模式指令】请以专业医美顾问的身份，给出深度、结构化的分析。回答需包含：核心判断、关键数据/依据、具体建议（分步骤）、注意事项。使用 Markdown 格式，层次清晰。遇到不确定的信息，必须使用工具查询，不要编造。';
- // 发送思考过程步骤
+ 
+ // 任务拆解：生成步骤计划并推送给前端
+ try {
+ const taskPlanner = require('../task-planner');
+ const sfKey = process.env.SILICONFLOW_API_KEY;
+ if (sfKey && taskPlanner.needsPlanning(message)) {
+ console.log(`[TaskPlan] 检测到复杂任务，开始生成计划...`);
+ taskPlanSteps = await taskPlanner.generatePlan(message, session.agentName || 'MedAgent', sfKey, 'Qwen/Qwen2.5-7B-Instruct');
+ if (taskPlanSteps && taskPlanSteps.length > 0) {
+ streamer.sendTaskPlan(taskPlanSteps);
+ // 标记第一步为 running
+ streamer.updateTaskPlan(taskPlanSteps[0].id, 'running');
+ console.log(`[TaskPlan] 生成 ${taskPlanSteps.length} 个步骤: ${taskPlanSteps.map(s => s.title).join(' -> ')}`);
+ }
+ } else {
+ console.log(`[TaskPlan] 简单问答，跳过任务规划`);
+ // 简单问答仍发送分析步骤
  streamer.sendStep(`分析问题意图：${intentResult.intent} (专家模式)`, 'done');
+ }
+ } catch (planErr) {
+ console.warn('[TaskPlan] 任务规划失败，继续正常流程:', planErr.message);
+ streamer.sendStep(`分析问题意图：${intentResult.intent} (专家模式)`, 'done');
+ }
  }
 
  // 4.5 检测用户消息中的 [引用知识库《xxx》] 标签，强制触发 knowledge_search
@@ -301,6 +323,14 @@ async function handleUnifiedChatStream(req, res, deps) {
  let toolArgs = {};
  try { toolArgs = JSON.parse(toolCallArgsBuf); } catch (e) {}
  
+ // 任务计划进度更新：标记第一步完成，第二步开始
+ if (taskPlanSteps && taskPlanSteps.length > 0) {
+ streamer.updateTaskPlan(taskPlanSteps[0].id, 'done');
+ if (taskPlanSteps.length > 1) {
+ streamer.updateTaskPlan(taskPlanSteps[1].id, 'running');
+ }
+ }
+ 
  streamer.sendToolCall(toolCallName, toolArgs);
  // 生成可读的工具步骤描述
  const toolStepNames = {
@@ -322,6 +352,11 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  
  streamer.updateStep(stepId, toolStepText, 'done');
+ 
+ // 任务计划进度更新：工具执行完成，标记第二步完成
+ if (taskPlanSteps && taskPlanSteps.length > 1) {
+ streamer.updateTaskPlan(taskPlanSteps[1].id, 'done');
+ }
 
  // skill_dispatch 特殊处理：用专家的 skillPrompt 替换 system prompt
  let stream2SystemPrompt = enrichedSystemPrompt;
@@ -334,7 +369,12 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  }
 
- // 发送“整合信息”步骤
+ // 任务计划进度更新：标记最后一步为 running
+ if (taskPlanSteps && taskPlanSteps.length > 2) {
+ streamer.updateTaskPlan(taskPlanSteps[taskPlanSteps.length - 1].id, 'running');
+ }
+ 
+ // 发送"整合信息"步骤
  const integrateStepId = streamer.sendStep('整合信息，生成回答', 'running');
 
  // 第二轮对话（携带工具结果）
@@ -387,6 +427,12 @@ async function handleUnifiedChatStream(req, res, deps) {
  if (!integrateStepDone) {
  streamer.updateStep(integrateStepId, '整合信息，生成回答', 'done');
  }
+ // 任务计划进度更新：标记所有步骤完成
+ if (taskPlanSteps) {
+ for (const step of taskPlanSteps) {
+ streamer.updateTaskPlan(step.id, 'done');
+ }
+ }
  console.log(`[Stream2] 完成, 共收到 ${stream2ChunkCount} 个chunk, 输出长度: ${fullMessage.length}`);
  // 降级：如果 stream2 返回了但没有任何内容，直接输出工具结果摘要
  if (!fullMessage.trim() && toolResult && toolResult.text) {
@@ -397,6 +443,12 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  } else {
  fullMessage = firstRoundContent;
+ // 没有工具调用的直接回答，也标记所有任务计划步骤完成
+ if (taskPlanSteps) {
+ for (const step of taskPlanSteps) {
+ streamer.updateTaskPlan(step.id, 'done');
+ }
+ }
  }
  } catch (err) {
  console.error('[UnifiedStream] 工具调用流式处理失败:', err.message);
