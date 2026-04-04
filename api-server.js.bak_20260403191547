@@ -1,39 +1,5 @@
 #!/usr/bin/env node
-
-// ===== 环境变量加载 =====
-const dotenvPath = require('path').join(__dirname, '.env');
-if (require('fs').existsSync(dotenvPath)) {
-  require('dotenv').config({ path: dotenvPath });
-}
-
-// ===== 启动校验：关键环境变量检查 =====
-(function validateEnv() {
-  const required = [
-    { key: 'ADMIN_CODE', desc: '管理员验证码' },
-  ];
-  const recommended = [
-    { key: 'DEEPSEEK_API_KEY', desc: 'DeepSeek API 密钥（主模型）' },
-    { key: 'TAVILY_API_KEY', desc: 'Tavily 搜索 API 密钥' },
-  ];
-  const missing = required.filter(v => !process.env[v.key]);
-  const missingRec = recommended.filter(v => !process.env[v.key]);
-
-  if (missing.length > 0) {
-    console.error('\n\x1b[31m[FATAL] 缺少必需的环境变量：\x1b[0m');
-    missing.forEach(v => console.error(`  - ${v.key}: ${v.desc}`));
-    console.error('\n请在 .env 文件中配置以上变量后重新启动。\n');
-    process.exit(1);
-  }
-  if (missingRec.length > 0) {
-    console.warn('\n\x1b[33m[WARN] 以下推荐环境变量未配置（部分功能可能不可用）：\x1b[0m');
-    missingRec.forEach(v => console.warn(`  - ${v.key}: ${v.desc}`));
-    console.warn('');
-  }
-  console.log('[ENV] 环境变量校验通过');
-})();
-
 const { handleUnifiedChatStream } = require("./routes/unified-chat-stream");
-const { createSnapshot, listSnapshots, getSnapshotContent, loadSkillForChat, deleteSnapshot } = require('./routes/snapshot');
 
 const http = require('http');
 const https = require('https');
@@ -51,8 +17,8 @@ const { execSync } = require('child_process');
 const kb = require('./knowledge-base');
 
 const PORT = process.env.PORT || 3002;
-const ADMIN_CODE = process.env.ADMIN_CODE || '';
-const BRIEF_PUSH_KEY = process.env.BRIEF_PUSH_KEY || '';
+const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
+const BRIEF_PUSH_KEY = process.env.BRIEF_PUSH_KEY || '1b93765196bf145c607244194f424197c224eff79fb1a493';
 const COOKIE_NAME = 'medagent_auth';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
@@ -61,7 +27,7 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // Bocha Search API
-const BOCHA_API_KEY = process.env.BOCHA_API_KEY || '';
+const BOCHA_API_KEY = process.env.BOCHA_API_KEY || 'sk-51d7d709eb6d4150b76dc131663330d3';
 
 // ===== Notion 知识库配置 =====
 const NOTION_API_KEY = process.env.NOTION_API_KEY || '';
@@ -149,8 +115,8 @@ async function searchNotion(query, maxResults = 5) {
 const BOCHA_API_URL = 'https://api.bochaai.com/v1/web-search';
 
 // LibLib AI 图片生成
-const LIBLIB_ACCESS_KEY = process.env.LIBLIB_ACCESS_KEY || '';
-const LIBLIB_SECRET_KEY = process.env.LIBLIB_SECRET_KEY || '';
+const LIBLIB_ACCESS_KEY = process.env.LIBLIB_ACCESS_KEY || 'JP004_52azfkydBDkipUeQ';
+const LIBLIB_SECRET_KEY = process.env.LIBLIB_SECRET_KEY || 'Nx1rqfvE88V1KdX_7L5jaEwyUklmL0Z7';
 const LIBLIB_API_URL = 'https://openapi.liblibai.cloud';
 
 // ===== 权限体系常量 =====
@@ -1931,65 +1897,6 @@ class DeepSeekProvider {
       }
     };
   }
-
-  // 流式对话（不带工具）
-  async chatStream(systemPrompt, messages) {
-    const formattedMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages
-    ];
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: formattedMessages,
-        temperature: 0.7,
-        max_tokens: 2048,
-        stream: true
-      })
-    });
-    if (!response.ok) {
-      const errData = await response.text();
-      throw new Error(`DeepSeek stream error: ${errData}`);
-    }
-    return response.body;
-  }
-
-  // 流式对话（带工具调用）
-  async chatStreamWithTools(systemPrompt, messages, tools) {
-    const formattedMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages
-    ];
-    const body = {
-      model: 'deepseek-chat',
-      messages: formattedMessages,
-      temperature: 0.7,
-      max_tokens: 2048,
-      stream: true
-    };
-    if (tools && tools.length > 0) {
-      body.tools = tools;
-      body.tool_choice = 'auto';
-    }
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify(body)
-    });
-    if (!response.ok) {
-      const errData = await response.text();
-      throw new Error(`DeepSeek tool stream error: ${errData}`);
-    }
-    return response.body;
-  }
 }
 
 class SiliconFlowProvider {
@@ -2160,7 +2067,7 @@ const MEDAESTHETIC_IMAGE_PROMPTS = {
 };
 
 // ===== 魔搭 Z-Image-Turbo 图片生成 =====
-const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || '';
+const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || 'ms-2301e8af-a457-4927-8041-9fbd9ef50c8e';
 const MODELSCOPE_BASE_URL = 'https://api-inference.modelscope.cn';
 
 async function generateImageModelScope(promptKey, customPrompt) {
@@ -2312,10 +2219,6 @@ function createProviderFromConfig(providerId, apiKey, model) {
       chat: async (systemPrompt, messages) => {
         const res = await client.messages.create({ model: resolvedModel, max_tokens: 800, system: systemPrompt, messages });
         return { message: res.content[0].text, usage: { input_tokens: res.usage.input_tokens, output_tokens: res.usage.output_tokens } };
-      },
-      chatStream: async (systemPrompt, messages) => {
-        const res = await client.messages.create({ model: resolvedModel, max_tokens: 2048, system: systemPrompt, messages, stream: true });
-        return res;
       }
     };
   }
@@ -3268,157 +3171,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ===== 会话快照 API =====
-  // 创建快照：将当前对话提炼为 Skill
-  if (url.pathname === '/api/chat/snapshot' && req.method === 'POST') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    try {
-      const body = await parseRequestBody(req);
-      const { sessionId, skillName } = body;
-      if (!sessionId || !skillName) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '缺少 sessionId 或 skillName' }));
-        return;
-      }
-      const session = sessions.get(sessionId);
-      if (!session) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '会话不存在或已过期' }));
-        return;
-      }
-      const userCode = getUserCode(req);
-      const profiles = loadProfiles();
-      const userName = profiles[userCode]?.name || userCode;
-      const result = await createSnapshot({
-        sessionId,
-        messages: session.messages,
-        agentId: session.agentId,
-        agentName: session.agentName,
-        userCode,
-        userName,
-        skillName,
-        aiProvider,
-        db
-      });
-      res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
-    } catch (e) {
-      console.error('[Snapshot] Error:', e.message);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
-  // 获取用户快照列表
-  if (url.pathname === '/api/chat/snapshots' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const snapshots = listSnapshots(userCode);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ snapshots }));
-    return;
-  }
-
-  // 删除快照
-  if (url.pathname === '/api/chat/snapshot/delete' && req.method === 'POST') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    try {
-      const body = await parseRequestBody(req);
-      const userCode = getUserCode(req);
-      const result = deleteSnapshot(body.skillId, userCode);
-      res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
-    } catch (e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
-  // 获取快照内容（预览）
-  if (url.pathname === '/api/chat/snapshot/preview' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const skillId = url.searchParams.get('skillId');
-    if (!skillId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '缺少 skillId' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const result = getSnapshotContent(skillId, userCode);
-    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(result));
-    return;
-  }
-
-  // 下载快照为 Markdown 文件
-  if (url.pathname === '/api/chat/snapshot/download' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const skillId = url.searchParams.get('skillId');
-    if (!skillId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '缺少 skillId' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const result = getSnapshotContent(skillId, userCode);
-    if (!result.success) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
-      return;
-    }
-    const fileName = encodeURIComponent(result.fileName);
-    res.writeHead(200, {
-      'Content-Type': 'text/markdown; charset=utf-8',
-      'Content-Disposition': `attachment; filename*=UTF-8''${fileName}`,
-    });
-    // 返回完整 Markdown（含 frontmatter）
-    const fullContent = `---\n${Object.entries(result.frontmatter).map(([k,v]) => `${k}: ${v}`).join('\n')}\n---\n\n${result.markdown}`;
-    res.end(fullContent);
-    return;
-  }
-
-  // 加载技能到对话上下文
-  if (url.pathname === '/api/chat/snapshot/load' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const skillId = url.searchParams.get('skillId');
-    if (!skillId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '缺少 skillId' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const result = loadSkillForChat(skillId, userCode);
-    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(result));
-    return;
-  }
-
   // Daily brief API - 每日行业摘要
   if (url.pathname === '/api/daily-brief' && req.method === 'GET') {
     // 日报为公开内容，无需登录验证
@@ -3613,15 +3365,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ===== Admin 统一鉴权拦截 =====
-  if (url.pathname.startsWith('/api/admin') && !isAdmin(req)) {
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Forbidden' }));
-    return;
-  }
-
   // Admin: 查看内测反馈列表
   if (url.pathname === '/api/admin/beta-feedback' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const feedbackFile = path.join(DATA_DIR, 'beta-feedback.jsonl');
       if (!fs.existsSync(feedbackFile)) {
@@ -3642,6 +3392,11 @@ const server = http.createServer(async (req, res) => {
   }
   // Admin: get conversation feedback (thumbs up/down)
   if (url.pathname === '/api/admin/conversation-feedback' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const limit = parseInt(url.searchParams.get('limit') || '100');
       const rows = db.prepare(`SELECT ts, agent, agent_name, user_name, feedback FROM conversation_logs WHERE type='feedback' ORDER BY ts DESC LIMIT ?`).all(limit);
@@ -3657,6 +3412,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: list users with usage stats
   if (url.pathname === '/api/admin/users' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const codes = loadCodes();
     const usage = loadUsage();
     // 加载订阅和 profile 数据
@@ -3710,6 +3470,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 升级用户为 Pro
   if (url.pathname === '/api/admin/set-pro' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { code, months } = await parseRequestBody(req);
       if (!code) {
@@ -3770,6 +3535,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 降级用户为免费
   if (url.pathname === '/api/admin/revoke-pro' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { code } = await parseRequestBody(req);
       if (!code) {
@@ -3794,6 +3564,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 升级用户为全能版 Pro+
   if (url.pathname === '/api/admin/set-pro-plus' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { code, months } = await parseRequestBody(req);
       if (!code) {
@@ -3825,6 +3600,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 生成终身版邀请码（Level 2 赠品）
   if (url.pathname === '/api/admin/generate-lifetime-code' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { name, note } = await parseRequestBody(req);
       if (!name || !name.trim()) {
@@ -3864,6 +3644,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 查询用户权限状态
   if (url.pathname === '/api/admin/user-plan' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const queryCode = url.searchParams.get('code');
     if (!queryCode) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3916,6 +3701,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 查看余额抵扣申请列表
   if (url.pathname === '/api/admin/credit-applies' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const applyFile = path.join(DATA_DIR, 'credit_applies.json');
     let applies = [];
     try { applies = JSON.parse(fs.readFileSync(applyFile, 'utf8')); } catch(e) {}
@@ -3926,6 +3716,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 查看日报页面邀请码申请列表
   if (url.pathname === '/api/admin/invite-requests' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const inviteFile = path.join(DATA_DIR, 'invite-requests.jsonl');
     let requests = [];
     try {
@@ -3940,6 +3735,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: approve invite request (generate code and mark as done)
   if (url.pathname === '/api/admin/invite-approve' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { id, name } = await parseRequestBody(req);
       // Generate a unique invite code
@@ -3977,6 +3777,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: reject invite request
   if (url.pathname === '/api/admin/invite-reject' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { id } = await parseRequestBody(req);
       const inviteFile = path.join(DATA_DIR, 'invite-requests.jsonl');
@@ -4004,6 +3809,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: list invite codes (GET)
   if (url.pathname === '/api/admin/codes' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const codes = loadCodes();
       const usageLimits = loadUsageLimits();
@@ -4033,6 +3843,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: create invite code
   if (url.pathname === '/api/admin/codes' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { name, maxUses } = await parseRequestBody(req);
       if (!name || !name.trim()) {
@@ -4062,6 +3877,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: delete invite code
   if (url.pathname.startsWith('/api/admin/codes/') && req.method === 'DELETE') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const code = decodeURIComponent(url.pathname.replace('/api/admin/codes/', ''));
     const codes = loadCodes();
     if (!(code in codes)) {
@@ -4078,6 +3898,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: get stats from conversations.jsonl
   if (url.pathname === '/api/admin/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       // 使用 SQLite 索引查询，替代全文件扫描
       const globalStats = stmtConvLogStats.get();
@@ -4116,6 +3941,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: token usage stats
   if (url.pathname === '/api/admin/token-stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       // Total stats
       const totalStats = db.prepare(`
@@ -4238,6 +4068,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: referral stats
   if (url.pathname === '/api/admin/referral-stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const records = loadReferralRecords();
       const refs = loadReferralCodes();
@@ -4274,6 +4109,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: mark referral credit as paid
   if (url.pathname === '/api/admin/referral-pay' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { referrer, index } = await parseRequestBody(req);
       const records = loadReferralRecords();
@@ -4309,6 +4149,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 创建渠道代理
   if (url.pathname === '/api/admin/channel/create' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { name, wechat, commissionRate } = await parseRequestBody(req);
       if (!name) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '请提供渠道名称' })); return; }
@@ -4345,6 +4186,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 查询所有渠道及转化统计
   if (url.pathname === '/api/admin/channel/list' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const channels = loadChannels();
       const records = loadChannelRecords();
@@ -4364,6 +4206,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 记录渠道转化（开通订阅或 Level 2 成交时调用）
   if (url.pathname === '/api/admin/channel/record' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { channelId, userCode, plan, amount, type } = await parseRequestBody(req);
       if (!channelId || !userCode) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '请提供渠道ID和用户码' })); return; }
@@ -4385,6 +4228,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 标记渠道佣金已结算
   if (url.pathname === '/api/admin/channel/settle' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { channelId, recordIndex } = await parseRequestBody(req);
       const records = loadChannelRecords();
@@ -4406,6 +4250,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: NMPA 药监局数据手动触发同步
   if (url.pathname === '/api/admin/nmpa-sync' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const body = await parseRequestBody(req);
       const forceAll = body.forceAll === true;
@@ -4424,6 +4269,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: NMPA 同步状态查看
   if (url.pathname === '/api/admin/nmpa-status' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const nmpaSync = require('./nmpa-sync');
       const summary = nmpaSync.getCacheSummary();
@@ -4435,6 +4281,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 医美数据库查看
   if (url.pathname === '/api/admin/meddb' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const meddb = require('./medaesthetics-db');
       // PRICE_DB 结构: { injection: [{category, items:[{name,unit,price_low,price_high,price_avg}]}], ... }
@@ -4480,6 +4327,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 用户记忆查看
   if (url.pathname === '/api/admin/user-memory' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const profiles = loadProfiles();
       const codes = loadCodes();
@@ -4503,6 +4351,7 @@ const server = http.createServer(async (req, res) => {
 
   // ===== Admin: 待优化队列（反馈学习）=====
   if (url.pathname === '/api/admin/improvement-queue' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const status = url.searchParams ? url.searchParams.get('status') : null;
       const items = status === 'pending' ? stmtGetImpQueuePending.all() : stmtGetImpQueueAll.all();
@@ -4514,6 +4363,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/api/admin/improvement-queue/resolve' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { id, status, adminNote } = await parseRequestBody(req);
       if (!id || !['resolved', 'dismissed'].includes(status)) {
@@ -4530,6 +4380,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: download conversations.jsonl
   if (url.pathname === '/api/admin/export' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const logPath = path.join(DATA_DIR, 'conversations.jsonl');
     if (!fs.existsSync(logPath)) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -4546,6 +4401,11 @@ const server = http.createServer(async (req, res) => {
 
   // Export Excel
   if (url.pathname === '/api/admin/export-excel' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'MedAgent Hub';
@@ -4640,6 +4500,11 @@ const server = http.createServer(async (req, res) => {
   // ===== CORPUS API =====
   // Corpus stats overview
   if (url.pathname === '/api/admin/corpus/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     // 使用 SQLite 索引查询
     const corpusStats = stmtConvLogStats.get();
     const corpusAgentRows = stmtConvLogAgentCounts.all();
@@ -4657,6 +4522,11 @@ const server = http.createServer(async (req, res) => {
 
   // Corpus list (paginated)
   if (url.pathname === '/api/admin/corpus' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const page = parseInt(url.searchParams.get('page') || '1');
     const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
     const agentFilter = url.searchParams.get('agent') || '';
@@ -4677,6 +4547,11 @@ const server = http.createServer(async (req, res) => {
 
   // Needs analysis (demand analysis from conversations)
   if (url.pathname === '/api/admin/needs' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const needsPath = path.join(DATA_DIR, 'needs-summary.json');
     if (fs.existsSync(needsPath)) {
       const data = fs.readFileSync(needsPath, 'utf8');
@@ -4694,6 +4569,11 @@ const server = http.createServer(async (req, res) => {
 
   // Export corpus as JSONL
   if (url.pathname === '/api/admin/corpus/export' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const logPath = path.join(DATA_DIR, 'conversations.jsonl');
     if (!fs.existsSync(logPath)) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -4711,6 +4591,7 @@ const server = http.createServer(async (req, res) => {
   // ===== Notion 知识库配置接口 =====
   // 获取 Notion 配置状态
   if (url.pathname === '/api/admin/notion/status' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       configured: !!notionClient,
@@ -4722,6 +4603,7 @@ const server = http.createServer(async (req, res) => {
 
   // 测试 Notion 连接
   if (url.pathname === '/api/admin/notion/test' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     const { apiKey, databaseId } = await parseRequestBody(req);
     try {
       const testClient = new NotionClient({ auth: apiKey });
@@ -4747,6 +4629,7 @@ const server = http.createServer(async (req, res) => {
 
   // 搜索 Notion 知识库（测试用）
   if (url.pathname === '/api/admin/notion/search' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     const { query } = await parseRequestBody(req);
     const result = await searchNotion(query || '医美', 5);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -4756,6 +4639,7 @@ const server = http.createServer(async (req, res) => {
 
   // 强制重置接口：丢弃本地修改并拉取最新代码
   if (url.pathname === '/api/admin/git-force-reset' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const appDir = __dirname;
       try { execSync('git stash', { cwd: appDir, timeout: 10000 }); } catch(se) {}
@@ -4813,6 +4697,7 @@ const server = http.createServer(async (req, res) => {
   }
   // 远程部署接口：git pull + pm2 restart
   if (url.pathname === '/api/admin/deploy' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const appDir = __dirname;
       // 先 stash 本地修改，避免冲突
@@ -4838,6 +4723,7 @@ const server = http.createServer(async (req, res) => {
   // ===== 知识库管理 API =====
   // 获取知识库统计
   if (url.pathname === '/api/admin/kb/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const stats = kb.getStats();
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -4851,6 +4737,7 @@ const server = http.createServer(async (req, res) => {
 
   // 删除知识库文档
   if (url.pathname === '/api/admin/kb/delete' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { fileId } = await parseRequestBody(req);
       const removed = kb.removeDocument(fileId);
@@ -4865,6 +4752,7 @@ const server = http.createServer(async (req, res) => {
 
   // 上传并向量化文档（SSE 流式进度）
   if (url.pathname === '/api/admin/kb/upload' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     kbUploadMiddleware(req, res, async (err) => {
       if (err) {
         res.writeHead(400, { 'Content-Type': 'application/json' });

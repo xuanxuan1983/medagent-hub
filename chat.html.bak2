@@ -84,6 +84,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -311,7 +312,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       margin: 0 auto 1.5rem;
       animation: float 3.5s ease-in-out infinite;
     }
-    .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; }
+    .desktop-mascot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
     .desktop-greeting {
       font-size: 2rem; font-weight: 700; color: var(--text);
       font-family: 'Noto Serif SC', serif; margin-bottom: 0.375rem;
@@ -438,11 +439,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       font-weight: 700; vertical-align: middle; margin-left: 4px;
     }
 
-    /* ===== CHAT VIEW ===== */
-    .chat-view {
-      flex: 1; display: none; flex-direction: column; overflow: hidden;
-    }
-    .chat-view.active { display: flex; }
+    /* ===== CHAT VIEW ===== (layout redefined in workspace split section) */
     .chat-topbar {
       padding: 0.875rem 1.5rem;
       border-bottom: 1px solid var(--border);
@@ -455,7 +452,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       display: flex; align-items: center; justify-content: center;
       font-size: 1.1rem; flex-shrink: 0; overflow: hidden;
     }
-    .chat-agent-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .chat-agent-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; }
     .chat-agent-name { font-size: 0.9rem; font-weight: 700; color: var(--text); }
     .chat-agent-desc { font-size: 0.775rem; color: var(--text-3); margin-top: 0.1rem; }
     .chat-status {
@@ -490,7 +487,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       width: 90px; height: 90px; margin-bottom: 1rem;
       animation: breathe 4s ease-in-out infinite;
     }
-    .welcome-mascot img { width: 100%; height: 100%; object-fit: contain; }
+    .welcome-mascot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
     .welcome-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 0.375rem; font-family: 'Noto Serif SC', serif; }
     .welcome-sub { font-size: 0.85rem; color: var(--text-3); max-width: 320px; line-height: 1.6; }
     .welcome-error { color: #DC2626; font-size: 0.875rem; }
@@ -503,8 +500,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       display: flex; align-items: center; justify-content: center;
       font-size: 0.9rem; flex-shrink: 0; overflow: hidden;
     }
-    .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .msg-avatar img { width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; }
     .msg-row.user .msg-avatar { background: var(--text); color: white; font-size: 0.7rem; font-weight: 700; }
+    /* AI助手头像使用SVG图片，去掉背景方框让图片自然显示 */
+    .msg-row.assistant .msg-avatar { background: transparent !important; border: none !important; }
       .copy-btn {
     position: absolute;
     top: 8px;
@@ -979,18 +978,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     .guided-question-btn {
       padding: 0.5rem 0.875rem;
       border-radius: 20px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.6);
+      border: 1.5px solid var(--coral);
+      background: white;
       font-size: 0.8rem;
-      color: var(--text-2);
+      color: var(--coral);
       cursor: pointer;
       font-family: inherit;
       transition: all 0.12s;
     }
     .guided-question-btn:hover {
-      background: white;
-      border-color: var(--coral);
-      color: var(--coral);
+      background: var(--coral);
+      color: white;
     }
 
     .history-item {
@@ -1151,9 +1149,368 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       white-space: pre-wrap;
       font-family: monospace;
     }
-  </style>
+
+    /* ===== 专家模式开关 v3.0 ===== */
+    .expert-mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0.75rem;
+      background: #f8f8f8;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px 8px 0 0;
+      border-bottom: none;
+      font-size: 0.75rem;
+      color: #666;
+      transition: background 0.2s, color 0.2s;
+      margin-bottom: -1px;
+    }
+    .expert-mode-bar.active {
+      background: #1a1a1a;
+      color: #f0f0f0;
+      border-color: #333;
+    }
+    .expert-toggle {
+      position: relative;
+      width: 32px;
+      height: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .expert-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .expert-slider {
+      position: absolute;
+      inset: 0;
+      background: #ccc;
+      border-radius: 18px;
+      transition: 0.25s;
+    }
+    .expert-slider:before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.25s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .expert-toggle input:checked + .expert-slider { background: #1a1a1a; }
+    .expert-toggle input:checked + .expert-slider:before { transform: translateX(14px); }
+    .expert-toggle input:disabled + .expert-slider { opacity: 0.4; cursor: not-allowed; }
+    .expert-badge {
+      background: #1a1a1a;
+      color: white;
+      font-size: 0.6rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .expert-mode-bar.active .expert-badge {
+      background: white;
+      color: #1a1a1a;
+    }
+    .expert-locked-tip {
+      font-size: 0.7rem;
+      color: #999;
+    }
+    .expert-locked-tip a {
+      color: #555;
+      text-decoration: underline;
+    }
+    .expert-locked-tip a:hover { color: #111; }
+    /* 升级提示横幅（黑色系） */
+    .upgrade-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.45rem 1rem;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      font-size: 0.78rem;
+      gap: 0.5rem;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .upgrade-banner.show { display: flex; }
+    .upgrade-banner a {
+      color: white;
+      font-weight: 600;
+      text-decoration: underline;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .upgrade-banner-close {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0 0.2rem;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .upgrade-banner-close:hover { color: white; }
+
+  
+    /* ===== 专家模式动态步骤卡片 ===== */
+    .expert-steps-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      background: #f8f8f8;
+      border-radius: 10px;
+      border: 1px solid #eee;
+      font-size: 13px;
+    }
+    .expert-step-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #555;
+      line-height: 1.4;
+      transition: color 0.3s;
+    }
+    .expert-step-item.done { color: #222; }
+    .expert-step-item.error { color: #c0392b; }
+    .expert-step-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .expert-step-icon .spin {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #ccc;
+      border-top-color: #555;
+      border-radius: 50%;
+      animation: expert-spin 0.8s linear infinite;
+    }
+    .expert-step-icon .check {
+      color: #27ae60;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .expert-step-icon .err {
+      color: #c0392b;
+      font-size: 14px;
+    }
+    @keyframes expert-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== WORKSPACE SPLIT LAYOUT ===== */
+    .chat-view {
+      flex: 1; display: none; flex-direction: row; overflow: hidden;
+    }
+    .chat-view.active { display: flex; }
+    .chat-main-panel {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+    }
+    /* ===== RESOURCE PANEL ===== */
+    .resource-panel {
+      width: 220px; min-width: 180px; max-width: 280px;
+      border-left: 1px solid var(--border);
+      background: var(--bg-warm);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      transition: width 0.2s ease, min-width 0.2s ease;
+      flex-shrink: 0;
+    }
+    .resource-panel.collapsed { width: 0; min-width: 0; border-left: none; overflow: hidden; }
+    .resource-panel-header {
+      padding: 0.75rem 0.875rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .resource-panel-title {
+      font-size: 0.72rem; font-weight: 700; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .resource-panel-toggle {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); padding: 0.15rem 0.3rem; border-radius: 4px;
+      font-size: 0.8rem; line-height: 1;
+    }
+    .resource-panel-toggle:hover { background: var(--border-light); color: var(--text); }
+    .resource-panel-body {
+      flex: 1; overflow-y: auto; padding: 0.5rem 0;
+    }
+    .resource-panel-body::-webkit-scrollbar { width: 3px; }
+    .resource-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .resource-section-label {
+      padding: 0.35rem 0.875rem 0.2rem;
+      font-size: 0.68rem; font-weight: 600; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .resource-item {
+      display: flex; align-items: center; gap: 0.45rem;
+      padding: 0.38rem 0.875rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+    }
+    .resource-item:hover { background: var(--border-light); }
+    .resource-item-icon {
+      flex-shrink: 0; font-size: 0.82rem; width: 16px; text-align: center;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .resource-item-name {
+      flex: 1; font-size: 0.77rem; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .resource-item-cite {
+      opacity: 0; flex-shrink: 0;
+      background: var(--coral); color: white;
+      border: none; border-radius: 4px;
+      font-size: 0.62rem; padding: 0.1rem 0.3rem;
+      cursor: pointer; transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+    .resource-item:hover .resource-item-cite { opacity: 1; }
+    .chat-input-box.drag-active {
+      outline: 2px dashed var(--coral);
+      outline-offset: -3px;
+      background: var(--coral-light);
+    }
+    .resource-panel-open-btn {
+      padding: 0.38rem 0.6rem; border-radius: 8px;
+      border: 1.5px solid var(--border); background: white;
+      font-size: 0.78rem; color: var(--text-2); cursor: pointer;
+      display: flex; align-items: center; gap: 0.3rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .resource-panel-open-btn:hover { background: var(--bg-warm); color: var(--text); }
+    .resource-panel-open-btn.active { background: var(--coral-light); color: var(--coral); border-color: var(--coral); }
+    .resource-empty {
+      padding: 1rem 0.875rem;
+      font-size: 0.75rem; color: var(--text-3); text-align: center; line-height: 1.6;
+    }
+    /* ===== 网络状态提示条 ===== */
+    .offline-banner {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 10000;
+      background: #ff6b6b; color: #fff;
+      text-align: center; padding: 8px 16px;
+      font-size: 13px; font-weight: 500;
+      animation: slideDown 0.3s ease;
+    }
+    .offline-banner.show { display: block; }
+    @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+    .reconnect-banner {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 10000;
+      background: #ffa726; color: #fff;
+      text-align: center; padding: 8px 16px;
+      font-size: 13px; font-weight: 500;
+    }
+    .reconnect-banner.show { display: block; }
+    .retry-btn-inline {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 8px; padding: 6px 16px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 6px;
+      font-size: 13px; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .retry-btn-inline:hover { opacity: 0.85; }
+    .retry-btn-inline:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* Snapshot Modal */
+    .snapshot-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999; display: none; align-items: center; justify-content: center; }
+    .snapshot-overlay.active { display: flex; }
+    .snapshot-modal { background: var(--bg); border-radius: 1rem; padding: 1.5rem; width: 90%; max-width: 560px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); max-height: 85vh; display: flex; flex-direction: column; }
+    .snapshot-modal h3 { margin: 0 0 0.75rem; font-size: 1rem; color: var(--text); }
+    .snapshot-modal p { margin: 0 0 1rem; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; }
+    .snapshot-modal input { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border-light); border-radius: 0.5rem; font-size: 0.85rem; background: var(--bg-secondary); color: var(--text); box-sizing: border-box; }
+    .snapshot-modal input:focus { outline: none; border-color: var(--accent); }
+    .snapshot-modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end; }
+    .snapshot-modal-actions button { padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; cursor: pointer; border: none; }
+    .snapshot-cancel { background: var(--bg-secondary); color: var(--text-secondary); }
+    .snapshot-confirm { background: var(--accent); color: #fff; }
+    .snapshot-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+    .snapshot-status { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; min-height: 1.2em; }
+    /* Snapshot Preview */
+    .snapshot-preview { margin-top: 0.75rem; border: 1px solid var(--border-light); border-radius: 0.5rem; background: var(--bg-secondary); max-height: 300px; overflow-y: auto; padding: 1rem; font-size: 0.8rem; line-height: 1.6; color: var(--text); display: none; }
+    .snapshot-preview::-webkit-scrollbar { width: 3px; }
+    .snapshot-preview::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .snapshot-preview h1, .snapshot-preview h2 { font-size: 0.95rem; margin: 0.8rem 0 0.4rem; color: var(--text); border-bottom: 1px solid var(--border-light); padding-bottom: 0.3rem; }
+    .snapshot-preview h3 { font-size: 0.88rem; margin: 0.6rem 0 0.3rem; }
+    .snapshot-preview ul, .snapshot-preview ol { padding-left: 1.2rem; margin: 0.3rem 0; }
+    .snapshot-preview blockquote { border-left: 3px solid var(--accent); padding-left: 0.6rem; margin: 0.4rem 0; color: var(--text-secondary); font-style: italic; }
+    .snapshot-preview-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; display: none; }
+    .snapshot-dl-btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.8rem; border-radius: 0.4rem; font-size: 0.75rem; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--text-2); transition: all 0.15s; }
+    .snapshot-dl-btn:hover { background: var(--bg-warm); border-color: var(--accent); color: var(--accent); }
+    .snapshot-dl-btn svg { flex-shrink: 0; }
+    /* Skills Panel in Resource Panel */
+    .skill-card { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem 0.875rem; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border-light); }
+    .skill-card:hover { background: var(--border-light); }
+    .skill-card:last-child { border-bottom: none; }
+    .skill-card-header { display: flex; align-items: center; gap: 0.4rem; }
+    .skill-card-name { flex: 1; font-size: 0.78rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .skill-card-badge { font-size: 0.6rem; padding: 0.05rem 0.3rem; border-radius: 3px; background: var(--coral-light); color: var(--coral); font-weight: 600; flex-shrink: 0; }
+    .skill-card-meta { font-size: 0.68rem; color: var(--text-3); }
+    .skill-card-actions { display: flex; gap: 0.3rem; margin-top: 0.2rem; opacity: 0; transition: opacity 0.15s; }
+    .skill-card:hover .skill-card-actions { opacity: 1; }
+    .skill-action-btn { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.65rem; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--text-2); transition: all 0.15s; }
+    .skill-action-btn:hover { background: var(--bg-warm); border-color: var(--accent); color: var(--accent); }
+    .skill-action-btn.danger:hover { border-color: #e57373; color: #e57373; background: #fff5f5; }
+    .skill-loaded-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 4px; background: var(--coral-light); color: var(--coral); font-size: 0.7rem; font-weight: 600; margin-right: 0.3rem; }
+    .skill-loaded-badge button { background: none; border: none; cursor: pointer; color: var(--coral); font-size: 0.75rem; padding: 0; margin-left: 0.2rem; opacity: 0.7; }
+    .skill-loaded-badge button:hover { opacity: 1; }
+    /* Resource panel tabs */
+    .resource-tabs { display: flex; border-bottom: 1px solid var(--border-light); margin-bottom: 0.25rem; }
+    .resource-tab { flex: 1; padding: 0.4rem 0; text-align: center; font-size: 0.72rem; font-weight: 500; color: var(--text-3); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .resource-tab:hover { color: var(--text-2); }
+    .resource-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .resource-tab-content { display: none; }
+    .resource-tab-content.active { display: block; }
+</style>
 </head>
 <body>
+
+<!-- 快照模态框 -->
+<div class="snapshot-overlay" id="snapshotOverlay" onclick="if(event.target===this)closeSnapshotModal()">
+  <div class="snapshot-modal">
+    <h3>保存对话快照</h3>
+    <p>将当前对话中的专业知识和方法论提炼为可复用的技能包，供团队内部学习和流转。</p>
+    <input type="text" id="snapshotNameInput" placeholder="输入技能名称，如：玻尿酸填充咨询话术" maxlength="50">
+    <div class="snapshot-status" id="snapshotStatus"></div>
+    <div class="snapshot-preview" id="snapshotPreview"></div>
+    <div class="snapshot-preview-actions" id="snapshotPreviewActions">
+      <button class="snapshot-dl-btn" onclick="downloadSnapshot()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下载 Markdown
+      </button>
+      <button class="snapshot-dl-btn" onclick="copySnapshotMarkdown()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        复制内容
+      </button>
+      <button class="snapshot-dl-btn" onclick="loadSnapshotToChat()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10m0 0l-3-3m3 3l3-3"/><path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
+        加载到对话
+      </button>
+    </div>
+    <div class="snapshot-modal-actions">
+      <button class="snapshot-cancel" onclick="closeSnapshotModal()">关闭</button>
+      <button class="snapshot-confirm" id="snapshotConfirmBtn" onclick="confirmSnapshot()">提炼并保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 网络状态提示 -->
+<div id="offlineBanner" class="offline-banner">网络连接已断开，请检查网络后重试</div>
+<div id="reconnectBanner" class="reconnect-banner">正在重新连接...</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -1256,10 +1613,26 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   <div class="desktop-view active" id="desktopView">
     <div class="desktop-welcome">
       <div class="desktop-mascot">
-        <img src="/mascot-default.png" alt="豆豆" id="desktopMascotImg">
+        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png" alt="豆子" id="desktopMascotImg" onerror="this.src='https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png'">
       </div>
       <div class="desktop-greeting" id="desktopGreeting">你好！我叫小豆豆</div>
       <div class="desktop-sub" id="desktopSub">一颗正在努力学习医美知识的小种子。有什么可以帮到你的吗？<br>也许你的问题，就是我长出第一片新叶的开始。</div>
+      <!-- 专家模式升级横幅 v3.0 -->
+      <div class="upgrade-banner" id="expertUpgradeBanner">
+        <span>MedAgent v3.0 新增「专家模式」— DeepSeek-R1 深度推理 + 合规数据融合</span>
+        <a href="/pricing.html" target="_blank">升级 Pro+</a>
+        <button class="upgrade-banner-close" onclick="document.getElementById('expertUpgradeBanner').classList.remove('show');localStorage.setItem('ma_v30_seen','1')">&#x2715;</button>
+      </div>
+      <!-- 专家模式切换栏 v3.0 -->
+      <div class="expert-mode-bar" id="expertModeBar">
+        <label class="expert-toggle" title="专家模式：DeepSeek-R1 深度推理 + NMPA 合规校验">
+          <input type="checkbox" id="expertModeToggle" onchange="onExpertModeToggle(this)">
+          <span class="expert-slider"></span>
+        </label>
+        <span id="expertModeLabel">专家模式</span>
+        <span class="expert-badge" id="expertBadge" style="display:none">Pro+</span>
+        <span class="expert-locked-tip" id="expertLockedTip" style="display:none">— <a href="/pricing.html" target="_blank">升级 Pro+ 解锁</a></span>
+      </div>
       <div class="desktop-input-wrap">
         <textarea class="desktop-input" id="desktopInput" placeholder="向我提问，开始我们的成长之旅..." rows="1" onkeydown="desktopKeydown(event)" oninput="autoResize(this)"></textarea>
         <div class="desktop-input-footer">
@@ -1301,6 +1674,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   <!-- CHAT VIEW -->
   <div class="chat-view" id="chatView">
+    <div class="chat-main-panel">
     <div class="chat-topbar">
       <div class="chat-agent-avatar" id="topbarAvatar">🤖</div>
       <div>
@@ -1313,10 +1687,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       <button class="chat-topbar-btn" onclick="showHistory()">📜<span class="btn-label"> 历史</span></button>
       <button class="chat-topbar-btn" onclick="clearChat()"><span class="btn-label">清空对话</span></button>
       <button class="chat-topbar-btn" onclick="openSettings('api')">⚙<span class="btn-label"> 设置</span></button>
+      <button class="resource-panel-open-btn" id="resourcePanelBtn" onclick="toggleResourcePanel()" title="工作区资源面板" style="margin-left:auto">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+        <span class="btn-label">资源</span>
+      </button>
     </div>
     <div class="chat-messages" id="chatMessages">
       <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="/mascot-default.png" alt="豆豆" id="welcomeMascotImg"></div>
+        <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
         <div class="welcome-title" id="welcomeTitle">你好！</div>
         <div class="welcome-sub" id="welcomeSub">我是您的专属医美智能助手，请告诉我您的需求。</div>
       </div>
@@ -1340,6 +1718,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图">
               🎨<span class="btn-label"> 绘图</span>
             </button>
+            <button class="draw-btn" id="snapshotBtn" onclick="openSnapshotModal()" title="保存快照" style="display:none">
+              📌<span class="btn-label"> 快照</span>
+            </button>
             <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
           </div>
           <div class="chat-input-right">
@@ -1351,7 +1732,61 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         </div>
       </div>
     </div>
-  </div>
+    </div><!-- /.chat-main-panel -->
+    <!-- RESOURCE PANEL -->
+    <div class="resource-panel collapsed" id="resourcePanel">
+      <div class="resource-panel-header">
+        <span class="resource-panel-title">工作区资源</span>
+        <button class="resource-panel-toggle" onclick="toggleResourcePanel()" title="收起">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div class="resource-panel-body" id="resourcePanelBody">
+        <div class="resource-tabs">
+          <div class="resource-tab active" onclick="switchResourceTab('files')">文件 & 快捷</div>
+          <div class="resource-tab" onclick="switchResourceTab('skills')">我的技能包</div>
+        </div>
+        <div class="resource-tab-content active" id="resourceTabFiles">
+          <div class="resource-section-label">已上传文件</div>
+          <div id="resourceFileList">
+            <div class="resource-empty">暂无上传文件<br><span style="font-size:0.7rem">上传文件后可在此快速引用</span></div>
+          </div>
+          <div class="resource-section-label" style="margin-top:0.5rem">快捷提问</div>
+          <div id="resourceQuickList">
+            <div class="resource-item" onclick="insertQuickRef('请帮我总结以上文件的核心要点')">
+              <span class="resource-item-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </span>
+              <span class="resource-item-name">总结核心要点</span>
+            </div>
+            <div class="resource-item" onclick="insertQuickRef('请根据以上内容生成一份话术模板')">
+              <span class="resource-item-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              </span>
+              <span class="resource-item-name">生成话术模板</span>
+            </div>
+            <div class="resource-item" onclick="insertQuickRef('请提取其中的关键数据和结论')">
+              <span class="resource-item-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </span>
+              <span class="resource-item-name">提取关键数据</span>
+            </div>
+            <div class="resource-item" onclick="insertQuickRef('请将以上内容整理成结构化的报告')">
+              <span class="resource-item-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+              </span>
+              <span class="resource-item-name">整理为结构化报告</span>
+            </div>
+          </div>
+        </div>
+        <div class="resource-tab-content" id="resourceTabSkills">
+          <div id="skillsList">
+            <div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击“快照”按钮提炼技能包</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /.chat-view -->
 
 </main>
 
@@ -1720,6 +2155,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   const API_BASE = '';
   let sessionId = null;
+  let currentHistorySessionId = null;
   let currentAgentId = null;
   let messageIndex = 0;
   let currentView = 'desktop';
@@ -1787,7 +2223,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       label: '_hidden',
       hidden: true,
       agents: [
-        { id: 'doudou', icon: '🧝', name: '豆豆', desc: '你的医美行业 AI 搭档，随时解答问题、引导探索', category: '_hidden' },
+        { id: 'doudou', icon: '🌱', name: '豆子', desc: '上游厂家专属搭档，整合 GTM、产品策略、学术推广等 12 个专家能力', category: '_hidden' },
+        { id: 'douding', icon: '🌿', name: '豆丁', desc: '机构端口专属搭档，整合咨询话术、运营、术后管理等 9 个专家能力', category: '_hidden' },
+        { id: 'douya', icon: '💡', name: '豆芽', desc: '个人 IP 打造与内容创作操盘手，网感极佳的爆款制造机', category: '_hidden' },
       ]
     }
   ];
@@ -1844,6 +2282,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   let currentBetaUnlock = false; // 内测反馈解锁状态
 
   function init() {
+    // 初始化每日随机 mascot
+    (function() {
+      const identity = localStorage.getItem('medagent_identity') || '';
+      const agentId = identity === 'clinic' ? 'douding' : 'doudou';
+      const dailyImg = getAgentDefaultImg(agentId);
+      if (dailyImg) {
+        const desktopImg = document.getElementById('desktopMascotImg');
+        if (desktopImg) desktopImg.src = dailyImg;
+      }
+    })();
     buildStore();
     loadUserInfo();
     loadSidebarHistory();
@@ -2273,18 +2721,21 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     // Reset chat
     document.getElementById('chatMessages').innerHTML = `
       <div class="welcome-wrap" id="welcomeWrap">
-        <div class="welcome-mascot"><img src="/mascot-default.png" alt="豆豆" id="welcomeMascotImg"></div>
+        <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
         <div class="welcome-title" id="welcomeTitle">${agent.name}</div>
         <div class="welcome-sub" id="welcomeSub">${agent.desc}</div>
       </div>`;
     sessionId = null;
+    currentHistorySessionId = null;
     messageIndex = 0;
 
     document.title = agent.name + ' - MedAgent Hub';
     const topbarAvatarEl = document.getElementById('topbarAvatar');
     // 豆豆使用专属表情图而非 SVG
-    if (agentId === 'doudou') {
-      topbarAvatarEl.innerHTML = `<img src="/mascot-default.png" alt="豆豆">`;
+    if (agentId === 'doudou' || agentId === 'douding' || agentId === 'douya') {
+      const _dailyImg = getAgentDefaultImg(agentId) || '/mascot-default.png';
+      const _altName = agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽';
+      topbarAvatarEl.innerHTML = `<img src="${_dailyImg}" alt="${_altName}">`;
     } else {
       topbarAvatarEl.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     }
@@ -2363,6 +2814,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const isImage = file.type.startsWith('image/');
       const objectUrl = isImage ? URL.createObjectURL(file) : null;
       pendingFile = { name: file.name, size: file.size, content: data.extractedContent, type: data.contentType, isImage, objectUrl };
+      // 同步到资源面板
+      addFileToResourcePanel({ name: file.name, size: file.size, content: data.extractedContent, contentType: data.contentType });
 
       // If image, show thumbnail in preview area
       if (isImage && objectUrl) {
@@ -2403,6 +2856,123 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     previewArea.innerHTML = '';
     document.getElementById('messageInput').placeholder = '输入您的问题... (Enter 发送，Shift+Enter 换行)';
   }
+
+
+  // ===== RESOURCE PANEL =====
+  let resourcePanelOpen = false;
+  let resourceFiles = [];
+
+  function toggleResourcePanel() {
+    resourcePanelOpen = !resourcePanelOpen;
+    const panel = document.getElementById('resourcePanel');
+    const btn = document.getElementById('resourcePanelBtn');
+    if (resourcePanelOpen) {
+      panel.classList.remove('collapsed');
+      btn.classList.add('active');
+    } else {
+      panel.classList.add('collapsed');
+      btn.classList.remove('active');
+    }
+  }
+
+  function addFileToResourcePanel(fileInfo) {
+    const exists = resourceFiles.find(f => f.name === fileInfo.name);
+    if (exists) return;
+    resourceFiles.push(fileInfo);
+    renderResourceFileList();
+    if (!resourcePanelOpen) toggleResourcePanel();
+  }
+
+  function renderResourceFileList() {
+    const container = document.getElementById('resourceFileList');
+    if (!resourceFiles.length) {
+      container.innerHTML = '<div class="resource-empty">暂无上传文件<br><span style="font-size:0.7rem">上传文件后可在此快速引用</span></div>';
+      return;
+    }
+    container.innerHTML = resourceFiles.map((f, idx) => {
+      const icon = getFileIcon(f.name);
+      return '<div class="resource-item" draggable="true" ondragstart="onResourceItemDragStart(event,' + idx + ')" onclick="citeFileInInput(' + idx + ')">'
+        + '<span class="resource-item-icon">' + icon + '</span>'
+        + '<span class="resource-item-name" title="' + f.name + '">' + f.name + '</span>'
+        + '<button class="resource-item-cite" onclick="event.stopPropagation();citeFileInInput(' + idx + ')">引用</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function citeFileInInput(idx) {
+    const f = resourceFiles[idx];
+    if (!f) return;
+    const input = document.getElementById('messageInput');
+    const citeText = '[引用文件《' + f.name + '》] ';
+    if (!input.value.trim()) {
+      input.value = citeText;
+    } else {
+      input.value = input.value.trimEnd() + ' ' + citeText;
+    }
+    if (f.content && !pendingFile) {
+      pendingFile = { name: f.name, size: f.size || 0, content: f.content, type: f.contentType || 'document', isImage: false, objectUrl: null };
+      const previewArea = document.getElementById('filePreviewArea');
+      previewArea.style.display = 'block';
+      previewArea.innerHTML = '<div class="file-preview-card">'
+        + '<span class="file-preview-icon">' + getFileIcon(f.name) + '</span>'
+        + '<span class="file-preview-name">' + f.name + '</span>'
+        + '<span class="file-preview-size">已引用</span>'
+        + '<button class="file-preview-remove" onclick="removePendingFile()" title="移除">✕</button>'
+        + '</div>';
+    }
+    input.focus();
+    autoResize(input);
+  }
+
+  function insertQuickRef(text) {
+    const input = document.getElementById('messageInput');
+    input.value = text;
+    input.focus();
+    autoResize(input);
+  }
+
+  let draggedResourceIdx = null;
+
+  function onResourceItemDragStart(event, idx) {
+    draggedResourceIdx = idx;
+    event.dataTransfer.effectAllowed = 'copy';
+    const f = resourceFiles[idx];
+    event.dataTransfer.setData('text/plain', '[引用文件《' + f.name + '》] ');
+  }
+
+  function initDragDrop() {
+    const inputBox = document.querySelector('.chat-input-box');
+    if (!inputBox) return;
+    inputBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      inputBox.classList.add('drag-active');
+    });
+    inputBox.addEventListener('dragleave', (e) => {
+      if (!inputBox.contains(e.relatedTarget)) {
+        inputBox.classList.remove('drag-active');
+      }
+    });
+    inputBox.addEventListener('drop', (e) => {
+      e.preventDefault();
+      inputBox.classList.remove('drag-active');
+      if (draggedResourceIdx !== null) {
+        citeFileInInput(draggedResourceIdx);
+        draggedResourceIdx = null;
+        return;
+      }
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        const fileInput = document.getElementById('fileInput');
+        fileInput.files = dt.files;
+        handleFileSelect({ target: fileInput });
+      }
+    });
+  }
+
 
   // ===== WEB SEARCH TOGGLE =====
   let webSearchEnabled = false;
@@ -2604,6 +3174,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const body = { sessionId, message: msg || '请分析这个文件', ...settings };
       if (fileCtx) body.fileContext = fileCtx;
       if (webSearchEnabled) body.webSearch = true;
+      // 注入已加载的技能包上下文
+      if (loadedSkillContext && loadedSkillContext.content) {
+        body.skillContext = loadedSkillContext.content;
+        body.skillName = loadedSkillContext.skillName;
+      }
 
       // Reset search toggle after sending
       if (webSearchEnabled) {
@@ -2693,14 +3268,84 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 }
               } else if (evt.type === 'search') {
                 searchResults = evt.results;
+              } else if (evt.type === 'step') {
+                // 动态步骤卡片（专家模式）
+                let stepsContainer = bubble.querySelector('.expert-steps-container');
+                if (!stepsContainer) {
+                  stepsContainer = document.createElement('div');
+                  stepsContainer.className = 'expert-steps-container';
+                  bubble.insertBefore(stepsContainer, bubble.firstChild);
+                }
+                // 查找已有步骤
+                let stepEl = stepsContainer.querySelector(`[data-step-id="${evt.id}"]`);
+                if (!stepEl) {
+                  stepEl = document.createElement('div');
+                  stepEl.className = 'expert-step-item';
+                  stepEl.dataset.stepId = evt.id;
+                  stepEl.innerHTML = `<span class="expert-step-icon"><span class="spin"></span></span><span class="expert-step-text"></span>`;
+                  stepsContainer.appendChild(stepEl);
+                }
+                // 更新文字
+                stepEl.querySelector('.expert-step-text').textContent = evt.text;
+                // 更新状态
+                const iconEl = stepEl.querySelector('.expert-step-icon');
+                if (evt.status === 'done') {
+                  stepEl.classList.add('done');
+                  iconEl.innerHTML = '<span class="check">✓</span>';
+                } else if (evt.status === 'error') {
+                  stepEl.classList.add('error');
+                  iconEl.innerHTML = '<span class="err">✗</span>';
+                } else {
+                  iconEl.innerHTML = '<span class="spin"></span>';
+                }
+                container.scrollTop = container.scrollHeight;
               } else if (evt.type === 'delta') {
                 hideNmpaIndicator(); // 开始输出回答，隐藏查询提示
                 hideToolStatusIndicator(); // 隐藏工具状态提示
+                // 步骤卡片折叠（所有步骤标记为完成）
+                const stepsBox = bubble.querySelector('.expert-steps-container');
+                if (stepsBox && !stepsBox.dataset.collapsed) {
+                  stepsBox.dataset.collapsed = '1';
+                  // 把所有仍在 running 的步骤标记为 done
+                  stepsBox.querySelectorAll('.expert-step-item:not(.done):not(.error)').forEach(el => {
+                    el.classList.add('done');
+                    el.querySelector('.expert-step-icon').innerHTML = '<span class="check">✓</span>';
+                  });
+                }
                 fullText += evt.content;
                 // Re-render markdown on each delta with incomplete marker fix
                 if (typeof marked !== 'undefined') {
                   // Fix incomplete markdown markers during streaming
                   let renderText = fullText;
+                  // Fix ## heading without space (LLM often omits the space)
+                  renderText = renderText.replace(/##([^\s#\n])/g, '## $1');
+                  // Fix missing blank line before table (LLM often puts table right after heading text)
+                  // 修复表格渲染：处理LLM生成表格的常见格式问题
+                  renderText = (function(text) {
+                    // Step1: 去除行首空格（LLM有时缩进表格行）
+                    text = text.replace(/^[ \t]+\|/gm, '|');
+                    // Step2: 去除表格行之间的空行（LLM常在每行后加空行）
+                    var changed = true;
+                    while (changed) {
+                      var prev = text;
+                      text = text.replace(/(\|[^\n]*)\n\n(\|)/g, '$1\n$2');
+                      changed = (text !== prev);
+                    }
+                    // Step3: 处理标题行和表格连写在一起的情况
+                    text = text.replace(/^([^|\n]+)(\|[^\n]+\|[ \t]*)$/gm, function(m, pre, row) {
+                      return (row.match(/\|/g)||[]).length >= 2 ? pre.trimEnd() + '\n' + row : m;
+                    });
+                    // Step4: 在非表格行后跟表格行时插入空行
+                    var lines = text.split('\n'), out = [];
+                    for (var i = 0; i < lines.length; i++) {
+                      var ln = lines[i], prev = i > 0 ? lines[i-1] : '';
+                      if (ln.trimStart().startsWith('|') && prev !== '' && !prev.trimStart().startsWith('|')) out.push('');
+                      out.push(ln);
+                    }
+                    return out.join('\n');
+                  })(renderText);
+                  // Fix table rows starting with space before pipe (marked.js requires no leading space)
+                  renderText = renderText.replace(/^[ \t]+(\|)/gm, '$1');
                   // Count unmatched ** and * for bold/italic
                   const dblAst = (renderText.match(/\*\*/g) || []).length;
                   if (dblAst % 2 !== 0) renderText += '**';
@@ -2712,7 +3357,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                   // Count unmatched ~~ for strikethrough (prevent mid-stream del rendering)
                   const tildes = (renderText.match(/~~/g) || []).length;
                   if (tildes % 2 !== 0) renderText += '~~';
-                  bubble.innerHTML = marked.parse(renderText);
+                  bubble.innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(renderText)) : marked.parse(renderText);
                   wrapTables(bubble);
                 } else {
                   bubble.textContent = fullText;
@@ -2734,8 +3379,21 @@ if(__exports != exports)module.exports = exports;return module.exports}));
                 }
                 setDoudouEmotion('happy');
                 setTimeout(() => setDoudouEmotion('default'), 3000);
+                // ★ 安全网：done 事件时立即恢复输入框
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('uploadBtn').disabled = false;
+                const micBtnDone = document.getElementById('micBtn');
+                if (micBtnDone) micBtnDone.disabled = false;
+                document.getElementById('messageInput').focus();
               } else if (evt.type === 'error') {
                 bubble.textContent = '抱歉，遇到了问题：' + (evt.message || '请稍后再试');
+                // ★ 安全网：error 事件时也恢复输入框
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('uploadBtn').disabled = false;
+                const micBtnErr = document.getElementById('micBtn');
+                if (micBtnErr) micBtnErr.disabled = false;
               }
             } catch (e) { /* skip */ }
           }
@@ -2761,7 +3419,23 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       hideSearchIndicator();
       setDoudouEmotion('confused');
       setTimeout(() => setDoudouEmotion('default'), 4000);
-      addMessage('assistant', '抱歉，遇到了问题，请稍后再试。');
+      // 判断是否为网络错误，提供重试按钮
+      const isNetworkError = !navigator.onLine || (e && (e.message || '').match(/fetch|network|abort|timeout/i));
+      if (isNetworkError) {
+        const retryMsg = document.createElement('div');
+        retryMsg.innerHTML = '<span>网络连接中断，消息发送失败。</span><br><button class="retry-btn-inline" onclick="this.disabled=true;this.textContent=\'\u91cd\u8bd5\u4e2d...\';sendMessage()">重新发送</button>';
+        const container = document.getElementById('chatMessages');
+        const row = document.createElement('div');
+        row.className = 'msg-row assistant';
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble';
+        bubble.appendChild(retryMsg);
+        row.appendChild(bubble);
+        container.appendChild(row);
+        container.scrollTop = container.scrollHeight;
+      } else {
+        addMessage('assistant', '抱歉，遇到了问题，请稍后再试。');
+      }
     } finally {
       input.disabled = false;
       document.getElementById('sendBtn').disabled = false;
@@ -2784,7 +3458,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
     if (agent) {
-      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else { avatar.textContent = '🤖'; }
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
@@ -2801,18 +3475,72 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     // Re-parse with suggested questions (only from clearly marked final section)
     let mainContent = fullText;
     let suggestedQuestions = [];
-    const lastSepIdx = fullText.lastIndexOf('\n---\n');
+    // 找最后一个 ---（3+个短横线）后面跟引导问题的位置
+    let lastSepIdx = -1;
+    let sepLen = 0;
+    const sepRegex = /-{3,}/g;
+    let m;
+    while ((m = sepRegex.exec(fullText)) !== null) {
+      const afterPos = m.index + m[0].length;
+      const afterStr = fullText.substring(afterPos, afterPos + 10).replace(/^\s*/, '');
+      if (afterStr.startsWith('-') || afterStr.startsWith('我')) {
+        lastSepIdx = m.index;
+        sepLen = m[0].length;
+      }
+    }
     if (lastSepIdx > 0) {
-      const afterSep = fullText.substring(lastSepIdx + 5).trim();
-      const lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      const allQuestionLike = lines.length > 0 && lines.length <= 5 && lines.every(l => /^[-*\d]/.test(l) && l.length < 80 && !l.includes('|'));
-      if (allQuestionLike) {
+      const afterSep = fullText.substring(lastSepIdx + sepLen).trim();
+      // 先尝试按换行分割，如果只有1行则尝试按 "- 我" 模式分割
+      let lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length <= 1 && afterSep.length > 10) {
+        // 智能分割：处理问题挤在一行的情况
+        // 先去掉开头的 - 和空格
+        const cleaned = afterSep.replace(/^[-\s]+/, '');
+        // 找分割点：中文/引号/括号后跟 - 再跟4个以上中文字符
+        const pts = [];
+        const pr = /(?<=[\u4e00-\u9fff\u201d\u201c"'）\)a-zA-Z0-9])[-](?=[\u4e00-\u9fff]{3,})/g;
+        let pm;
+        while ((pm = pr.exec(cleaned)) !== null) { pts.push(pm.index); }
+        if (pts.length >= 2) {
+          const segs = [];
+          let prev = 0;
+          for (const idx of pts) { segs.push(cleaned.substring(prev, idx).trim()); prev = idx + 1; }
+          segs.push(cleaned.substring(prev).trim());
+          lines = segs.filter(l => l.length > 4);
+        }
+      }
+      if (lines.length >= 2 && lines.length <= 5) {
         mainContent = fullText.substring(0, lastSepIdx).trim();
-        suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4);
+        suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4).map(q => q.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').trim()).filter(q => q.length > 4);
       }
     }
     if (typeof marked !== 'undefined') {
-      bubble.innerHTML = marked.parse(mainContent);
+      mainContent = mainContent.replace(/##([^\s#\n])/g, '## $1');
+      // 修复表格渲染：处理LLM生成表格的常见格式问题
+      mainContent = (function(text) {
+        // Step1: 去除行首空格
+        text = text.replace(/^[ \t]+\|/gm, '|');
+        // Step2: 去除表格行之间的空行（LLM常在每行后加空行）
+        var changed = true;
+        while (changed) {
+          var prev = text;
+          text = text.replace(/(\|[^\n]*)\n\n(\|)/g, '$1\n$2');
+          changed = (text !== prev);
+        }
+        // Step3: 处理标题行和表格连写在同一行的情况
+        text = text.replace(/^([^|\n]+)(\|[^\n]+\|[ \t]*)$/gm, function(m, pre, row) {
+          return (row.match(/\|/g)||[]).length >= 2 ? pre.trimEnd() + '\n' + row : m;
+        });
+        // Step4: 在非表格行后跟表格行时插入空行
+        var lines = text.split('\n'), out = [];
+        for (var i = 0; i < lines.length; i++) {
+          var ln = lines[i], prev2 = i > 0 ? lines[i-1] : '';
+          if (ln.trimStart().startsWith('|') && prev2 !== '' && !prev2.trimStart().startsWith('|')) out.push('');
+          out.push(ln);
+        }
+        return out.join('\n');
+      })(mainContent);
+      bubble.innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(mainContent)) : marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
       injectAgentLinks(bubble);
@@ -2944,7 +3672,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     if (role === 'user') {
       avatar.textContent = currentUserName ? currentUserName.charAt(0).toUpperCase() : '我';
     } else if (agent) {
-      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else {
       avatar.textContent = '🤖';
     }
@@ -2957,21 +3685,61 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     let suggestedQuestions = [];
     if (role === 'assistant') {
       // Only match if the LAST section after --- contains short question-like items
-      const lastSepIdx = content.lastIndexOf('\n---\n');
+      // 找最后一个 ---（3+个短横线）后面跟引导问题的位置
+      let lastSepIdx = -1;
+      let sepLen = 0;
+      const sepRegex = /-{3,}/g;
+      let m;
+      while ((m = sepRegex.exec(content)) !== null) {
+        const afterPos = m.index + m[0].length;
+        const afterStr = content.substring(afterPos, afterPos + 10).replace(/^\s*/, '');
+        if (afterStr.startsWith('-') || afterStr.startsWith('我')) {
+          lastSepIdx = m.index;
+          sepLen = m[0].length;
+        }
+      }
       if (lastSepIdx > 0) {
-        const afterSep = content.substring(lastSepIdx + 5).trim();
-        const lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        // Only treat as suggested questions if ALL lines look like questions (start with - or number, and are short)
-        const allQuestionLike = lines.length > 0 && lines.length <= 5 && lines.every(l => /^[-*\d]/.test(l) && l.length < 80 && !l.includes('|'));
-        if (allQuestionLike) {
+        const afterSep = content.substring(lastSepIdx + sepLen).trim();
+        let lines = afterSep.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length <= 1 && afterSep.length > 10) {
+          const cleaned = afterSep.replace(/^[-\s]+/, '');
+          const pts = [];
+          const pr = /(?<=[\u4e00-\u9fff\u201d\u201c"'）\)a-zA-Z0-9])[-](?=[\u4e00-\u9fff]{3,})/g;
+          let pm;
+          while ((pm = pr.exec(cleaned)) !== null) { pts.push(pm.index); }
+          if (pts.length >= 2) {
+            const segs = [];
+            let prev = 0;
+            for (const idx of pts) { segs.push(cleaned.substring(prev, idx).trim()); prev = idx + 1; }
+            segs.push(cleaned.substring(prev).trim());
+            lines = segs.filter(l => l.length > 4);
+          }
+        }
+        if (lines.length >= 2 && lines.length <= 5) {
           mainContent = content.substring(0, lastSepIdx).trim();
-          suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4);
+          suggestedQuestions = lines.map(l => l.replace(/^[-*\d.\s]+/, '').trim()).filter(l => l.length > 4).map(q => q.replace(/skill_dispatch\([^)]*\)/g, '').replace(/nmpa_search\([^)]*\)/g, '').replace(/query_med_db\([^)]*\)/g, '').replace(/web_search\([^)]*\)/g, '').replace(/bocha_search\([^)]*\)/g, '').trim()).filter(q => q.length > 4);
         }
       }
     }
 
     if (role === 'assistant' && typeof marked !== 'undefined') {
-      bubble.innerHTML = marked.parse(mainContent);
+      // 修复表格渲染：处理LLM生成表格的常见格式问题
+      mainContent = (function(text) {
+        text = text.replace(/^[ \t]+\|/gm, '|');
+        var changed = true;
+        while (changed) { var prev = text; text = text.replace(/(\|[^\n]*)\n\n(\|)/g, '$1\n$2'); changed = (text !== prev); }
+        text = text.replace(/^([^|\n]+)(\|[^\n]+\|[ \t]*)$/gm, function(m, pre, row) {
+          return (row.match(/\|/g)||[]).length >= 2 ? pre.trimEnd() + '\n' + row : m;
+        });
+        var lines = text.split('\n'), out = [];
+        for (var i = 0; i < lines.length; i++) {
+          var ln = lines[i], prev2 = i > 0 ? lines[i-1] : '';
+          if (ln.trimStart().startsWith('|') && prev2 !== '' && !prev2.trimStart().startsWith('|')) out.push('');
+          out.push(ln);
+        }
+        return out.join('\n');
+      })(mainContent);
+      bubble.innerHTML = (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(marked.parse(mainContent)) : marked.parse(mainContent);
       injectCodeCopyBtns(bubble);
       wrapTables(bubble);
       injectAgentLinks(bubble);
@@ -3063,17 +3831,109 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     container.scrollTop = container.scrollHeight;
   }
 
-  // ===== 豆豆表情切换系统 =====
-  const DOUDOU_EMOTIONS = {
-    default:  '/mascot-default.png',
-    thinking: '/mascot-thinking.png',
-    happy:    '/mascot-happy.png',
-    confused: '/mascot-confused.png',
-    talking:  '/mascot-talking.png'
+  // ===== 豆家族 IP 每日随机表情系统 =====
+  // CDN 图片 URL 映射
+  const IP_IMAGES = {
+    douzai: {
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rpNxPtAcoLvqMBIl.png',
+      coffee:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/rJcjoSULfwDshywp.png',
+      sunglasses: 'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/jYOWNiRUyEvLypVK.png',
+      report:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/aupTInjkDYGWHQZw.png',
+      sleepy:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/tyMugFuBhiHGazel.png',
+      happy:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/HXUhLsdKlxAVnrOX.png'
+    },
+    douding: {
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/owNRYStTXHONGuNk.png',
+      flower:     'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/amGXwiWJukeVrApc.png',
+      mic:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/FUXToJndeiZTKbzJ.png',
+      thumbsup:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/gYAbNPtZtiEqfBgU.png',
+      shy:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/PuVHCCTmJzppcVbD.png',
+      drink:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/DruqwjMUtHeKCnOm.png'
+    },
+    douya: {
+      default:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/GgMEvsMLAyXIubDF.png',
+      think:      'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/fKgyTLGOmpokvoHJ.png',
+      writing:    'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/OPptYAnRovlCOmzi.png',
+      run:        'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/PoAScGLLnDEAcYVk.png',
+      flag:       'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/koYOZXMmvdeBeavQ.png',
+      confused:   'https://files.manuscdn.com/user_upload_by_module/session_file/309929252235541334/zKpYKEHvnUVthQdj.png'
+    }
   };
+
+  // 豆子的情绪→状态映射（兼容旧的 thinking/happy/confused/talking）
+  const DOUZAI_EMOTION_MAP = {
+    default:  'default',
+    thinking: 'report',
+    happy:    'happy',
+    confused: 'sleepy',
+    talking:  'coffee'
+  };
+  // 豆丁的情绪→状态映射
+  const DOUDING_EMOTION_MAP = {
+    default:  'default',
+    thinking: 'mic',
+    happy:    'thumbsup',
+    confused: 'shy',
+    talking:  'drink'
+  };
+  // 豆芽的情绪→状态映射
+  const DOUYA_EMOTION_MAP = {
+    default:  'default',
+    thinking: 'think',
+    happy:    'flag',
+    confused: 'confused',
+    talking:  'writing'
+  };
+
+  // 每日随机变体（基于日期 seed，同一天同一用户看到同一变体）
+  function getDailyVariant(ipName) {
+    const today = new Date();
+    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const variants = Object.keys(IP_IMAGES[ipName] || {}).filter(k => k !== 'default');
+    if (!variants.length) return 'default';
+    const idx = seed % variants.length;
+    return variants[idx];
+  }
+
+  // 获取当前 agent 对应的 IP 名称
+  function getIPName(agentId) {
+    if (agentId === 'doudou') return 'douzai';
+    if (agentId === 'douding') return 'douding';
+    if (agentId === 'douya') return 'douya';
+    return null;
+  }
+
+  // 获取当前 agent 的默认（每日随机）图片
+  function getAgentDefaultImg(agentId) {
+    const ipName = getIPName(agentId);
+    if (!ipName) return null;
+    const variant = getDailyVariant(ipName);
+    return IP_IMAGES[ipName][variant] || IP_IMAGES[ipName].default;
+  }
+
+  // 兼容旧的 DOUDOU_EMOTIONS（保留以防其他地方引用）
+  const DOUDOU_EMOTIONS = {
+    default:  IP_IMAGES.douzai.default,
+    thinking: IP_IMAGES.douzai.report,
+    happy:    IP_IMAGES.douzai.happy,
+    confused: IP_IMAGES.douzai.sleepy,
+    talking:  IP_IMAGES.douzai.coffee
+  };
+
   function setDoudouEmotion(emotion) {
-    if (currentAgentId !== 'doudou') return;
-    const src = DOUDOU_EMOTIONS[emotion] || DOUDOU_EMOTIONS.default;
+    setAgentEmotion(currentAgentId, emotion);
+  }
+
+  function setAgentEmotion(agentId, emotion) {
+    const ipName = getIPName(agentId);
+    if (!ipName) return;
+    const ipImages = IP_IMAGES[ipName];
+    let emotionMap;
+    if (ipName === 'douzai') emotionMap = DOUZAI_EMOTION_MAP;
+    else if (ipName === 'douding') emotionMap = DOUDING_EMOTION_MAP;
+    else emotionMap = DOUYA_EMOTION_MAP;
+    const stateKey = emotionMap[emotion] || 'default';
+    const src = ipImages[stateKey] || ipImages.default;
     const welcomeImg = document.getElementById('welcomeMascotImg');
     if (welcomeImg) welcomeImg.src = src;
     const topbarAvatar = document.getElementById('topbarAvatar');
@@ -3092,7 +3952,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     const avatar = document.createElement('div');
     avatar.className = 'msg-avatar';
     if (agent) {
-      avatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
+      avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.icon}'">`;
     } else { avatar.textContent = '🤖'; }
     const dots = document.createElement('div');
     dots.className = 'typing-dots';
@@ -3500,6 +4360,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       document.getElementById('chatInputHint').innerHTML = '这是历史记录，<a href="javascript:startChat(\'' + agent.id + '\')" style="color:var(--coral);text-decoration:underline">点击开始新对话</a>';
       document.getElementById('chatStatus').style.display = 'none';
       sessionId = null;
+      currentHistorySessionId = historySessionId;
     } catch (e) {
       console.error('Load history session error:', e);
       alert('加载历史记录失败，请稍后重试');
@@ -3509,6 +4370,358 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   // Close history modal on overlay click
   document.getElementById('historyModal').addEventListener('click', function(e) {
     if (e.target === this) closeHistory();
+  });
+
+  // ===== 专家模式 JS v3.0 =====
+  let _expertModeEnabled = false;
+  let _expertModeAvailable = false;
+
+  async function initExpertMode() {
+    try {
+      const r = await fetch('/api/expert/status', { credentials: 'include' });
+      if (!r.ok) return;
+      const data = await r.json();
+      _expertModeAvailable = data.available;
+      const badge = document.getElementById('expertBadge');
+      const lockedTip = document.getElementById('expertLockedTip');
+      const toggle = document.getElementById('expertModeToggle');
+      if (!badge || !lockedTip || !toggle) return;
+      if (_expertModeAvailable) {
+        badge.style.display = 'inline';
+        lockedTip.style.display = 'none';
+        toggle.disabled = false;
+      } else {
+        badge.style.display = 'none';
+        lockedTip.style.display = 'inline';
+        toggle.disabled = true;
+      }
+      if (!localStorage.getItem('ma_v30_seen')) {
+        const banner = document.getElementById('expertUpgradeBanner');
+        if (banner) banner.classList.add('show');
+      }
+    } catch(e) {}
+  }
+
+  function onExpertModeToggle(checkbox) {
+    if (!_expertModeAvailable) {
+      checkbox.checked = false;
+      window.open('/pricing.html', '_blank');
+      return;
+    }
+    _expertModeEnabled = checkbox.checked;
+    const bar = document.getElementById('expertModeBar');
+    const label = document.getElementById('expertModeLabel');
+    if (_expertModeEnabled) {
+      bar && bar.classList.add('active');
+      if (label) label.textContent = '专家模式已开启';
+    } else {
+      bar && bar.classList.remove('active');
+      if (label) label.textContent = '专家模式';
+    }
+  }
+
+  // Patch desktopSend：专家模式时调用 expert-stream 端点
+  document.addEventListener('DOMContentLoaded', function() {
+    initExpertMode();
+
+    const origDesktopSend = window.desktopSend;
+    window.desktopSend = async function() {
+      if (!_expertModeEnabled || !_expertModeAvailable) {
+        return origDesktopSend && origDesktopSend();
+      }
+      const origFetch = window.fetch;
+      window.fetch = function(url, opts) {
+        if (typeof url === 'string' && url.includes('/api/chat/message-stream')) {
+          url = url.replace('/api/chat/message-stream', '/api/chat/expert-stream');
+        }
+        return origFetch.call(this, url, opts);
+      };
+      try {
+        await (origDesktopSend && origDesktopSend());
+      } finally {
+        window.fetch = origFetch;
+      }
+    };
+  });
+
+  // 初始化拖拽功能
+  document.addEventListener('DOMContentLoaded', initDragDrop);
+
+  // ===== 会话快照功能 v2 =====
+  let currentSnapshotSessionId = null;
+  let lastSnapshotResult = null; // 保存最近一次快照结果
+  let loadedSkillContext = null; // 当前加载的技能上下文
+
+  function openSnapshotModal() {
+    currentSnapshotSessionId = sessionId || currentHistorySessionId || null;
+    if (!currentSnapshotSessionId) {
+      alert('请先开始一段对话');
+      return;
+    }
+    document.getElementById('snapshotNameInput').value = '';
+    document.getElementById('snapshotStatus').textContent = '';
+    document.getElementById('snapshotConfirmBtn').disabled = false;
+    document.getElementById('snapshotConfirmBtn').style.display = '';
+    document.getElementById('snapshotPreview').style.display = 'none';
+    document.getElementById('snapshotPreview').innerHTML = '';
+    document.getElementById('snapshotPreviewActions').style.display = 'none';
+    lastSnapshotResult = null;
+    document.getElementById('snapshotOverlay').classList.add('active');
+    setTimeout(() => document.getElementById('snapshotNameInput').focus(), 100);
+  }
+
+  function closeSnapshotModal() {
+    document.getElementById('snapshotOverlay').classList.remove('active');
+    document.getElementById('snapshotNameInput').disabled = false;
+    currentSnapshotSessionId = null;
+  }
+
+  async function confirmSnapshot() {
+    const nameInput = document.getElementById('snapshotNameInput');
+    const statusEl = document.getElementById('snapshotStatus');
+    const confirmBtn = document.getElementById('snapshotConfirmBtn');
+    const previewEl = document.getElementById('snapshotPreview');
+    const previewActions = document.getElementById('snapshotPreviewActions');
+    const skillName = nameInput.value.trim();
+    if (!skillName) {
+      statusEl.textContent = '请输入技能名称';
+      statusEl.style.color = '#e57373';
+      nameInput.focus();
+      return;
+    }
+    confirmBtn.disabled = true;
+    statusEl.textContent = '正在提炼对话中的专业知识，请稍候...';
+    statusEl.style.color = 'var(--text-secondary)';
+    try {
+      const resp = await fetch('/api/chat/snapshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: currentSnapshotSessionId, skillName })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        lastSnapshotResult = data;
+        statusEl.textContent = '技能包已生成！请预览并选择操作：';
+        statusEl.style.color = '#66bb6a';
+        // 显示预览
+        previewEl.innerHTML = marked.parse(data.markdown || data.summary || '');
+        previewEl.style.display = 'block';
+        previewActions.style.display = 'flex';
+        confirmBtn.style.display = 'none';
+        // 刷新技能包列表
+        loadSkillsList();
+      } else {
+        statusEl.textContent = data.error || '保存失败';
+        statusEl.style.color = '#e57373';
+        confirmBtn.disabled = false;
+      }
+    } catch (e) {
+      statusEl.textContent = '网络错误，请重试';
+      statusEl.style.color = '#e57373';
+      confirmBtn.disabled = false;
+    }
+  }
+
+  // 下载快照为 Markdown 文件
+  function downloadSnapshot() {
+    if (!lastSnapshotResult || !lastSnapshotResult.skillId) return;
+    window.open(`/api/chat/snapshot/download?skillId=${lastSnapshotResult.skillId}`, '_blank');
+  }
+
+  // 复制快照 Markdown 内容
+  async function copySnapshotMarkdown() {
+    if (!lastSnapshotResult) return;
+    const text = lastSnapshotResult.markdown || lastSnapshotResult.summary || '';
+    try {
+      await navigator.clipboard.writeText(text);
+      const statusEl = document.getElementById('snapshotStatus');
+      statusEl.textContent = '已复制到剪贴板';
+      statusEl.style.color = '#66bb6a';
+    } catch (e) {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const statusEl = document.getElementById('snapshotStatus');
+      statusEl.textContent = '已复制到剪贴板';
+      statusEl.style.color = '#66bb6a';
+    }
+  }
+
+  // 加载快照到当前对话
+  async function loadSnapshotToChat() {
+    if (!lastSnapshotResult || !lastSnapshotResult.skillId) return;
+    await loadSkillToCurrentChat(lastSnapshotResult.skillId);
+    closeSnapshotModal();
+  }
+
+  // 通用技能加载函数
+  async function loadSkillToCurrentChat(skillId) {
+    try {
+      const resp = await fetch(`/api/chat/snapshot/load?skillId=${skillId}`);
+      const data = await resp.json();
+      if (data.success) {
+        loadedSkillContext = data;
+        // 在输入框上方显示已加载的技能标记
+        showLoadedSkillBadge(data.skillName);
+        // 将技能内容作为下一次发送消息的前缀上下文
+        const input = document.getElementById('messageInput');
+        if (input && !input.value.trim()) {
+          input.placeholder = `已加载技能「${data.skillName}」，请输入问题...`;
+        }
+      } else {
+        alert(data.error || '加载失败');
+      }
+    } catch (e) {
+      alert('网络错误，请重试');
+    }
+  }
+
+  // 显示已加载技能的标记
+  function showLoadedSkillBadge(skillName) {
+    // 移除旧的
+    const old = document.querySelector('.skill-loaded-badge');
+    if (old) old.remove();
+    const badge = document.createElement('div');
+    badge.className = 'skill-loaded-badge';
+    badge.innerHTML = `技能: ${skillName} <button onclick="unloadSkill()" title="卸载">&times;</button>`;
+    const inputWrap = document.querySelector('.chat-input-left');
+    if (inputWrap) inputWrap.prepend(badge);
+  }
+
+  // 卸载技能
+  function unloadSkill() {
+    loadedSkillContext = null;
+    const badge = document.querySelector('.skill-loaded-badge');
+    if (badge) badge.remove();
+    const input = document.getElementById('messageInput');
+    if (input) input.placeholder = 'Enter 发送，Shift+Enter 换行';
+  }
+
+  // ===== 资源面板标签页切换 =====
+  function switchResourceTab(tab) {
+    document.querySelectorAll('.resource-tab').forEach((el, i) => {
+      el.classList.toggle('active', (tab === 'files' && i === 0) || (tab === 'skills' && i === 1));
+    });
+    document.getElementById('resourceTabFiles').classList.toggle('active', tab === 'files');
+    document.getElementById('resourceTabSkills').classList.toggle('active', tab === 'skills');
+    if (tab === 'skills') loadSkillsList();
+  }
+
+  // ===== 技能包列表管理 =====
+  async function loadSkillsList() {
+    const container = document.getElementById('skillsList');
+    try {
+      const resp = await fetch('/api/chat/snapshots');
+      const data = await resp.json();
+      const snapshots = data.snapshots || [];
+      if (snapshots.length === 0) {
+        container.innerHTML = '<div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击“快照”按钮提炼技能包</span></div>';
+        return;
+      }
+      container.innerHTML = snapshots.map(s => {
+        const date = new Date(s.createdAt).toLocaleDateString('zh-CN');
+        return `<div class="skill-card" onclick="previewSkill('${s.id}')">
+          <div class="skill-card-header">
+            <span class="skill-card-name">${s.skillName || s.id}</span>
+            <span class="skill-card-badge">${s.messageCount}条对话</span>
+          </div>
+          <div class="skill-card-meta">来源: ${s.agentName || '未知'} | ${date}</div>
+          <div class="skill-card-actions">
+            <button class="skill-action-btn" onclick="event.stopPropagation();loadSkillToCurrentChat('${s.id}')">加载</button>
+            <button class="skill-action-btn" onclick="event.stopPropagation();downloadSkill('${s.id}')">下载</button>
+            <button class="skill-action-btn danger" onclick="event.stopPropagation();deleteSkill('${s.id}')">删除</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      container.innerHTML = '<div class="resource-empty">加载失败，请重试</div>';
+    }
+  }
+
+  // 预览技能包
+  async function previewSkill(skillId) {
+    try {
+      const resp = await fetch(`/api/chat/snapshot/preview?skillId=${skillId}`);
+      const data = await resp.json();
+      if (data.success) {
+        lastSnapshotResult = { skillId, markdown: data.markdown, skillName: data.meta.skillName };
+        document.getElementById('snapshotNameInput').value = data.meta.skillName || '';
+        document.getElementById('snapshotNameInput').disabled = true;
+        document.getElementById('snapshotStatus').textContent = '';
+        document.getElementById('snapshotConfirmBtn').style.display = 'none';
+        document.getElementById('snapshotPreview').innerHTML = marked.parse(data.markdown || '');
+        document.getElementById('snapshotPreview').style.display = 'block';
+        document.getElementById('snapshotPreviewActions').style.display = 'flex';
+        document.getElementById('snapshotOverlay').classList.add('active');
+      } else {
+        alert(data.error || '预览失败');
+      }
+    } catch (e) {
+      alert('网络错误');
+    }
+  }
+
+  // 下载技能包
+  function downloadSkill(skillId) {
+    window.open(`/api/chat/snapshot/download?skillId=${skillId}`, '_blank');
+  }
+
+  // 删除技能包
+  async function deleteSkill(skillId) {
+    if (!confirm('确定要删除这个技能包吗？删除后无法恢复。')) return;
+    try {
+      const resp = await fetch('/api/chat/snapshot/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skillId })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        loadSkillsList();
+      } else {
+        alert(data.error || '删除失败');
+      }
+    } catch (e) {
+      alert('网络错误');
+    }
+  }
+
+  // 对话超过 4 条消息时显示快照按钮
+  function updateSnapshotBtnVisibility() {
+    const btn = document.getElementById('snapshotBtn');
+    if (!btn) return;
+    const msgContainer = document.getElementById('chatMessages');
+    const msgCount = msgContainer ? msgContainer.querySelectorAll('.msg-row').length : 0;
+    btn.style.display = msgCount >= 2 ? '' : 'none';
+  }
+
+  // 监听消息容器变化，自动显示/隐藏快照按钮
+  const chatMsgObserver = new MutationObserver(updateSnapshotBtnVisibility);
+  document.addEventListener('DOMContentLoaded', () => {
+    const msgContainer = document.getElementById('chatMessages');
+    if (msgContainer) chatMsgObserver.observe(msgContainer, { childList: true, subtree: true });
+  });
+
+  // ===== 网络状态监听 =====
+  window.addEventListener('offline', () => {
+    const banner = document.getElementById('offlineBanner');
+    if (banner) banner.classList.add('show');
+  });
+  window.addEventListener('online', () => {
+    const offBanner = document.getElementById('offlineBanner');
+    if (offBanner) offBanner.classList.remove('show');
+    // 短暂显示重连成功提示
+    const reconBanner = document.getElementById('reconnectBanner');
+    if (reconBanner) {
+      reconBanner.textContent = '网络已恢复连接';
+      reconBanner.style.background = '#66bb6a';
+      reconBanner.classList.add('show');
+      setTimeout(() => { reconBanner.classList.remove('show'); reconBanner.style.background = ''; reconBanner.textContent = '正在重新连接...'; }, 3000);
+    }
   });
 </script>
 </body>

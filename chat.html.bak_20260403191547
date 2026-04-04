@@ -587,10 +587,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       color: var(--text-2); font-style: italic;
     }
     .msg-bubble blockquote p { margin-bottom: 0; }
-    /* 消息气泡内图片统一约束 */
-    .msg-bubble img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5rem 0; display: block; }
-    .msg-bubble a > img { cursor: pointer; transition: opacity 0.15s; }
-    .msg-bubble a > img:hover { opacity: 0.85; }
     /* 表格：包裹可横向滑动容器，防止手机端文字被挤压 */
     .msg-bubble .table-wrapper {
       width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -1399,122 +1395,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       padding: 1rem 0.875rem;
       font-size: 0.75rem; color: var(--text-3); text-align: center; line-height: 1.6;
     }
-    /* ===== 网络状态提示条 ===== */
-    .offline-banner {
-      display: none;
-      position: fixed; top: 0; left: 0; right: 0;
-      z-index: 10000;
-      background: #ff6b6b; color: #fff;
-      text-align: center; padding: 8px 16px;
-      font-size: 13px; font-weight: 500;
-      animation: slideDown 0.3s ease;
-    }
-    .offline-banner.show { display: block; }
-    @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
-    .reconnect-banner {
-      display: none;
-      position: fixed; top: 0; left: 0; right: 0;
-      z-index: 10000;
-      background: #ffa726; color: #fff;
-      text-align: center; padding: 8px 16px;
-      font-size: 13px; font-weight: 500;
-    }
-    .reconnect-banner.show { display: block; }
-    .retry-btn-inline {
-      display: inline-flex; align-items: center; gap: 4px;
-      margin-top: 8px; padding: 6px 16px;
-      background: var(--primary); color: #fff;
-      border: none; border-radius: 6px;
-      font-size: 13px; cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .retry-btn-inline:hover { opacity: 0.85; }
-    .retry-btn-inline:disabled { opacity: 0.5; cursor: not-allowed; }
-    /* Snapshot Modal */
-    .snapshot-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999; display: none; align-items: center; justify-content: center; }
-    .snapshot-overlay.active { display: flex; }
-    .snapshot-modal { background: var(--bg); border-radius: 1rem; padding: 1.5rem; width: 90%; max-width: 560px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); max-height: 85vh; display: flex; flex-direction: column; }
-    .snapshot-modal h3 { margin: 0 0 0.75rem; font-size: 1rem; color: var(--text); }
-    .snapshot-modal p { margin: 0 0 1rem; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; }
-    .snapshot-modal input { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border-light); border-radius: 0.5rem; font-size: 0.85rem; background: var(--bg-secondary); color: var(--text); box-sizing: border-box; }
-    .snapshot-modal input:focus { outline: none; border-color: var(--coral); }
-    .snapshot-modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end; }
-    .snapshot-modal-actions button { padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; cursor: pointer; border: none; }
-    .snapshot-cancel { background: var(--bg-secondary); color: var(--text-secondary); }
-    .snapshot-confirm { background: var(--coral); color: #fff; }
-    .snapshot-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
-    .snapshot-status { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; min-height: 1.2em; }
-    /* Snapshot Preview */
-    .snapshot-preview { margin-top: 0.75rem; border: 1px solid var(--border-light); border-radius: 0.5rem; background: var(--bg-secondary); max-height: 300px; overflow-y: auto; padding: 1rem; font-size: 0.8rem; line-height: 1.6; color: var(--text); display: none; }
-    .snapshot-preview::-webkit-scrollbar { width: 3px; }
-    .snapshot-preview::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-    .snapshot-preview h1, .snapshot-preview h2 { font-size: 0.95rem; margin: 0.8rem 0 0.4rem; color: var(--text); border-bottom: 1px solid var(--border-light); padding-bottom: 0.3rem; }
-    .snapshot-preview h3 { font-size: 0.88rem; margin: 0.6rem 0 0.3rem; }
-    .snapshot-preview ul, .snapshot-preview ol { padding-left: 1.2rem; margin: 0.3rem 0; }
-    .snapshot-preview blockquote { border-left: 3px solid var(--coral); padding-left: 0.6rem; margin: 0.4rem 0; color: var(--text-secondary); font-style: italic; }
-    .snapshot-preview-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; display: none; }
-    .snapshot-dl-btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.8rem; border-radius: 0.4rem; font-size: 0.75rem; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--text-2); transition: all 0.15s; }
-    .snapshot-dl-btn:hover { background: var(--bg-warm); border-color: var(--coral); color: var(--coral); }
-    .snapshot-dl-btn svg { flex-shrink: 0; }
-    /* Skills Panel in Resource Panel */
-    .skill-card { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem 0.875rem; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border-light); }
-    .skill-card:hover { background: var(--border-light); }
-    .skill-card:last-child { border-bottom: none; }
-    .skill-card-header { display: flex; align-items: center; gap: 0.4rem; }
-    .skill-card-name { flex: 1; font-size: 0.78rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .skill-card-badge { font-size: 0.6rem; padding: 0.05rem 0.3rem; border-radius: 3px; background: var(--coral-light); color: var(--coral); font-weight: 600; flex-shrink: 0; }
-    .skill-card-meta { font-size: 0.68rem; color: var(--text-3); }
-    .skill-card-actions { display: flex; gap: 0.3rem; margin-top: 0.2rem; opacity: 0; transition: opacity 0.15s; }
-    .skill-card:hover .skill-card-actions { opacity: 1; }
-    .skill-action-btn { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.65rem; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--text-2); transition: all 0.15s; }
-    .skill-action-btn:hover { background: var(--bg-warm); border-color: var(--coral); color: var(--coral); }
-    .skill-action-btn.danger:hover { border-color: #e57373; color: #e57373; background: #fff5f5; }
-    .skill-loaded-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; border-radius: 4px; background: var(--coral-light); color: var(--coral); font-size: 0.7rem; font-weight: 600; margin-right: 0.3rem; }
-    .skill-loaded-badge button { background: none; border: none; cursor: pointer; color: var(--coral); font-size: 0.75rem; padding: 0; margin-left: 0.2rem; opacity: 0.7; }
-    .skill-loaded-badge button:hover { opacity: 1; }
-    /* Resource panel tabs */
-    .resource-tabs { display: flex; border-bottom: 1px solid var(--border-light); margin-bottom: 0.25rem; }
-    .resource-tab { flex: 1; padding: 0.4rem 0; text-align: center; font-size: 0.72rem; font-weight: 500; color: var(--text-3); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
-    .resource-tab:hover { color: var(--text-2); }
-    .resource-tab.active { color: var(--coral); border-bottom-color: var(--coral); font-weight: 600; }
-    .resource-tab-content { display: none; }
-    .resource-tab-content.active { display: block; }
 </style>
 </head>
 <body>
-
-<!-- 快照模态框 -->
-<div class="snapshot-overlay" id="snapshotOverlay" onclick="if(event.target===this)closeSnapshotModal()">
-  <div class="snapshot-modal">
-    <h3>保存对话快照</h3>
-    <p>将当前对话中的专业知识和方法论提炼为可复用的技能包，供团队内部学习和流转。</p>
-    <input type="text" id="snapshotNameInput" placeholder="输入技能名称，如：玻尿酸填充咨询话术" maxlength="50">
-    <div class="snapshot-status" id="snapshotStatus"></div>
-    <div class="snapshot-preview" id="snapshotPreview"></div>
-    <div class="snapshot-preview-actions" id="snapshotPreviewActions">
-      <button class="snapshot-dl-btn" onclick="downloadSnapshot()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        下载 Markdown
-      </button>
-      <button class="snapshot-dl-btn" onclick="copySnapshotMarkdown()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        复制内容
-      </button>
-      <button class="snapshot-dl-btn" onclick="loadSnapshotToChat()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10m0 0l-3-3m3 3l3-3"/><path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
-        加载到对话
-      </button>
-    </div>
-    <div class="snapshot-modal-actions">
-      <button class="snapshot-cancel" onclick="closeSnapshotModal()">关闭</button>
-      <button class="snapshot-confirm" id="snapshotConfirmBtn" onclick="confirmSnapshot()">提炼并保存</button>
-    </div>
-  </div>
-</div>
-
-<!-- 网络状态提示 -->
-<div id="offlineBanner" class="offline-banner">网络连接已断开，请检查网络后重试</div>
-<div id="reconnectBanner" class="reconnect-banner">正在重新连接...</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -1719,16 +1602,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
               🌐<span class="btn-label"> 联网</span>
             </button>
-            <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图" style="display:none">
+            <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图">
               🎨<span class="btn-label"> 绘图</span>
-            </button>
-            <button class="draw-btn" id="snapshotBtn" onclick="openSnapshotModal()" title="保存快照" style="display:none">
-              📌<span class="btn-label"> 快照</span>
             </button>
             <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
           </div>
           <div class="chat-input-right">
-            <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入" style="display:none">
+            <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入">
               🎙️<span class="btn-label"> 语音</span>
             </button>
             <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>
@@ -1746,46 +1626,35 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         </button>
       </div>
       <div class="resource-panel-body" id="resourcePanelBody">
-        <div class="resource-tabs">
-          <div class="resource-tab active" onclick="switchResourceTab('files')">文件 & 快捷</div>
-          <div class="resource-tab" onclick="switchResourceTab('skills')">我的技能包</div>
+        <div class="resource-section-label">已上传文件</div>
+        <div id="resourceFileList">
+          <div class="resource-empty">暂无上传文件<br><span style="font-size:0.7rem">上传文件后可在此快速引用</span></div>
         </div>
-        <div class="resource-tab-content active" id="resourceTabFiles">
-          <div class="resource-section-label">已上传文件</div>
-          <div id="resourceFileList">
-            <div class="resource-empty">暂无上传文件<br><span style="font-size:0.7rem">上传文件后可在此快速引用</span></div>
+        <div class="resource-section-label" style="margin-top:0.5rem">快捷提问</div>
+        <div id="resourceQuickList">
+          <div class="resource-item" onclick="insertQuickRef('请帮我总结以上文件的核心要点')">
+            <span class="resource-item-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            <span class="resource-item-name">总结核心要点</span>
           </div>
-          <div class="resource-section-label" style="margin-top:0.5rem">快捷提问</div>
-          <div id="resourceQuickList">
-            <div class="resource-item" onclick="insertQuickRef('请帮我总结以上文件的核心要点')">
-              <span class="resource-item-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              </span>
-              <span class="resource-item-name">总结核心要点</span>
-            </div>
-            <div class="resource-item" onclick="insertQuickRef('请根据以上内容生成一份话术模板')">
-              <span class="resource-item-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-              </span>
-              <span class="resource-item-name">生成话术模板</span>
-            </div>
-            <div class="resource-item" onclick="insertQuickRef('请提取其中的关键数据和结论')">
-              <span class="resource-item-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              </span>
-              <span class="resource-item-name">提取关键数据</span>
-            </div>
-            <div class="resource-item" onclick="insertQuickRef('请将以上内容整理成结构化的报告')">
-              <span class="resource-item-icon">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
-              </span>
-              <span class="resource-item-name">整理为结构化报告</span>
-            </div>
+          <div class="resource-item" onclick="insertQuickRef('请根据以上内容生成一份话术模板')">
+            <span class="resource-item-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </span>
+            <span class="resource-item-name">生成话术模板</span>
           </div>
-        </div>
-        <div class="resource-tab-content" id="resourceTabSkills">
-          <div id="skillsList">
-            <div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击“快照”按钮提炼技能包</span></div>
+          <div class="resource-item" onclick="insertQuickRef('请提取其中的关键数据和结论')">
+            <span class="resource-item-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </span>
+            <span class="resource-item-name">提取关键数据</span>
+          </div>
+          <div class="resource-item" onclick="insertQuickRef('请将以上内容整理成结构化的报告')">
+            <span class="resource-item-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+            </span>
+            <span class="resource-item-name">整理为结构化报告</span>
           </div>
         </div>
       </div>
@@ -2159,7 +2028,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   const API_BASE = '';
   let sessionId = null;
-  let currentHistorySessionId = null;
   let currentAgentId = null;
   let messageIndex = 0;
   let currentView = 'desktop';
@@ -2730,7 +2598,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         <div class="welcome-sub" id="welcomeSub">${agent.desc}</div>
       </div>`;
     sessionId = null;
-    currentHistorySessionId = null;
     messageIndex = 0;
 
     document.title = agent.name + ' - MedAgent Hub';
@@ -3178,11 +3045,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       const body = { sessionId, message: msg || '请分析这个文件', ...settings };
       if (fileCtx) body.fileContext = fileCtx;
       if (webSearchEnabled) body.webSearch = true;
-      // 注入已加载的技能包上下文
-      if (loadedSkillContext && loadedSkillContext.content) {
-        body.skillContext = loadedSkillContext.content;
-        body.skillName = loadedSkillContext.skillName;
-      }
 
       // Reset search toggle after sending
       if (webSearchEnabled) {
@@ -3423,23 +3285,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       hideSearchIndicator();
       setDoudouEmotion('confused');
       setTimeout(() => setDoudouEmotion('default'), 4000);
-      // 判断是否为网络错误，提供重试按钮
-      const isNetworkError = !navigator.onLine || (e && (e.message || '').match(/fetch|network|abort|timeout/i));
-      if (isNetworkError) {
-        const retryMsg = document.createElement('div');
-        retryMsg.innerHTML = '<span>网络连接中断，消息发送失败。</span><br><button class="retry-btn-inline" onclick="this.disabled=true;this.textContent=\'\u91cd\u8bd5\u4e2d...\';sendMessage()">重新发送</button>';
-        const container = document.getElementById('chatMessages');
-        const row = document.createElement('div');
-        row.className = 'msg-row assistant';
-        const bubble = document.createElement('div');
-        bubble.className = 'msg-bubble';
-        bubble.appendChild(retryMsg);
-        row.appendChild(bubble);
-        container.appendChild(row);
-        container.scrollTop = container.scrollHeight;
-      } else {
-        addMessage('assistant', '抱歉，遇到了问题，请稍后再试。');
-      }
+      addMessage('assistant', '抱歉，遇到了问题，请稍后再试。');
     } finally {
       input.disabled = false;
       document.getElementById('sendBtn').disabled = false;
@@ -4364,7 +4210,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       document.getElementById('chatInputHint').innerHTML = '这是历史记录，<a href="javascript:startChat(\'' + agent.id + '\')" style="color:var(--coral);text-decoration:underline">点击开始新对话</a>';
       document.getElementById('chatStatus').style.display = 'none';
       sessionId = null;
-      currentHistorySessionId = historySessionId;
     } catch (e) {
       console.error('Load history session error:', e);
       alert('加载历史记录失败，请稍后重试');
@@ -4450,283 +4295,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   // 初始化拖拽功能
   document.addEventListener('DOMContentLoaded', initDragDrop);
-
-  // ===== 会话快照功能 v2 =====
-  let currentSnapshotSessionId = null;
-  let lastSnapshotResult = null; // 保存最近一次快照结果
-  let loadedSkillContext = null; // 当前加载的技能上下文
-
-  function openSnapshotModal() {
-    currentSnapshotSessionId = sessionId || currentHistorySessionId || null;
-    if (!currentSnapshotSessionId) {
-      alert('请先开始一段对话');
-      return;
-    }
-    document.getElementById('snapshotNameInput').value = '';
-    document.getElementById('snapshotStatus').textContent = '';
-    document.getElementById('snapshotConfirmBtn').disabled = false;
-    document.getElementById('snapshotConfirmBtn').style.display = '';
-    document.getElementById('snapshotPreview').style.display = 'none';
-    document.getElementById('snapshotPreview').innerHTML = '';
-    document.getElementById('snapshotPreviewActions').style.display = 'none';
-    lastSnapshotResult = null;
-    document.getElementById('snapshotOverlay').classList.add('active');
-    setTimeout(() => document.getElementById('snapshotNameInput').focus(), 100);
-  }
-
-  function closeSnapshotModal() {
-    document.getElementById('snapshotOverlay').classList.remove('active');
-    document.getElementById('snapshotNameInput').disabled = false;
-    currentSnapshotSessionId = null;
-  }
-
-  async function confirmSnapshot() {
-    const nameInput = document.getElementById('snapshotNameInput');
-    const statusEl = document.getElementById('snapshotStatus');
-    const confirmBtn = document.getElementById('snapshotConfirmBtn');
-    const previewEl = document.getElementById('snapshotPreview');
-    const previewActions = document.getElementById('snapshotPreviewActions');
-    const skillName = nameInput.value.trim();
-    if (!skillName) {
-      statusEl.textContent = '请输入技能名称';
-      statusEl.style.color = '#e57373';
-      nameInput.focus();
-      return;
-    }
-    confirmBtn.disabled = true;
-    statusEl.textContent = '正在提炼对话中的专业知识，请稍候...';
-    statusEl.style.color = 'var(--text-secondary)';
-    try {
-      const resp = await fetch('/api/chat/snapshot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: currentSnapshotSessionId, skillName })
-      });
-      const data = await resp.json();
-      if (data.success) {
-        lastSnapshotResult = data;
-        statusEl.textContent = '技能包已生成！请预览并选择操作：';
-        statusEl.style.color = '#66bb6a';
-        // 显示预览
-        previewEl.innerHTML = marked.parse(data.markdown || data.summary || '');
-        previewEl.style.display = 'block';
-        previewActions.style.display = 'flex';
-        confirmBtn.style.display = 'none';
-        // 刷新技能包列表
-        loadSkillsList();
-      } else {
-        statusEl.textContent = data.error || '保存失败';
-        statusEl.style.color = '#e57373';
-        confirmBtn.disabled = false;
-      }
-    } catch (e) {
-      statusEl.textContent = '网络错误，请重试';
-      statusEl.style.color = '#e57373';
-      confirmBtn.disabled = false;
-    }
-  }
-
-  // 下载快照为 Markdown 文件
-  function downloadSnapshot() {
-    if (!lastSnapshotResult || !lastSnapshotResult.skillId) return;
-    window.open(`/api/chat/snapshot/download?skillId=${lastSnapshotResult.skillId}`, '_blank');
-  }
-
-  // 复制快照 Markdown 内容
-  async function copySnapshotMarkdown() {
-    if (!lastSnapshotResult) return;
-    const text = lastSnapshotResult.markdown || lastSnapshotResult.summary || '';
-    try {
-      await navigator.clipboard.writeText(text);
-      const statusEl = document.getElementById('snapshotStatus');
-      statusEl.textContent = '已复制到剪贴板';
-      statusEl.style.color = '#66bb6a';
-    } catch (e) {
-      // fallback
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      const statusEl = document.getElementById('snapshotStatus');
-      statusEl.textContent = '已复制到剪贴板';
-      statusEl.style.color = '#66bb6a';
-    }
-  }
-
-  // 加载快照到当前对话
-  async function loadSnapshotToChat() {
-    if (!lastSnapshotResult || !lastSnapshotResult.skillId) return;
-    await loadSkillToCurrentChat(lastSnapshotResult.skillId);
-    closeSnapshotModal();
-  }
-
-  // 通用技能加载函数
-  async function loadSkillToCurrentChat(skillId) {
-    try {
-      const resp = await fetch(`/api/chat/snapshot/load?skillId=${skillId}`);
-      const data = await resp.json();
-      if (data.success) {
-        loadedSkillContext = data;
-        // 在输入框上方显示已加载的技能标记
-        showLoadedSkillBadge(data.skillName);
-        // 将技能内容作为下一次发送消息的前缀上下文
-        const input = document.getElementById('messageInput');
-        if (input && !input.value.trim()) {
-          input.placeholder = `已加载技能「${data.skillName}」，请输入问题...`;
-        }
-      } else {
-        alert(data.error || '加载失败');
-      }
-    } catch (e) {
-      alert('网络错误，请重试');
-    }
-  }
-
-  // 显示已加载技能的标记
-  function showLoadedSkillBadge(skillName) {
-    // 移除旧的
-    const old = document.querySelector('.skill-loaded-badge');
-    if (old) old.remove();
-    const badge = document.createElement('div');
-    badge.className = 'skill-loaded-badge';
-    badge.innerHTML = `技能: ${skillName} <button onclick="unloadSkill()" title="卸载">&times;</button>`;
-    const inputWrap = document.querySelector('.chat-input-left');
-    if (inputWrap) inputWrap.prepend(badge);
-  }
-
-  // 卸载技能
-  function unloadSkill() {
-    loadedSkillContext = null;
-    const badge = document.querySelector('.skill-loaded-badge');
-    if (badge) badge.remove();
-    const input = document.getElementById('messageInput');
-    if (input) input.placeholder = 'Enter 发送，Shift+Enter 换行';
-  }
-
-  // ===== 资源面板标签页切换 =====
-  function switchResourceTab(tab) {
-    document.querySelectorAll('.resource-tab').forEach((el, i) => {
-      el.classList.toggle('active', (tab === 'files' && i === 0) || (tab === 'skills' && i === 1));
-    });
-    document.getElementById('resourceTabFiles').classList.toggle('active', tab === 'files');
-    document.getElementById('resourceTabSkills').classList.toggle('active', tab === 'skills');
-    if (tab === 'skills') loadSkillsList();
-  }
-
-  // ===== 技能包列表管理 =====
-  async function loadSkillsList() {
-    const container = document.getElementById('skillsList');
-    try {
-      const resp = await fetch('/api/chat/snapshots');
-      const data = await resp.json();
-      const snapshots = data.snapshots || [];
-      if (snapshots.length === 0) {
-        container.innerHTML = '<div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击“快照”按钮提炼技能包</span></div>';
-        return;
-      }
-      container.innerHTML = snapshots.map(s => {
-        const date = new Date(s.createdAt).toLocaleDateString('zh-CN');
-        return `<div class="skill-card" onclick="previewSkill('${s.id}')">
-          <div class="skill-card-header">
-            <span class="skill-card-name">${s.skillName || s.id}</span>
-            <span class="skill-card-badge">${s.messageCount}条对话</span>
-          </div>
-          <div class="skill-card-meta">来源: ${s.agentName || '未知'} | ${date}</div>
-          <div class="skill-card-actions">
-            <button class="skill-action-btn" onclick="event.stopPropagation();loadSkillToCurrentChat('${s.id}')">加载</button>
-            <button class="skill-action-btn" onclick="event.stopPropagation();downloadSkill('${s.id}')">下载</button>
-            <button class="skill-action-btn danger" onclick="event.stopPropagation();deleteSkill('${s.id}')">删除</button>
-          </div>
-        </div>`;
-      }).join('');
-    } catch (e) {
-      container.innerHTML = '<div class="resource-empty">加载失败，请重试</div>';
-    }
-  }
-
-  // 预览技能包
-  async function previewSkill(skillId) {
-    try {
-      const resp = await fetch(`/api/chat/snapshot/preview?skillId=${skillId}`);
-      const data = await resp.json();
-      if (data.success) {
-        lastSnapshotResult = { skillId, markdown: data.markdown, skillName: data.meta.skillName };
-        document.getElementById('snapshotNameInput').value = data.meta.skillName || '';
-        document.getElementById('snapshotNameInput').disabled = true;
-        document.getElementById('snapshotStatus').textContent = '';
-        document.getElementById('snapshotConfirmBtn').style.display = 'none';
-        document.getElementById('snapshotPreview').innerHTML = marked.parse(data.markdown || '');
-        document.getElementById('snapshotPreview').style.display = 'block';
-        document.getElementById('snapshotPreviewActions').style.display = 'flex';
-        document.getElementById('snapshotOverlay').classList.add('active');
-      } else {
-        alert(data.error || '预览失败');
-      }
-    } catch (e) {
-      alert('网络错误');
-    }
-  }
-
-  // 下载技能包
-  function downloadSkill(skillId) {
-    window.open(`/api/chat/snapshot/download?skillId=${skillId}`, '_blank');
-  }
-
-  // 删除技能包
-  async function deleteSkill(skillId) {
-    if (!confirm('确定要删除这个技能包吗？删除后无法恢复。')) return;
-    try {
-      const resp = await fetch('/api/chat/snapshot/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skillId })
-      });
-      const data = await resp.json();
-      if (data.success) {
-        loadSkillsList();
-      } else {
-        alert(data.error || '删除失败');
-      }
-    } catch (e) {
-      alert('网络错误');
-    }
-  }
-
-  // 对话超过 4 条消息时显示快照按钮
-  function updateSnapshotBtnVisibility() {
-    const btn = document.getElementById('snapshotBtn');
-    if (!btn) return;
-    const msgContainer = document.getElementById('chatMessages');
-    const msgCount = msgContainer ? msgContainer.querySelectorAll('.msg-row').length : 0;
-    btn.style.display = msgCount >= 2 ? '' : 'none';
-  }
-
-  // 监听消息容器变化，自动显示/隐藏快照按钮
-  const chatMsgObserver = new MutationObserver(updateSnapshotBtnVisibility);
-  document.addEventListener('DOMContentLoaded', () => {
-    const msgContainer = document.getElementById('chatMessages');
-    if (msgContainer) chatMsgObserver.observe(msgContainer, { childList: true, subtree: true });
-  });
-
-  // ===== 网络状态监听 =====
-  window.addEventListener('offline', () => {
-    const banner = document.getElementById('offlineBanner');
-    if (banner) banner.classList.add('show');
-  });
-  window.addEventListener('online', () => {
-    const offBanner = document.getElementById('offlineBanner');
-    if (offBanner) offBanner.classList.remove('show');
-    // 短暂显示重连成功提示
-    const reconBanner = document.getElementById('reconnectBanner');
-    if (reconBanner) {
-      reconBanner.textContent = '网络已恢复连接';
-      reconBanner.style.background = '#66bb6a';
-      reconBanner.classList.add('show');
-      setTimeout(() => { reconBanner.classList.remove('show'); reconBanner.style.background = ''; reconBanner.textContent = '正在重新连接...'; }, 3000);
-    }
-  });
 </script>
 </body>
 </html>

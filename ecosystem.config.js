@@ -4,7 +4,7 @@ module.exports = {
     script: 'api-server.js',
     env: {
       AI_PROVIDER: 'deepseek',
-      DEEPSEEK_API_KEY: 'sk-e89416f270d340f091e14e7529f91090',
+      DEEPSEEK_API_KEY: 'sk-acefd31feeab4dc5ac2a81d20fbfdd5e',
       DEEPSEEK_BASE_URL: 'https://api.deepseek.com/v1',
       DEEPSEEK_MODEL: 'deepseek-chat',
       SILICONFLOW_API_KEY: 'sk-ofsefwdlyhehonvqdeyupmctskzurehbfasdiflhapyvguem',

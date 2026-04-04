@@ -1,11 +1,15 @@
 /**
- * MedAgent Hub 工具注册中心 v3
- * v3 新增：skill_dispatch 工具，实现统一 IP + Skill 路由架构
+ * MedAgent Hub 工具注册中心 v4
+ * 整合了 NMPA、Tavily 和知识库检索的 Function Calling 架构
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
+
+const { NMPA_TOOL_DEFINITION, executeNmpaSearch } = require('./nmpa-tool');
+const { TAVILY_TOOL_DEFINITION, executeTavilySearch } = require('./tavily-tool');
+const { KB_TOOL_DEFINITION, executeKbSearch } = require('./kb-tool');
 
 let medaestheticsDb = null;
 try {
@@ -16,31 +20,47 @@ try {
 
 const nmpaSearchTool = {
   id: 'nmpa_search',
-  definition: {
-    type: 'function',
-    function: {
-      name: 'nmpa_search',
-      description: '查询国家药品监督管理局（NMPA）数据库，验证医疗器械、药品、化妆品的注册/备案信息、批准文号、生产企业等合规信息。当用户询问某产品是否合规、是否有批文、是否正规时调用此工具。',
-      parameters: {
-        type: 'object',
-        properties: {
-          keyword: { type: 'string', description: '要查询的产品名称、批准文号或企业名称' }
-        },
-        required: ['keyword']
-      }
-    }
-  },
+  definition: NMPA_TOOL_DEFINITION,
   async execute(args, context) {
-    const { keyword } = args;
-    const { nmpaSearch, detectNmpaProduct, message } = context;
-    const searchTerm = keyword || detectNmpaProduct?.(message) || message;
+    const { nmpaSearch } = context;
     if (!nmpaSearch) return { text: 'NMPA 查询功能当前不可用。', toolEvent: null };
-    try {
-      const result = await nmpaSearch(searchTerm);
-      return { text: result.text || JSON.stringify(result), toolEvent: { type: 'tool_call', tool: 'nmpa_search', keyword: searchTerm } };
-    } catch (e) {
-      return { text: `NMPA 查询失败：${e.message}`, toolEvent: null };
-    }
+    
+    const result = await executeNmpaSearch(args, nmpaSearch);
+    return { 
+      text: result.content, 
+      searchResults: result.rawResults || [],
+      toolEvent: { type: 'tool_call', tool: 'nmpa_search', args } 
+    };
+  }
+};
+
+const webSearchTool = {
+  id: 'web_search',
+  definition: TAVILY_TOOL_DEFINITION,
+  async execute(args, context) {
+    const { tavilyApiKey } = context;
+    const result = await executeTavilySearch(args, tavilyApiKey);
+    return { 
+      text: result.content, 
+      searchResults: result.rawResults || [],
+      toolEvent: { type: 'tool_call', tool: 'web_search', args } 
+    };
+  }
+};
+
+const kbSearchTool = {
+  id: 'knowledge_search',
+  definition: KB_TOOL_DEFINITION,
+  async execute(args, context) {
+    const { kb, agentId, sfKey, bm25Retrieve, mergeRetrievalResults, rerankChunks } = context;
+    const result = await executeKbSearch(
+      args, kb, agentId, sfKey, bm25Retrieve, mergeRetrievalResults, rerankChunks
+    );
+    return { 
+      text: result.content, 
+      searchResults: result.rawResults || [],
+      toolEvent: { type: 'tool_call', tool: 'knowledge_search', args } 
+    };
   }
 };
 
@@ -82,42 +102,6 @@ const queryMedDbTool = {
       return { text: parts.join('\n\n'), toolEvent: { type: 'tool_call', tool: 'query_med_db', keyword } };
     } catch (e) {
       return { text: `医美数据库查询失败：${e.message}`, toolEvent: null };
-    }
-  }
-};
-
-const webSearchTool = {
-  id: 'web_search',
-  definition: {
-    type: 'function',
-    function: {
-      name: 'web_search',
-      description: '通过互联网搜索最新信息，适用于查询行业动态、最新技术、近期新闻、实时数据等需要最新信息的问题。',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: '搜索关键词' },
-          freshness: { type: 'string', enum: ['day', 'week', 'month', 'year', 'noLimit'], description: '搜索时效性过滤' }
-        },
-        required: ['query']
-      }
-    }
-  },
-  async execute(args, context) {
-    const { query, freshness = 'noLimit' } = args;
-    const { bochaSearch } = context;
-    if (!bochaSearch) return { text: '联网搜索功能当前不可用。', searchResults: [], toolEvent: null };
-    try {
-      // 修复：bochaSearch(query, count) 第二参数是数量，freshness 通过 context 传递
-      const searchResult = await bochaSearch(query, 5);
-      const results = searchResult?.results || (Array.isArray(searchResult) ? searchResult : []);
-      if (results && results.length > 0) {
-        const text = results.slice(0, 5).map((r, i) => `[${i + 1}] ${r.title}\n来源：${r.url}\n摘要：${r.snippet}`).join('\n\n');
-        return { text, searchResults: results, toolEvent: { type: 'tool_call', tool: 'web_search', query } };
-      }
-      return { text: `搜索"${query}"未找到相关结果。`, searchResults: [], toolEvent: null };
-    } catch (e) {
-      return { text: `联网搜索失败：${e.message}`, searchResults: [], toolEvent: null };
     }
   }
 };
@@ -245,7 +229,6 @@ const skillDispatchTool = {
   async execute(args, context) {
     const { skill_id, reason } = args;
     const displayName = SKILL_DISPLAY_NAMES[skill_id] || skill_id;
-    // ★ 防御：模型传入空 skill_id 时拒绝路由
     if (!skill_id) {
       console.warn(`⚠️ [skill_dispatch] 收到空 skill_id，拒绝路由`);
       return { text: "请直接回答用户的问题。", toolEvent: null, skillPrompt: null, skillId: null, skillDisplayName: null };
@@ -271,6 +254,7 @@ const TOOL_REGISTRY = {
   [nmpaSearchTool.id]: nmpaSearchTool,
   [queryMedDbTool.id]: queryMedDbTool,
   [webSearchTool.id]: webSearchTool,
+  [kbSearchTool.id]: kbSearchTool,
   [skillDispatchTool.id]: skillDispatchTool,
   [getUserMemoryTool.id]: getUserMemoryTool,
 };
@@ -281,7 +265,6 @@ function getToolDefinitions(toolIds) {
 }
 
 async function executeTool(toolName, args, context) {
-  // ★ 工具名别名映射：DeepSeek-V3 有时直接输出技能名而非 skill_dispatch
   const TOOL_ALIASES = {
     'product_strategist': 'skill_dispatch',
     'senior_consultant': 'skill_dispatch',

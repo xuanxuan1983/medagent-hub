@@ -19,7 +19,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const BOCHA_API_KEY = process.env.BOCHA_API_KEY || 'sk-7ea4e182a6104e28b16722fafafe449d';
+const BOCHA_API_KEY = process.env.BOCHA_API_KEY || 'sk-51d7d709eb6d4150b76dc131663330d3';
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const CACHE_FILE = path.join(DATA_DIR, 'nmpa-cache.json');
 const LOG_FILE = path.join(DATA_DIR, 'nmpa-sync.log');

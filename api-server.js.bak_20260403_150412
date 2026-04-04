@@ -1,40 +1,5 @@
 #!/usr/bin/env node
 
-// ===== 环境变量加载 =====
-const dotenvPath = require('path').join(__dirname, '.env');
-if (require('fs').existsSync(dotenvPath)) {
-  require('dotenv').config({ path: dotenvPath });
-}
-
-// ===== 启动校验：关键环境变量检查 =====
-(function validateEnv() {
-  const required = [
-    { key: 'ADMIN_CODE', desc: '管理员验证码' },
-  ];
-  const recommended = [
-    { key: 'DEEPSEEK_API_KEY', desc: 'DeepSeek API 密钥（主模型）' },
-    { key: 'TAVILY_API_KEY', desc: 'Tavily 搜索 API 密钥' },
-  ];
-  const missing = required.filter(v => !process.env[v.key]);
-  const missingRec = recommended.filter(v => !process.env[v.key]);
-
-  if (missing.length > 0) {
-    console.error('\n\x1b[31m[FATAL] 缺少必需的环境变量：\x1b[0m');
-    missing.forEach(v => console.error(`  - ${v.key}: ${v.desc}`));
-    console.error('\n请在 .env 文件中配置以上变量后重新启动。\n');
-    process.exit(1);
-  }
-  if (missingRec.length > 0) {
-    console.warn('\n\x1b[33m[WARN] 以下推荐环境变量未配置（部分功能可能不可用）：\x1b[0m');
-    missingRec.forEach(v => console.warn(`  - ${v.key}: ${v.desc}`));
-    console.warn('');
-  }
-  console.log('[ENV] 环境变量校验通过');
-})();
-
-const { handleUnifiedChatStream } = require("./routes/unified-chat-stream");
-const { createSnapshot, listSnapshots, getSnapshotContent, loadSkillForChat, deleteSnapshot } = require('./routes/snapshot');
-
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
@@ -51,8 +16,8 @@ const { execSync } = require('child_process');
 const kb = require('./knowledge-base');
 
 const PORT = process.env.PORT || 3002;
-const ADMIN_CODE = process.env.ADMIN_CODE || '';
-const BRIEF_PUSH_KEY = process.env.BRIEF_PUSH_KEY || '';
+const ADMIN_CODE = process.env.ADMIN_CODE || 'admin2026';
+const BRIEF_PUSH_KEY = process.env.BRIEF_PUSH_KEY || '1b93765196bf145c607244194f424197c224eff79fb1a493';
 const COOKIE_NAME = 'medagent_auth';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
@@ -61,7 +26,7 @@ const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // Bocha Search API
-const BOCHA_API_KEY = process.env.BOCHA_API_KEY || '';
+const BOCHA_API_KEY = process.env.BOCHA_API_KEY || 'sk-51d7d709eb6d4150b76dc131663330d3';
 
 // ===== Notion 知识库配置 =====
 const NOTION_API_KEY = process.env.NOTION_API_KEY || '';
@@ -149,8 +114,8 @@ async function searchNotion(query, maxResults = 5) {
 const BOCHA_API_URL = 'https://api.bochaai.com/v1/web-search';
 
 // LibLib AI 图片生成
-const LIBLIB_ACCESS_KEY = process.env.LIBLIB_ACCESS_KEY || '';
-const LIBLIB_SECRET_KEY = process.env.LIBLIB_SECRET_KEY || '';
+const LIBLIB_ACCESS_KEY = process.env.LIBLIB_ACCESS_KEY || 'JP004_52azfkydBDkipUeQ';
+const LIBLIB_SECRET_KEY = process.env.LIBLIB_SECRET_KEY || 'Nx1rqfvE88V1KdX_7L5jaEwyUklmL0Z7';
 const LIBLIB_API_URL = 'https://openapi.liblibai.cloud';
 
 // ===== 权限体系常量 =====
@@ -1056,38 +1021,16 @@ function getReferralStats(userCode) {
   return { refCode, inviteCount, totalCredit, paidCredit, pendingCredit, records: myRecords };
 }
 
-// ===== 内存缓存层：避免每次请求都读写文件 =====
-let _profilesCache = null;
-let _profilesDirty = false;
-
 function loadProfiles() {
-  if (_profilesCache) return _profilesCache;
   try {
-    if (fs.existsSync(PROFILES_FILE)) {
-      _profilesCache = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
-      return _profilesCache;
-    }
+    if (fs.existsSync(PROFILES_FILE)) return JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
   } catch {}
-  _profilesCache = {};
-  return _profilesCache;
+  return {};
 }
 
 function saveProfiles(profiles) {
-  _profilesCache = profiles;
-  _profilesDirty = true;
+  fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2));
 }
-
-// 定时刷盘：每 5 秒检查一次，有变更才写入磁盘
-setInterval(() => {
-  if (_profilesDirty && _profilesCache) {
-    try {
-      fs.writeFileSync(PROFILES_FILE, JSON.stringify(_profilesCache, null, 2));
-      _profilesDirty = false;
-    } catch (e) {
-      console.error('[Cache] profiles 刷盘失败:', e.message);
-    }
-  }
-}, 5000);
 
 // ===== 权限体系辅助函数 =====
 
@@ -1265,85 +1208,40 @@ function incrementMonthlySearch(code) {
   return p.search_month_count;
 }
 
-// ===== loadCodes 内存缓存 =====
-let _codesCache = null;
-let _codesDirty = false;
-
 function loadCodes() {
-  if (_codesCache) return _codesCache;
   try {
-    if (fs.existsSync(CODES_FILE)) {
-      _codesCache = JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
-      return _codesCache;
-    }
+    if (fs.existsSync(CODES_FILE)) return JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
   } catch {}
-  _codesCache = { 'medagent2026': '默认用户' };
-  fs.writeFileSync(CODES_FILE, JSON.stringify(_codesCache, null, 2));
-  return _codesCache;
+  const defaults = { 'medagent2026': '默认用户' };
+  fs.writeFileSync(CODES_FILE, JSON.stringify(defaults, null, 2));
+  return defaults;
 }
 
 function saveCodes(map) {
-  _codesCache = map;
-  _codesDirty = true;
+  fs.writeFileSync(CODES_FILE, JSON.stringify(map, null, 2));
 }
 
-// ===== loadUsage 内存缓存 =====
-let _usageCache = null;
-let _usageDirty = false;
-
 function loadUsage() {
-  if (_usageCache) return _usageCache;
   try {
-    if (fs.existsSync(USAGE_FILE)) {
-      _usageCache = JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8'));
-      return _usageCache;
-    }
+    if (fs.existsSync(USAGE_FILE)) return JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8'));
   } catch {}
-  _usageCache = {};
-  return _usageCache;
+  return {};
 }
 
 function saveUsage(usage) {
-  _usageCache = usage;
-  _usageDirty = true;
+  fs.writeFileSync(USAGE_FILE, JSON.stringify(usage, null, 2));
 }
 
-// ===== loadUsageLimits 内存缓存 =====
-let _usageLimitsCache = null;
-let _usageLimitsDirty = false;
-
 function loadUsageLimits() {
-  if (_usageLimitsCache) return _usageLimitsCache;
   try {
-    if (fs.existsSync(USAGE_LIMITS_FILE)) {
-      _usageLimitsCache = JSON.parse(fs.readFileSync(USAGE_LIMITS_FILE, 'utf8'));
-      return _usageLimitsCache;
-    }
+    if (fs.existsSync(USAGE_LIMITS_FILE)) return JSON.parse(fs.readFileSync(USAGE_LIMITS_FILE, 'utf8'));
   } catch {}
-  _usageLimitsCache = {};
-  return _usageLimitsCache;
+  return {};
 }
 
 function saveUsageLimits(limits) {
-  _usageLimitsCache = limits;
-  _usageLimitsDirty = true;
+  fs.writeFileSync(USAGE_LIMITS_FILE, JSON.stringify(limits, null, 2));
 }
-
-// 统一刷盘定时器：每 5 秒检查 codes/usage/usageLimits 的变更
-setInterval(() => {
-  if (_codesDirty && _codesCache) {
-    try { fs.writeFileSync(CODES_FILE, JSON.stringify(_codesCache, null, 2)); _codesDirty = false; }
-    catch (e) { console.error('[Cache] codes 刷盘失败:', e.message); }
-  }
-  if (_usageDirty && _usageCache) {
-    try { fs.writeFileSync(USAGE_FILE, JSON.stringify(_usageCache, null, 2)); _usageDirty = false; }
-    catch (e) { console.error('[Cache] usage 刷盘失败:', e.message); }
-  }
-  if (_usageLimitsDirty && _usageLimitsCache) {
-    try { fs.writeFileSync(USAGE_LIMITS_FILE, JSON.stringify(_usageLimitsCache, null, 2)); _usageLimitsDirty = false; }
-    catch (e) { console.error('[Cache] usageLimits 刷盘失败:', e.message); }
-  }
-}, 5000);
 
 function getCodeMaxUses(code) {
   const limits = loadUsageLimits();
@@ -1769,27 +1667,8 @@ try {
   console.error('❌ 微信支付初始化失败:', e.message);
 }
 
-/// Store conversation sessions
+// Store conversation sessions
 const sessions = new Map();
-
-// ===== Session TTL 清理机制 =====
-// 每小时清理超过 24 小时未活跃的会话，防止内存泄漏
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 小时
-const SESSION_CLEANUP_INTERVAL = 60 * 60 * 1000; // 每小时执行一次
-setInterval(() => {
-  const now = Date.now();
-  let cleaned = 0;
-  for (const [sid, session] of sessions) {
-    const lastActive = session.lastActivity || session.createdAt || 0;
-    if (now - lastActive > SESSION_TTL_MS) {
-      sessions.delete(sid);
-      cleaned++;
-    }
-  }
-  if (cleaned > 0) {
-    console.log(`[Session Cleanup] 清理 ${cleaned} 个过期会话，剩余 ${sessions.size} 个`);
-  }
-}, SESSION_CLEANUP_INTERVAL);
 
 // AI Provider adapters
 class GeminiProvider {
@@ -1930,65 +1809,6 @@ class DeepSeekProvider {
         output_tokens: data.usage.completion_tokens
       }
     };
-  }
-
-  // 流式对话（不带工具）
-  async chatStream(systemPrompt, messages) {
-    const formattedMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages
-    ];
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: formattedMessages,
-        temperature: 0.7,
-        max_tokens: 2048,
-        stream: true
-      })
-    });
-    if (!response.ok) {
-      const errData = await response.text();
-      throw new Error(`DeepSeek stream error: ${errData}`);
-    }
-    return response.body;
-  }
-
-  // 流式对话（带工具调用）
-  async chatStreamWithTools(systemPrompt, messages, tools) {
-    const formattedMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages
-    ];
-    const body = {
-      model: 'deepseek-chat',
-      messages: formattedMessages,
-      temperature: 0.7,
-      max_tokens: 2048,
-      stream: true
-    };
-    if (tools && tools.length > 0) {
-      body.tools = tools;
-      body.tool_choice = 'auto';
-    }
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify(body)
-    });
-    if (!response.ok) {
-      const errData = await response.text();
-      throw new Error(`DeepSeek tool stream error: ${errData}`);
-    }
-    return response.body;
   }
 }
 
@@ -2160,7 +1980,7 @@ const MEDAESTHETIC_IMAGE_PROMPTS = {
 };
 
 // ===== 魔搭 Z-Image-Turbo 图片生成 =====
-const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || '';
+const MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY || 'ms-2301e8af-a457-4927-8041-9fbd9ef50c8e';
 const MODELSCOPE_BASE_URL = 'https://api-inference.modelscope.cn';
 
 async function generateImageModelScope(promptKey, customPrompt) {
@@ -2312,10 +2132,6 @@ function createProviderFromConfig(providerId, apiKey, model) {
       chat: async (systemPrompt, messages) => {
         const res = await client.messages.create({ model: resolvedModel, max_tokens: 800, system: systemPrompt, messages });
         return { message: res.content[0].text, usage: { input_tokens: res.usage.input_tokens, output_tokens: res.usage.output_tokens } };
-      },
-      chatStream: async (systemPrompt, messages) => {
-        const res = await client.messages.create({ model: resolvedModel, max_tokens: 2048, system: systemPrompt, messages, stream: true });
-        return res;
       }
     };
   }
@@ -2752,9 +2568,7 @@ const server = http.createServer(async (req, res) => {
         userName,
         userCode,
         systemPrompt,
-        messages: [],
-        createdAt: Date.now(),
-        lastActivity: Date.now()
+        messages: []
       });
 
       // Save session to SQLite
@@ -2780,103 +2594,454 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Send message (streaming SSE)
-
-  // ===== 专家模式路由 v3.0 =====
-  if (url.pathname === '/api/chat/expert-stream' && req.method === 'POST') {
-    try {
-
-      const deps = {
-        sessions, parseRequestBody, isAuthenticated, getUserCode, getUserPlanStatus,
-        envConfig: { TRIAL_AGENTS, CONTENT_AGENTS_META, PRO_MONTHLY_SEARCH_LIMIT, loadProfiles, saveProfiles },
-        classifyIntentFast, aiProvider, createProviderFromConfig,
-        stmtInsertMessage, stmtUpdateSessionTime, fs, path, DATA_DIR, stmtInsertConvLog,
-        recordTokenUsage, incrementDailyMsg, incrementMonthlySearch, recordBochaUsage,
-        SiliconFlowProvider,
-        nmpaSearch, detectNmpaProduct, kb, bm25Retrieve, mergeRetrievalResults, rerankChunks,
-        parseSSEStream: async function*(stream) {
-          let buf = '';
-          for await (const chunk of stream) {
-            buf += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
-            const lines = buf.split('\n');
-            buf = lines.pop() || '';
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const s = line.slice(6).trim();
-              if (s === '[DONE]') continue;
-              try { yield JSON.parse(s); } catch (e) { /* skip */ }
-            }
-          }
-        },
-        AI_PROVIDER
-      };
-
-      deps.isExpertMode = true;
-      await handleUnifiedChatStream(req, res, deps);
-    } catch (e) {
-      console.error('Expert stream wrapper error:', e);
-      if (!res.headersSent) {
-        res.writeHead(500);
-        res.end(JSON.stringify({error: 'Internal Server Error'}));
-      }
-    }
-    return;
-  }
-
-  // 专家模式状态查询
-  if (url.pathname === '/api/expert/status' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const planStatus = getUserPlanStatus(userCode);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      available: planStatus.isProPlus,
-      plan: planStatus.plan,
-      model: process.env.EXPERT_MODEL || 'Pro/deepseek-ai/DeepSeek-R1',
-      version: '3.0'
-    }));
-    return;
-  }
-
   if (url.pathname === '/api/chat/message-stream' && req.method === 'POST') {
     try {
+      if (!isAuthenticated(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
 
-      const deps = {
-        sessions, parseRequestBody, isAuthenticated, getUserCode, getUserPlanStatus,
-        envConfig: { TRIAL_AGENTS, CONTENT_AGENTS_META, PRO_MONTHLY_SEARCH_LIMIT, loadProfiles, saveProfiles },
-        classifyIntentFast, aiProvider, createProviderFromConfig,
-        stmtInsertMessage, stmtUpdateSessionTime, fs, path, DATA_DIR, stmtInsertConvLog,
-        recordTokenUsage, incrementDailyMsg, incrementMonthlySearch, recordBochaUsage,
-        SiliconFlowProvider,
-        nmpaSearch, detectNmpaProduct, kb, bm25Retrieve, mergeRetrievalResults, rerankChunks,
-        parseSSEStream: async function*(stream) {
-          let buf = '';
-          for await (const chunk of stream) {
-            buf += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
-            const lines = buf.split('\n');
-            buf = lines.pop() || '';
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const s = line.slice(6).trim();
-              if (s === '[DONE]') continue;
-              try { yield JSON.parse(s); } catch (e) { /* skip */ }
+      const { sessionId, message, fileContext, provider: userProvider, apiKey: userApiKey, model: userModel, webSearch } = await parseRequestBody(req);
+
+      if (!sessionId || !sessions.has(sessionId)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid session ID' }));
+        return;
+      }
+
+      const session = sessions.get(sessionId);
+      const userCode = session.userCode || getUserCode(req);
+
+      // ===== 权限检查 =====
+      const planStatus = getUserPlanStatus(userCode);
+
+      // 检查试用期是否到期
+      if (planStatus.isTrialExpired) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'trial_expired',
+          message: '免费试用期已结束，请升级为 Pro 会员继续使用',
+          planStatus
+        }));
+        return;
+      }
+
+      // 检查 Agent 访问权限（内测期间分级控制）
+      if (session.agentId && !TRIAL_AGENTS.includes(session.agentId)) {
+        // 内容创作类Agent：需要Pro+或已解锁beta权益
+        if (CONTENT_AGENTS_META.has(session.agentId)) {
+          const userProfile = loadProfiles()[userCode] || {};
+          const hasBetaUnlock = userProfile.beta_unlock === true;
+          if (!planStatus.isPro && !hasBetaUnlock) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: 'agent_locked_content',
+              message: '该 Agent 为内容创作类专属，升级 Pro 或提交有价值反馈后可解锁',
+              planStatus
+            }));
+            return;
+          }
+        }
+      }
+
+      // 检查每日消息配额
+      if (planStatus.dailyRemaining <= 0) {
+        res.writeHead(429, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'daily_limit_exceeded',
+          message: `今日消息配额已用尽（${planStatus.dailyLimit}条/天），明日自动重置`,
+          planStatus
+        }));
+        return;
+      }
+
+      // 检查联网搜索权限
+      if (webSearch && !planStatus.canSearch) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'search_not_allowed',
+          message: planStatus.isPro
+            ? `本月联网搜索配额已用尽（${PRO_MONTHLY_SEARCH_LIMIT}次/月）`
+            : '联网搜索为 Pro 会员专属功能，请升级以使用',
+          planStatus
+        }));
+        return;
+      }
+      // ===== 权限检查结束 =====
+
+      // Build user message content
+      let userContent = message;
+      if (fileContext) {
+        userContent = `用户上传了文件《${fileContext.name}》，内容如下：\n\n---\n${fileContext.content.substring(0, 8000)}\n---\n\n用户问题：${message}`;
+      }
+
+      session.messages.push({ role: 'user', content: userContent });
+      console.log(`💬 [${session.agentName}] User: ${message.substring(0, 50)}...`);
+
+      // ===== 用户记忆系统：提取属性并注入上下文 =====
+      try {
+        const userMemModule = require('./user-memory');
+        const profiles = loadProfiles();
+        const memUpdated = userMemModule.updateUserMemory(profiles, userCode, message);
+        if (memUpdated) saveProfiles(profiles);
+        const memContext = userMemModule.getUserMemoryContext(profiles, userCode, session.messages);
+        if (memContext) {
+          session._memoryContext = memContext;  // 缓存到session，避免重复读取
+        }
+      } catch (e) {
+        console.warn('[用户记忆] 提取跳过:', e.message);
+      }
+
+      // ===== 意图感知的多路检索系统 =====
+      let searchResults = null;
+      let enrichedSystemPrompt = session.systemPrompt;
+      // 注入用户记忆上下文
+      if (session._memoryContext) {
+        enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + session._memoryContext;
+      }
+      const agentId = session.agentId;
+
+      // 0️⃣ 查询意图分类（毫秒级，无需LLM）
+      const intentResult = classifyIntentFast(message);
+      const strategy = getRetrievalStrategy(intentResult.intent);
+      console.log(`🧠 [意图分类] ${intentResult.intent} (置信度: ${intentResult.confidence}) | 策略: NMPA=${strategy.useNmpa}, Web=${strategy.useWebSearch}, KB=${strategy.useKb}`);
+
+      // 1️⃣ 药监局自动查询（合规/产品/对比意图 OR 检测到产品关键词）
+      const shouldQueryNmpa = (strategy.useNmpa && AGENTS_NEED_NMPA_META.has(agentId)) || 
+                               (intentResult.intent === 'compliance') ||
+                               (agentId === 'doudou' && detectNmpaProduct(message) !== null);
+      if (shouldQueryNmpa) {
+        const detectedProducts = detectNmpaProduct(message);
+        if (detectedProducts) {
+          const nmpaData = await nmpaSearch(message, detectedProducts);
+          if (nmpaData.success && nmpaData.results.length > 0) {
+            const nmpaContext = nmpaData.results.map(r =>
+              `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
+            ).join('\n\n');
+            enrichedSystemPrompt = session.systemPrompt + `\n\n===== 药监局实时注册信息 =====\n以下是关于「${detectedProducts.join('、')}」的药监局官方注册信息，请将这些信息结合你的专业知识进行回答，并在回答末尾标注数据来源：\n\n${nmpaContext}\n\n重要：如有注册证号、适应症范围、有效期等官方信息，请明确引用。`;
+            searchResults = nmpaData.results;
+            console.log(`✅ [药监局查询] 找到 ${nmpaData.results.length} 条结果`);
+          }
+        }
+      }
+
+      // 1.5️⃣ 行业资讯实时抓取（趋势查询时自动触发）
+      if (intentResult.intent === 'trend_query') {
+        try {
+          const newsModule = require('./medaesthetics-news');
+          const relevantNews = await Promise.race([
+            newsModule.searchNews(message, 5),
+            new Promise(resolve => setTimeout(() => resolve([]), 4000))
+          ]);
+          if (relevantNews && relevantNews.length > 0) {
+            const newsText = newsModule.formatNewsResult(relevantNews);
+            enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 医美行业最新资讯 =====\n以下是来自医美行业媒体的最新动态，请结合这些信息回答用户的趋势问题：\n\n${newsText}\n\n请在回答中引用具体资讯来源和日期。`;
+            console.log(`✅ [行业资讯] 找到 ${relevantNews.length} 条相关资讯`);
+          }
+        } catch (e) {
+          console.warn('[行业资讯] 抓取跳过:', e.message);
+        }
+      }
+
+      // 2️⃣ 联网搜索（用户手动开启 OR 意图策略要求 OR 自动检测时效性）
+      const autoSearchByIntent = !webSearch && strategy.useWebSearch && planStatus.canSearch;
+      const autoSearchByKeyword = !webSearch && needsWebSearch(message) && planStatus.canSearch;
+      if (webSearch || autoSearchByIntent || autoSearchByKeyword) {
+        // 根据意图优化搜索词
+        const searchQuery = buildIntentAwareQuery(message, intentResult.intent);
+        console.log(`🔍 [联网搜索] 意图=${intentResult.intent} | 搜索: ${searchQuery.substring(0, 60)}`);
+        const searchData = await bochaSearch(searchQuery, 5);
+        if (searchData.success && searchData.results.length > 0) {
+          searchResults = (searchResults || []).concat(searchData.results);
+          const searchContext = searchData.results.map(r =>
+            `[${r.index}] ${r.title}\n来源: ${r.url}\n摘要: ${r.snippet}`
+          ).join('\n\n');
+          const searchDate1 = new Date().toLocaleDateString('zh-CN', {timeZone:'Asia/Shanghai'});
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 联网搜索结果（实时，搜索于${searchDate1}） =====\n以下是对于「${message.substring(0, 50)}」的最新搜索结果，请将这些信息结合你的专业知识进行回答，并在回答末尾标注信息来源：\n\n${searchContext}\n\n请在回答中适当引用来源，并在回答末尾添加参考链接列表。`;
+          console.log(`✅ 搜索完成，获得 ${searchData.results.length} 条结果`);
+          if (autoSearchByIntent || autoSearchByKeyword) incrementSearchCount(userCode);
+        }
+      }
+
+      // 3️⃣ Notion 知识库查询（自动触发，最多等 3 秒，超时自动跳过）
+      if (notionClient) {
+        try {
+          const notionData = await Promise.race([
+            searchNotion(message.substring(0, 100), 3),
+            new Promise(resolve => setTimeout(() => resolve({ success: false, results: [] }), 3000))
+          ]);
+          if (notionData.success && notionData.results.length > 0) {
+            const notionContext = notionData.results.map((r, i) =>
+              `[${i+1}] ${r.title}\n链接: ${r.url}\n内容: ${r.content || '（无正文）'}`
+            ).join('\n\n');
+            enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== Notion 知识库参考资料 =====\n以下是来自内部知识库的相关内容，请优先参考这些内部资料回答问题：\n\n${notionContext}\n\n如果知识库内容与问题高度相关，请明确引用。`;
+            console.log(`✅ [Notion] 找到 ${notionData.results.length} 条相关内容`);
+          }
+        } catch (e) {
+          console.warn('[Notion] 查询跳过:', e.message);
+        }
+      }
+
+      // 3.5️⃣ 医美专属数据库查询（价格行情 + 产品合规）
+      try {
+        const medDB = require('./medaesthetics-db');
+        const dbIntent = intentResult.intent === 'compliance' ? 'compliance'
+          : intentResult.intent === 'price_query' ? 'price'
+          : 'general';
+        const dbResult = medDB.queryMedAestheticsDB(message, dbIntent);
+        if (dbResult.summary && dbResult.summary.length > 50) {
+          enrichedSystemPrompt = enrichedSystemPrompt + `\n\n===== 医美行业专属数据库 =====\n以下是来自MedAgent医美行业数据库的结构化信息，数据准确性较高，请优先参考：\n\n${dbResult.summary}\n\n注意：价格数据为行业参考区间，实际价格以机构报价为准。`;
+          console.log(`✅ [医美数据库] 合规=${dbResult.compliance.length}条 价格=${dbResult.prices.length}条`);
+        }
+      } catch (e) {
+        console.warn('[医美数据库] 查询跳过:', e.message);
+      }
+
+      // 4️⃣ 混合 RAG 知识库检索（向量检索 + BM25 关键词检索）
+      if (strategy.useKb !== false) {
+        try {
+          const kbStats = kb.getStats();
+          if (kbStats.totalFiles > 0) {
+            const sfKey = process.env.SILICONFLOW_API_KEY;
+            const topK = strategy.topK || 5;
+
+            // 并行执行向量检索和BM25检索
+            const [vectorChunks, bm25Chunks] = await Promise.all([
+              Promise.race([
+                kb.retrieve(message, session.agentId, sfKey, topK),
+                new Promise(resolve => setTimeout(() => resolve([]), 5000))
+              ]),
+              (async () => {
+                try {
+                  const globalIndex = kb.loadVectorIndex('global');
+                  const agentIndex = session.agentId ? kb.loadVectorIndex(`agent:${session.agentId}`) : [];
+                  const combined = [...globalIndex, ...agentIndex];
+                  return bm25Retrieve(message, combined, topK);
+                } catch (e) { return []; }
+              })()
+            ]);
+
+            // 混合去重
+            const mergedChunks = mergeRetrievalResults(vectorChunks || [], bm25Chunks || [], topK * 2);
+            
+            // Rerank 重排序，取前 topK 个
+            const rerankedChunks = rerankChunks(message, mergedChunks).slice(0, topK);
+
+            if (rerankedChunks.length > 0) {
+              const kbContext = kb.formatKnowledgeContext(rerankedChunks);
+              enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + kbContext;
+              const vectorCount = (vectorChunks || []).length;
+              const bm25Count = bm25Chunks.filter(b => !vectorChunks?.find(v => v.id === b.id)).length;
+              console.log(`✅ [混合RAG+Rerank] 向量=${vectorCount} BM25新增=${bm25Count} 合并=${mergedChunks.length} Rerank后=${rerankedChunks.length} 段落`);
             }
           }
-        },
-        AI_PROVIDER
-      };
-
-      deps.isExpertMode = false;
-      await handleUnifiedChatStream(req, res, deps);
-    } catch (e) {
-      console.error('Message stream wrapper error:', e);
-      if (!res.headersSent) {
-        res.writeHead(500);
-        res.end(JSON.stringify({error: 'Internal Server Error'}));
+        } catch (e) {
+          console.warn('[混合RAG] 知识库检索跳过:', e.message);
+        }
       }
+
+      // Determine provider
+      const activeProvider = (userProvider && userApiKey)
+        ? createProviderFromConfig(userProvider, userApiKey, userModel)
+        : aiProvider;
+
+      // Check if provider supports streaming
+      if (typeof activeProvider.chatStream !== 'function') {
+        // Fallback to non-streaming
+        const response = await activeProvider.chat(enrichedSystemPrompt, session.messages);
+        session.messages.push({ role: 'assistant', content: response.message });
+        try {
+          stmtInsertMessage.run(sessionId, 'user', message);
+          stmtInsertMessage.run(sessionId, 'assistant', response.message);
+          stmtUpdateSessionTime.run(sessionId);
+        } catch (dbErr) { console.error('DB error:', dbErr.message); }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: response.message, usage: response.usage, searchResults }));
+        return;
+      }
+
+      // SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+      });
+
+      // Send search results first if available
+      if (searchResults) {
+        res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
+      }
+
+      // ===== 流式处理（支持 Function Calling，阶段三改造）=====
+      const useToolCalling = AGENTS_NEED_NMPA_META.has(agentId) &&
+                             typeof activeProvider.chatStreamWithTools === 'function';
+
+      async function* parseSSEStream(stream) {
+        let buf = '';
+        for await (const chunk of stream) {
+          buf += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const s = line.slice(6).trim();
+            if (s === '[DONE]') continue;
+            try { yield JSON.parse(s); } catch (e) { /* skip */ }
+          }
+        }
+      }
+
+      let fullMessage = '';
+
+      if (useToolCalling) {
+        const tools = [NMPA_TOOL_DEFINITION];
+        const stream1 = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, session.messages, tools);
+
+        let toolCallId = null;
+        let toolCallName = null;
+        let toolCallArgsBuf = '';
+        let firstRoundContent = '';
+        let assistantMsg1 = null;
+
+        for await (const parsed of parseSSEStream(stream1)) {
+          const choice = parsed.choices?.[0];
+          if (!choice) continue;
+          const delta = choice.delta || {};
+          if (delta.content) {
+            firstRoundContent += delta.content;
+            res.write(`data: ${JSON.stringify({ type: 'delta', content: delta.content })}\n\n`);
+          }
+          if (delta.tool_calls) {
+            for (const tc of delta.tool_calls) {
+              if (tc.id) toolCallId = tc.id;
+              if (tc.function?.name) toolCallName = tc.function.name;
+              if (tc.function?.arguments) toolCallArgsBuf += tc.function.arguments;
+            }
+          }
+          if (choice.finish_reason === 'tool_calls') {
+            assistantMsg1 = {
+              role: 'assistant',
+              content: firstRoundContent || null,
+              tool_calls: [{ id: toolCallId, type: 'function', function: { name: toolCallName, arguments: toolCallArgsBuf } }]
+            };
+          }
+        }
+
+        if (assistantMsg1 && toolCallName === 'nmpa_search') {
+          let toolArgs = {};
+          try { toolArgs = JSON.parse(toolCallArgsBuf); } catch (e) {}
+          const products = toolArgs.products || detectNmpaProduct(message) || [];
+          const toolQuery = toolArgs.query || message;
+
+          console.log(`🔧 [FunctionCall] nmpa_search | products: ${products.join(', ')}`);
+          res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: 'nmpa_search', products })}\n\n`);
+
+          let toolResultText = '未找到相关药监局数据。';
+          try {
+            const nmpaData = await nmpaSearch(toolQuery, products);
+            if (nmpaData.success && nmpaData.results.length > 0) {
+              searchResults = nmpaData.results;
+              toolResultText = nmpaData.results.map(r =>
+                `[来源] ${r.title}\n链接: ${r.url}\n摘要: ${r.snippet}`
+              ).join('\n\n');
+              console.log(`✅ [FunctionCall] nmpa_search 返回 ${nmpaData.results.length} 条结果`);
+            }
+          } catch (e) {
+            console.warn('[FunctionCall] nmpa_search 执行失败:', e.message);
+          }
+
+          const messagesWithTool = [
+            ...session.messages,
+            assistantMsg1,
+            { role: 'tool', tool_call_id: toolCallId, content: toolResultText }
+          ];
+
+          if (searchResults) {
+            res.write(`data: ${JSON.stringify({ type: 'search', results: searchResults })}\n\n`);
+          }
+
+          const stream2 = await activeProvider.chatStreamWithTools(enrichedSystemPrompt, messagesWithTool, []);
+          for await (const parsed of parseSSEStream(stream2)) {
+            const delta = parsed.choices?.[0]?.delta?.content || '';
+            if (delta) {
+              fullMessage += delta;
+              res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+            }
+          }
+        } else {
+          fullMessage = firstRoundContent;
+        }
+      } else {
+        // 降级兜底：原有流式路径
+        const stream = await activeProvider.chatStream(enrichedSystemPrompt, session.messages);
+        let buffer = '';
+        for await (const chunk of stream) {
+          buffer += typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(dataStr);
+              const delta = parsed.choices?.[0]?.delta?.content || '';
+              if (delta) {
+                fullMessage += delta;
+                res.write(`data: ${JSON.stringify({ type: 'delta', content: delta })}\n\n`);
+              }
+            } catch (e) { /* skip */ }
+          }
+        }
+      }
+
+      // Save to session and DB
+      session.messages.push({ role: 'assistant', content: fullMessage });
+      try {
+        stmtInsertMessage.run(sessionId, 'user', message);
+        stmtInsertMessage.run(sessionId, 'assistant', fullMessage);
+        stmtUpdateSessionTime.run(sessionId);
+      } catch (dbErr) { console.error('DB error:', dbErr.message); }
+
+      // Log
+      const logTs = new Date().toISOString();
+      const logEntry = JSON.stringify({ ts: logTs, agent: session.agentId, agent_name: session.agentName, user_code: userCode, user_name: session.userName, user: message, assistant: fullMessage, feedback: null });
+      fs.appendFile(path.join(DATA_DIR, 'conversations.jsonl'), logEntry + '\n', () => {});
+      // 同时写入 SQLite内存索引
+      try { stmtInsertConvLog.run(logTs, 'chat', session.agentId, session.agentName, userCode, session.userName, message, fullMessage, null); } catch (e) { /* non-fatal */ }
+      console.log(`\ud83e\udd16 [${session.agentName}] Stream complete: ${fullMessage.substring(0, 50)}...`);
+
+      // Record token usage (estimate for streaming: ~4 chars per token)
+      const estInputTokens = Math.ceil((message.length + (session.systemPrompt || '').length) / 4);
+      const estOutputTokens = Math.ceil(fullMessage.length / 4);
+      const providerName = userProvider || AI_PROVIDER;
+      const chatApiType = webSearch ? 'chat_with_search' : 'chat';
+      recordTokenUsage(session.userCode, session.userName, session.agentId, providerName, '', estInputTokens, estOutputTokens, chatApiType);
+      // Record Bocha search cost separately if web search was used
+      if (webSearch && searchResults) {
+        recordBochaUsage(session.userCode, session.userName);
+      }
+
+      // 记录消息配额和搜索配额
+      incrementDailyMsg(userCode);
+      if (webSearch) incrementMonthlySearch(userCode);
+
+      // Send done event
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error('Stream error:', error);
+      try {
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Stream failed', details: error.message }));
+        } else {
+          res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+          res.end();
+        }
+      } catch (e) { /* connection may be closed */ }
     }
     return;
   }
@@ -2898,7 +3063,6 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const session2 = sessions.get(sessionId);
-      if (session2) session2.lastActivity = Date.now();
       const userCode2 = session2.userCode || getUserCode(req);
 
       // ===== 用户记忆系统：提取属性并注入上下文 =====
@@ -3185,7 +3349,6 @@ const server = http.createServer(async (req, res) => {
     }
 
     const session = sessions.get(sessionId);
-    if (session) session.lastActivity = Date.now();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       agentName: session.agentName,
@@ -3265,157 +3428,6 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Database error' }));
     }
-    return;
-  }
-
-  // ===== 会话快照 API =====
-  // 创建快照：将当前对话提炼为 Skill
-  if (url.pathname === '/api/chat/snapshot' && req.method === 'POST') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    try {
-      const body = await parseRequestBody(req);
-      const { sessionId, skillName } = body;
-      if (!sessionId || !skillName) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '缺少 sessionId 或 skillName' }));
-        return;
-      }
-      const session = sessions.get(sessionId);
-      if (!session) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '会话不存在或已过期' }));
-        return;
-      }
-      const userCode = getUserCode(req);
-      const profiles = loadProfiles();
-      const userName = profiles[userCode]?.name || userCode;
-      const result = await createSnapshot({
-        sessionId,
-        messages: session.messages,
-        agentId: session.agentId,
-        agentName: session.agentName,
-        userCode,
-        userName,
-        skillName,
-        aiProvider,
-        db
-      });
-      res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
-    } catch (e) {
-      console.error('[Snapshot] Error:', e.message);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
-  // 获取用户快照列表
-  if (url.pathname === '/api/chat/snapshots' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const snapshots = listSnapshots(userCode);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ snapshots }));
-    return;
-  }
-
-  // 删除快照
-  if (url.pathname === '/api/chat/snapshot/delete' && req.method === 'POST') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    try {
-      const body = await parseRequestBody(req);
-      const userCode = getUserCode(req);
-      const result = deleteSnapshot(body.skillId, userCode);
-      res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
-    } catch (e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
-  // 获取快照内容（预览）
-  if (url.pathname === '/api/chat/snapshot/preview' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const skillId = url.searchParams.get('skillId');
-    if (!skillId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '缺少 skillId' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const result = getSnapshotContent(skillId, userCode);
-    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(result));
-    return;
-  }
-
-  // 下载快照为 Markdown 文件
-  if (url.pathname === '/api/chat/snapshot/download' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const skillId = url.searchParams.get('skillId');
-    if (!skillId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '缺少 skillId' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const result = getSnapshotContent(skillId, userCode);
-    if (!result.success) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
-      return;
-    }
-    const fileName = encodeURIComponent(result.fileName);
-    res.writeHead(200, {
-      'Content-Type': 'text/markdown; charset=utf-8',
-      'Content-Disposition': `attachment; filename*=UTF-8''${fileName}`,
-    });
-    // 返回完整 Markdown（含 frontmatter）
-    const fullContent = `---\n${Object.entries(result.frontmatter).map(([k,v]) => `${k}: ${v}`).join('\n')}\n---\n\n${result.markdown}`;
-    res.end(fullContent);
-    return;
-  }
-
-  // 加载技能到对话上下文
-  if (url.pathname === '/api/chat/snapshot/load' && req.method === 'GET') {
-    if (!isAuthenticated(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    const skillId = url.searchParams.get('skillId');
-    if (!skillId) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: '缺少 skillId' }));
-      return;
-    }
-    const userCode = getUserCode(req);
-    const result = loadSkillForChat(skillId, userCode);
-    res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(result));
     return;
   }
 
@@ -3527,7 +3539,6 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const session = sessions.get(sessionId);
-      if (session) session.lastActivity = Date.now();
       const agentId = session ? session.agentId : 'unknown';
       const agentName = session ? session.agentName : '';
       const userName = session ? session.userName : getUserName(req);
@@ -3613,15 +3624,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ===== Admin 统一鉴权拦截 =====
-  if (url.pathname.startsWith('/api/admin') && !isAdmin(req)) {
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Forbidden' }));
-    return;
-  }
-
   // Admin: 查看内测反馈列表
   if (url.pathname === '/api/admin/beta-feedback' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const feedbackFile = path.join(DATA_DIR, 'beta-feedback.jsonl');
       if (!fs.existsSync(feedbackFile)) {
@@ -3642,6 +3651,11 @@ const server = http.createServer(async (req, res) => {
   }
   // Admin: get conversation feedback (thumbs up/down)
   if (url.pathname === '/api/admin/conversation-feedback' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const limit = parseInt(url.searchParams.get('limit') || '100');
       const rows = db.prepare(`SELECT ts, agent, agent_name, user_name, feedback FROM conversation_logs WHERE type='feedback' ORDER BY ts DESC LIMIT ?`).all(limit);
@@ -3657,6 +3671,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: list users with usage stats
   if (url.pathname === '/api/admin/users' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const codes = loadCodes();
     const usage = loadUsage();
     // 加载订阅和 profile 数据
@@ -3710,6 +3729,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 升级用户为 Pro
   if (url.pathname === '/api/admin/set-pro' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { code, months } = await parseRequestBody(req);
       if (!code) {
@@ -3770,6 +3794,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 降级用户为免费
   if (url.pathname === '/api/admin/revoke-pro' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { code } = await parseRequestBody(req);
       if (!code) {
@@ -3794,6 +3823,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 升级用户为全能版 Pro+
   if (url.pathname === '/api/admin/set-pro-plus' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { code, months } = await parseRequestBody(req);
       if (!code) {
@@ -3825,6 +3859,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 生成终身版邀请码（Level 2 赠品）
   if (url.pathname === '/api/admin/generate-lifetime-code' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { name, note } = await parseRequestBody(req);
       if (!name || !name.trim()) {
@@ -3864,6 +3903,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 查询用户权限状态
   if (url.pathname === '/api/admin/user-plan' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const queryCode = url.searchParams.get('code');
     if (!queryCode) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3916,6 +3960,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 查看余额抵扣申请列表
   if (url.pathname === '/api/admin/credit-applies' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const applyFile = path.join(DATA_DIR, 'credit_applies.json');
     let applies = [];
     try { applies = JSON.parse(fs.readFileSync(applyFile, 'utf8')); } catch(e) {}
@@ -3926,6 +3975,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 查看日报页面邀请码申请列表
   if (url.pathname === '/api/admin/invite-requests' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const inviteFile = path.join(DATA_DIR, 'invite-requests.jsonl');
     let requests = [];
     try {
@@ -3940,6 +3994,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: approve invite request (generate code and mark as done)
   if (url.pathname === '/api/admin/invite-approve' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { id, name } = await parseRequestBody(req);
       // Generate a unique invite code
@@ -3977,6 +4036,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: reject invite request
   if (url.pathname === '/api/admin/invite-reject' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { id } = await parseRequestBody(req);
       const inviteFile = path.join(DATA_DIR, 'invite-requests.jsonl');
@@ -4004,6 +4068,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: list invite codes (GET)
   if (url.pathname === '/api/admin/codes' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const codes = loadCodes();
       const usageLimits = loadUsageLimits();
@@ -4033,6 +4102,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: create invite code
   if (url.pathname === '/api/admin/codes' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { name, maxUses } = await parseRequestBody(req);
       if (!name || !name.trim()) {
@@ -4062,6 +4136,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: delete invite code
   if (url.pathname.startsWith('/api/admin/codes/') && req.method === 'DELETE') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const code = decodeURIComponent(url.pathname.replace('/api/admin/codes/', ''));
     const codes = loadCodes();
     if (!(code in codes)) {
@@ -4078,6 +4157,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: get stats from conversations.jsonl
   if (url.pathname === '/api/admin/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       // 使用 SQLite 索引查询，替代全文件扫描
       const globalStats = stmtConvLogStats.get();
@@ -4116,6 +4200,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: token usage stats
   if (url.pathname === '/api/admin/token-stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       // Total stats
       const totalStats = db.prepare(`
@@ -4238,6 +4327,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: referral stats
   if (url.pathname === '/api/admin/referral-stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const records = loadReferralRecords();
       const refs = loadReferralCodes();
@@ -4274,6 +4368,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: mark referral credit as paid
   if (url.pathname === '/api/admin/referral-pay' && req.method === 'POST') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const { referrer, index } = await parseRequestBody(req);
       const records = loadReferralRecords();
@@ -4309,6 +4408,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 创建渠道代理
   if (url.pathname === '/api/admin/channel/create' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { name, wechat, commissionRate } = await parseRequestBody(req);
       if (!name) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '请提供渠道名称' })); return; }
@@ -4345,6 +4445,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 查询所有渠道及转化统计
   if (url.pathname === '/api/admin/channel/list' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const channels = loadChannels();
       const records = loadChannelRecords();
@@ -4364,6 +4465,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 记录渠道转化（开通订阅或 Level 2 成交时调用）
   if (url.pathname === '/api/admin/channel/record' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { channelId, userCode, plan, amount, type } = await parseRequestBody(req);
       if (!channelId || !userCode) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: '请提供渠道ID和用户码' })); return; }
@@ -4385,6 +4487,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 标记渠道佣金已结算
   if (url.pathname === '/api/admin/channel/settle' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { channelId, recordIndex } = await parseRequestBody(req);
       const records = loadChannelRecords();
@@ -4406,6 +4509,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: NMPA 药监局数据手动触发同步
   if (url.pathname === '/api/admin/nmpa-sync' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const body = await parseRequestBody(req);
       const forceAll = body.forceAll === true;
@@ -4424,6 +4528,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: NMPA 同步状态查看
   if (url.pathname === '/api/admin/nmpa-status' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const nmpaSync = require('./nmpa-sync');
       const summary = nmpaSync.getCacheSummary();
@@ -4435,6 +4540,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 医美数据库查看
   if (url.pathname === '/api/admin/meddb' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const meddb = require('./medaesthetics-db');
       // PRICE_DB 结构: { injection: [{category, items:[{name,unit,price_low,price_high,price_avg}]}], ... }
@@ -4480,6 +4586,7 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: 用户记忆查看
   if (url.pathname === '/api/admin/user-memory' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const profiles = loadProfiles();
       const codes = loadCodes();
@@ -4503,6 +4610,7 @@ const server = http.createServer(async (req, res) => {
 
   // ===== Admin: 待优化队列（反馈学习）=====
   if (url.pathname === '/api/admin/improvement-queue' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const status = url.searchParams ? url.searchParams.get('status') : null;
       const items = status === 'pending' ? stmtGetImpQueuePending.all() : stmtGetImpQueueAll.all();
@@ -4514,6 +4622,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === '/api/admin/improvement-queue/resolve' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { id, status, adminNote } = await parseRequestBody(req);
       if (!id || !['resolved', 'dismissed'].includes(status)) {
@@ -4530,6 +4639,11 @@ const server = http.createServer(async (req, res) => {
 
   // Admin: download conversations.jsonl
   if (url.pathname === '/api/admin/export' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const logPath = path.join(DATA_DIR, 'conversations.jsonl');
     if (!fs.existsSync(logPath)) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -4546,6 +4660,11 @@ const server = http.createServer(async (req, res) => {
 
   // Export Excel
   if (url.pathname === '/api/admin/export-excel' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     try {
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'MedAgent Hub';
@@ -4640,6 +4759,11 @@ const server = http.createServer(async (req, res) => {
   // ===== CORPUS API =====
   // Corpus stats overview
   if (url.pathname === '/api/admin/corpus/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     // 使用 SQLite 索引查询
     const corpusStats = stmtConvLogStats.get();
     const corpusAgentRows = stmtConvLogAgentCounts.all();
@@ -4657,6 +4781,11 @@ const server = http.createServer(async (req, res) => {
 
   // Corpus list (paginated)
   if (url.pathname === '/api/admin/corpus' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const page = parseInt(url.searchParams.get('page') || '1');
     const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
     const agentFilter = url.searchParams.get('agent') || '';
@@ -4677,6 +4806,11 @@ const server = http.createServer(async (req, res) => {
 
   // Needs analysis (demand analysis from conversations)
   if (url.pathname === '/api/admin/needs' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const needsPath = path.join(DATA_DIR, 'needs-summary.json');
     if (fs.existsSync(needsPath)) {
       const data = fs.readFileSync(needsPath, 'utf8');
@@ -4694,6 +4828,11 @@ const server = http.createServer(async (req, res) => {
 
   // Export corpus as JSONL
   if (url.pathname === '/api/admin/corpus/export' && req.method === 'GET') {
+    if (!isAdmin(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
     const logPath = path.join(DATA_DIR, 'conversations.jsonl');
     if (!fs.existsSync(logPath)) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -4711,6 +4850,7 @@ const server = http.createServer(async (req, res) => {
   // ===== Notion 知识库配置接口 =====
   // 获取 Notion 配置状态
   if (url.pathname === '/api/admin/notion/status' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       configured: !!notionClient,
@@ -4722,6 +4862,7 @@ const server = http.createServer(async (req, res) => {
 
   // 测试 Notion 连接
   if (url.pathname === '/api/admin/notion/test' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     const { apiKey, databaseId } = await parseRequestBody(req);
     try {
       const testClient = new NotionClient({ auth: apiKey });
@@ -4747,6 +4888,7 @@ const server = http.createServer(async (req, res) => {
 
   // 搜索 Notion 知识库（测试用）
   if (url.pathname === '/api/admin/notion/search' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     const { query } = await parseRequestBody(req);
     const result = await searchNotion(query || '医美', 5);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -4756,6 +4898,7 @@ const server = http.createServer(async (req, res) => {
 
   // 强制重置接口：丢弃本地修改并拉取最新代码
   if (url.pathname === '/api/admin/git-force-reset' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const appDir = __dirname;
       try { execSync('git stash', { cwd: appDir, timeout: 10000 }); } catch(se) {}
@@ -4813,6 +4956,7 @@ const server = http.createServer(async (req, res) => {
   }
   // 远程部署接口：git pull + pm2 restart
   if (url.pathname === '/api/admin/deploy' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const appDir = __dirname;
       // 先 stash 本地修改，避免冲突
@@ -4838,6 +4982,7 @@ const server = http.createServer(async (req, res) => {
   // ===== 知识库管理 API =====
   // 获取知识库统计
   if (url.pathname === '/api/admin/kb/stats' && req.method === 'GET') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const stats = kb.getStats();
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -4851,6 +4996,7 @@ const server = http.createServer(async (req, res) => {
 
   // 删除知识库文档
   if (url.pathname === '/api/admin/kb/delete' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     try {
       const { fileId } = await parseRequestBody(req);
       const removed = kb.removeDocument(fileId);
@@ -4865,6 +5011,7 @@ const server = http.createServer(async (req, res) => {
 
   // 上传并向量化文档（SSE 流式进度）
   if (url.pathname === '/api/admin/kb/upload' && req.method === 'POST') {
+    if (!isAdmin(req)) { res.writeHead(403); res.end(JSON.stringify({ error: 'Forbidden' })); return; }
     kbUploadMiddleware(req, res, async (err) => {
       if (err) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -5313,30 +5460,18 @@ server.listen(PORT, () => {
 
   // ===== NMPA 药监局每月定时同步 =====
   // 每月 1 日凌晨 2:00 自动执行
-  // 修复：Node.js setTimeout 最大支持约 24.7 天（2^31-1 ms），
-  // 超出后会溢出为 1ms 立即触发。使用分段等待避免此问题。
-  const MAX_TIMEOUT_MS = 20 * 24 * 60 * 60 * 1000; // 20 天，安全上限
-  const safeSetTimeout = (fn, ms) => {
-    if (ms <= MAX_TIMEOUT_MS) {
-      setTimeout(fn, ms);
-    } else {
-      // 分段：先等 20 天，再重新计算剩余时间
-      setTimeout(() => safeSetTimeout(fn, ms - MAX_TIMEOUT_MS), MAX_TIMEOUT_MS);
-    }
-  };
-
   const scheduleNmpaSync = () => {
     const now = new Date();
     const nextRun = new Date(now.getFullYear(), now.getMonth() + 1, 1, 2, 0, 0, 0);
     const msUntilNextRun = nextRun - now;
     console.log(`📅 [NMPA Sync] 下次自动同步: ${nextRun.toLocaleString('zh-CN')} (还有 ${Math.round(msUntilNextRun / 1000 / 60 / 60)} 小时)`);
-    safeSetTimeout(() => {
+    setTimeout(() => {
       console.log('🔄 [NMPA Sync] 开始每月定时同步...');
       try {
         const nmpaSync = require('./nmpa-sync');
         nmpaSync.syncAll({ forceAll: true })
           .then(r => {
-            console.log('[NMPA Sync] 每月同步完成:', r ? JSON.stringify(r) : 'done');
+            console.log('[NMPA Sync] 每月同步完成:', JSON.stringify(r.stats));
             scheduleNmpaSync(); // 安排下次
           })
           .catch(e => {
@@ -5369,29 +5504,4 @@ process.on('SIGINT', () => {
     console.log('✅ Server closed');
     process.exit(0);
   });
-});
-
-process.on('SIGTERM', () => {
-  console.log('\n👋 Received SIGTERM, shutting down gracefully...');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
-  // 强制退出兜底（10 秒后）
-  setTimeout(() => { process.exit(1); }, 10000);
-});
-
-// 全局未捕获异常处理 — 防止服务静默崩溃
-process.on('uncaughtException', (err) => {
-  console.error('[FATAL] uncaughtException:', err.message);
-  console.error(err.stack);
-  // 记录后优雅退出，由 PM2 自动重启
-  server.close(() => process.exit(1));
-  setTimeout(() => process.exit(1), 5000);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[WARN] unhandledRejection at:', promise);
-  console.error('[WARN] reason:', reason);
-  // 不退出，仅记录日志，避免因单个 Promise 拒绝导致服务中断
 });

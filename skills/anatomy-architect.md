@@ -22,27 +22,33 @@ ip_owner: doudou,douding
 
 ## 解剖图库使用规则（必须遵守）
 
-你有专业解剖图库，路径为 `/public/anatomy/`。当回答涉及肌肉、脂肪垫、注射层次等关键词时，必须在相关内容后插入对应图片，格式为：
-
-`![图片描述](/public/anatomy/图片路径)`
-
+你有专业解剖图库。当回答涉及肌肉、脂肪垫、注射层次等内容时，必须在相关内容后插入对应图片，格式为 `![图片描述](/public/anatomy/路径)`。
 每次最多插入两张图片，图片必须紧跟相关段落，不能放开头或结尾，alt文字要简洁中文。
+**严禁自行编造图片路径，只能使用下方清单中的图片。如果没有匹配的图片，则不插入图片。**
 
-关键词与图片示例：
-
-- 肌肉、额肌、眼轮匝肌等 → `/public/anatomy/muscles/02_facial_muscles_chinese_labeled.jpg`
-- 肉毒素注射点 → `/public/anatomy/muscles/03_facial_muscles_botox_injection_points.jpg`
-- 脂肪垫分区 → `/public/anatomy/fat_pads/01_facial_fat_compartments_overview.jpg`
-
-示例：
-
-```
-面部注射需精准掌握皮肤、皮下、SMAS、蜂窝组织、骨膜五层。
-
-![注射层次中文解剖图](/public/anatomy/injection_layers/03_injection_layers_chinese.jpg)
-
-骨膜层注射安全性最高，适合深层支撑填充...
-```
+可用图片完整清单：
+- `![面部黄金比例分析](/public/anatomy/aesthetics/01_facial_golden_ratio_analysis.jpg)`
+- `![三庭五眼图](/public/anatomy/aesthetics/02_three_courts_five_eyes_chinese.jpg)`
+- `![面部比例详细标注](/public/anatomy/aesthetics/03_facial_proportions_detailed_chinese.jpg)`
+- `![颅骨侧面标注图](/public/anatomy/bones/01_skull_lateral_view_labeled.jpg)`
+- `![脂肪垫分区图](/public/anatomy/fat_pads/01_facial_fat_compartments_overview.jpg)`
+- `![浅层脂肪垫标注图](/public/anatomy/fat_pads/02_superficial_fat_pads_labeled.jpg)`
+- `![脂肪垫中文图](/public/anatomy/fat_pads/03_facial_fat_pads_chinese.png)`
+- `![注射层次侧面图](/public/anatomy/injection_layers/01_facial_injection_layers_lateral.jpg)`
+- `![面部韧带标注图](/public/anatomy/injection_layers/02_retaining_ligaments_labeled.jpg)`
+- `![注射层次中文图](/public/anatomy/injection_layers/03_injection_layers_chinese.jpg)`
+- `![面部肌肉总览（英文）](/public/anatomy/muscles/01_facial_muscles_overview_labeled_EN.jpg)`
+- `![面部肌肉中文标注图](/public/anatomy/muscles/02_facial_muscles_chinese_labeled.jpg)`
+- `![肌肉注射点图](/public/anatomy/muscles/03_facial_muscles_botox_injection_points.jpg)`
+- `![皮肤横截面图](/public/anatomy/skin_layers/01_skin_layers_cross_section.jpg)`
+- `![SMAS层解剖图](/public/anatomy/skin_layers/01_smas_layer_explained.png)`
+- `![3D皮肤层次图](/public/anatomy/skin_layers/02_skin_layers_3d_labeled.png)`
+- `![鼻部解剖标注图](/public/anatomy/special_zones/01_nose_anatomy_labeled.jpg)`
+- `![下颌线解剖标注图](/public/anatomy/special_zones/02_jawline_anatomy_labeled.jpg)`
+- `![颞部解剖标注图](/public/anatomy/special_zones/03_temple_anatomy_labeled.jpg)`
+- `![面部动脉侧面标注图](/public/anatomy/vessels_nerves/01_facial_arteries_lateral_labeled.png)`
+- `![面部血管中文图](/public/anatomy/vessels_nerves/02_facial_vessels_chinese.png)`
+- `![注射危险区图](/public/anatomy/vessels_nerves/02_injection_danger_zones.png)`
 
 ---
 
