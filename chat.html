@@ -189,12 +189,21 @@
  </button>
  </div>
  </div>
+ <!-- Quick Agent Buttons -->
  <div class="desktop-quick-btns" id="quickBtns">
  <button class="desktop-quick-btn" onclick="quickStart('senior-consultant')">金牌咨询师</button>
  <button class="desktop-quick-btn" onclick="quickStart('sparring-robot')">话术陪练</button>
  <button class="desktop-quick-btn" onclick="quickStart('aesthetic-design')">美学设计</button>
  <button class="desktop-quick-btn" onclick="quickStart('trend-setter')">爆款种草</button>
  <button class="desktop-quick-btn" onclick="quickStart('materials-mentor')">材料学导师</button>
+ </div>
+ <!-- Combo Skills 工作流卡片 -->
+ <div class="combo-skills-section" id="comboSkillsSection">
+ <div class="combo-skills-header">
+ <span class="combo-skills-title">工作流</span>
+ <span class="combo-skills-badge">beta</span>
+ </div>
+ <div class="combo-skills-grid" id="comboSkillsGrid"></div>
  </div>
  </div>
  </div>
@@ -273,6 +282,8 @@
  </div>
  </div>
  </div>
+ <!-- RESIZE HANDLE: resource ↔ preview/chat -->
+ <div class="panel-resize-handle handle-resource hidden" id="resizeHandleResource"></div>
  <!-- PREVIEW PANEL (中栏) -->
  <div class="preview-panel" id="previewPanel" style="display:none">
  <div class="preview-panel-header">
@@ -318,6 +329,8 @@
  </div>
  </div>
  </div>
+ <!-- RESIZE HANDLE: preview ↔ chat -->
+ <div class="panel-resize-handle handle-preview hidden" id="resizeHandlePreview"></div>
  <!-- CHAT MAIN PANEL (右栏) -->
  <div class="chat-main-panel">
  <div class="chat-topbar">

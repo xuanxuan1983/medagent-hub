@@ -1722,16 +1722,15 @@
     .chat-view.active { display: flex; }
     .chat-main-panel {
       flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;
-      order: 3;
+      order: 4;
     }
     .chat-main-panel.fixed-width {
       flex: 1.5; min-width: 340px;
     }
-    /* fixed-width 模式下不需要额外覆盖，按钮已全局改为纯图标 */
     /* ===== RESOURCE PANEL (左栏) ===== */
     .resource-panel {
-      width: 280px; min-width: 200px; max-width: 360px;
-      border-right: 1px solid var(--border);
+      width: 280px; min-width: 200px; max-width: 400px;
+      border-right: none;
       background: var(--bg-warm);
       display: flex; flex-direction: column;
       overflow: hidden;
@@ -1741,15 +1740,48 @@
     }
     .resource-panel.collapsed { width: 0; min-width: 0; border-right: none; overflow: hidden; }
 
+    /* ===== PANEL RESIZE HANDLES ===== */
+    .panel-resize-handle {
+      width: 5px;
+      cursor: col-resize;
+      background: transparent;
+      position: relative;
+      flex-shrink: 0;
+      z-index: 10;
+      transition: background 0.15s;
+    }
+    .panel-resize-handle::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 2px;
+      width: 1px;
+      background: var(--border);
+    }
+    .panel-resize-handle:hover,
+    .panel-resize-handle.dragging {
+      background: var(--coral-light);
+    }
+    .panel-resize-handle:hover::after,
+    .panel-resize-handle.dragging::after {
+      background: var(--coral);
+      width: 2px;
+      left: 1.5px;
+    }
+    .panel-resize-handle.handle-resource { order: 2; }
+    .panel-resize-handle.handle-preview { order: 3; }
+    .panel-resize-handle.handle-resource.hidden,
+    .panel-resize-handle.handle-preview.hidden { display: none; }
+
     /* ===== PREVIEW PANEL (中栏) ===== */
     .preview-panel {
       flex: 1;
       min-width: 280px;
-      border-right: 1px solid var(--border);
+      border-right: none;
       background: var(--bg);
       display: flex; flex-direction: column;
       overflow: hidden;
-      order: 2;
+      order: 3;
     }
     .preview-panel-header {
       display: flex;
@@ -3090,4 +3122,112 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+    }
+
+    /* ===== COMBO SKILLS SECTION ===== */
+    .combo-skills-section {
+      margin-top: 1.5rem;
+      padding: 0 0.5rem;
+      max-width: 640px;
+      width: 100%;
+    }
+    .combo-skills-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .combo-skills-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      letter-spacing: 0.02em;
+    }
+    .combo-skills-badge {
+      font-size: 0.6rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: var(--coral-light);
+      color: var(--coral);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .combo-skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.6rem;
+    }
+    .combo-skill-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .combo-skill-card:hover {
+      border-color: var(--coral);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      transform: translateY(-1px);
+    }
+    .combo-skill-card-top {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .combo-skill-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.85rem;
+    }
+    .combo-skill-icon.icon-analyze { background: #eef2ff; color: #6366f1; }
+    .combo-skill-icon.icon-content { background: #fef3c7; color: #d97706; }
+    .combo-skill-icon.icon-train { background: #dcfce7; color: #16a34a; }
+    .combo-skill-icon.icon-report { background: #fce7f3; color: #db2777; }
+    .combo-skill-icon.icon-strategy { background: #e0f2fe; color: #0284c7; }
+    .combo-skill-icon.icon-compliance { background: #fef2f2; color: #dc2626; }
+    .combo-skill-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .combo-skill-desc {
+      font-size: 0.7rem;
+      color: var(--text-3);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .combo-skill-tags {
+      display: flex;
+      gap: 0.3rem;
+      flex-wrap: wrap;
+      margin-top: 0.15rem;
+    }
+    .combo-skill-tag {
+      font-size: 0.6rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      background: var(--bg-warm);
+      color: var(--text-3);
+    }
+    @media (max-width: 600px) {
+      .combo-skills-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+      .combo-skill-card { padding: 0.65rem 0.7rem; }
+      .combo-skill-icon { width: 26px; height: 26px; font-size: 0.75rem; }
     }

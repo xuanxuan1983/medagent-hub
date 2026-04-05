@@ -5069,3 +5069,327 @@ function previewBuiltinSkill(skillId) {
     setTimeout(initBuiltinSkills, 500);
   }
 })();
+
+// ===== WORKSPACE STATE MANAGEMENT & PANEL RESIZE =====
+// Replaces simple currentLayout with full workspace state management
+
+var workspaceState = {
+  layout: 'chat-only',
+  panelWidths: { resource: 280, preview: null },
+  resizing: false
+};
+
+// Load saved panel widths
+(function() {
+  try {
+    var saved = localStorage.getItem('medagent_panel_widths');
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      if (parsed.resource) workspaceState.panelWidths.resource = parsed.resource;
+      if (parsed.preview) workspaceState.panelWidths.preview = parsed.preview;
+    }
+  } catch(e) {}
+})();
+
+// Save panel widths
+function savePanelWidths() {
+  try {
+    localStorage.setItem('medagent_panel_widths', JSON.stringify(workspaceState.panelWidths));
+  } catch(e) {}
+}
+
+// Update resize handle visibility based on layout
+function updateResizeHandles() {
+  var handleResource = document.getElementById('resizeHandleResource');
+  var handlePreview = document.getElementById('resizeHandlePreview');
+  if (!handleResource || !handlePreview) return;
+
+  var resourceVisible = !document.getElementById('resourcePanel').classList.contains('collapsed');
+  var previewVisible = document.getElementById('previewPanel').style.display !== 'none';
+
+  // Resource handle: visible when resource panel is open
+  if (resourceVisible) {
+    handleResource.classList.remove('hidden');
+  } else {
+    handleResource.classList.add('hidden');
+  }
+
+  // Preview handle: visible when preview panel is open
+  if (previewVisible) {
+    handlePreview.classList.remove('hidden');
+  } else {
+    handlePreview.classList.add('hidden');
+  }
+}
+
+// Override switchLayout to also manage resize handles
+(function() {
+  var _origSwitchLayout = switchLayout;
+  switchLayout = function(layout) {
+    _origSwitchLayout(layout);
+    workspaceState.layout = layout;
+    updateResizeHandles();
+    // Apply saved widths
+    applyPanelWidths();
+  };
+})();
+
+// Apply saved panel widths
+function applyPanelWidths() {
+  var resourcePanel = document.getElementById('resourcePanel');
+  var previewPanel = document.getElementById('previewPanel');
+
+  if (resourcePanel && !resourcePanel.classList.contains('collapsed') && workspaceState.panelWidths.resource) {
+    resourcePanel.style.width = workspaceState.panelWidths.resource + 'px';
+  }
+  // Preview panel uses flex, so we set flex-basis if a width is saved
+  if (previewPanel && previewPanel.style.display !== 'none' && workspaceState.panelWidths.preview) {
+    previewPanel.style.flex = '0 0 ' + workspaceState.panelWidths.preview + 'px';
+    previewPanel.style.minWidth = '200px';
+  }
+}
+
+// ===== PANEL RESIZE DRAG LOGIC =====
+(function() {
+  var dragState = null;
+
+  function onMouseDown(e) {
+    var handle = e.target.closest('.panel-resize-handle');
+    if (!handle) return;
+    e.preventDefault();
+
+    var isResource = handle.classList.contains('handle-resource');
+    var panel = isResource
+      ? document.getElementById('resourcePanel')
+      : document.getElementById('previewPanel');
+
+    if (!panel) return;
+
+    var startX = e.clientX;
+    var startWidth = panel.getBoundingClientRect().width;
+
+    dragState = {
+      handle: handle,
+      panel: panel,
+      isResource: isResource,
+      startX: startX,
+      startWidth: startWidth
+    };
+
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  function onMouseMove(e) {
+    if (!dragState) return;
+    e.preventDefault();
+
+    var dx = e.clientX - dragState.startX;
+    var newWidth = dragState.startWidth + dx;
+
+    // Clamp widths
+    if (dragState.isResource) {
+      newWidth = Math.max(180, Math.min(500, newWidth));
+      dragState.panel.style.width = newWidth + 'px';
+      dragState.panel.style.transition = 'none';
+      workspaceState.panelWidths.resource = newWidth;
+    } else {
+      newWidth = Math.max(200, Math.min(800, newWidth));
+      dragState.panel.style.flex = '0 0 ' + newWidth + 'px';
+      dragState.panel.style.minWidth = '200px';
+      dragState.panel.style.transition = 'none';
+      workspaceState.panelWidths.preview = newWidth;
+    }
+  }
+
+  function onMouseUp(e) {
+    if (!dragState) return;
+
+    dragState.handle.classList.remove('dragging');
+    dragState.panel.style.transition = '';
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+
+    savePanelWidths();
+    dragState = null;
+
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+
+  // Attach to chat view
+  document.addEventListener('mousedown', onMouseDown);
+})();
+
+// Also update handles when openPreviewPanel / closePreviewPanel are called
+(function() {
+  var _origOpen = openPreviewPanel;
+  var _origClose = closePreviewPanel;
+
+  openPreviewPanel = function() {
+    _origOpen.apply(this, arguments);
+    updateResizeHandles();
+    applyPanelWidths();
+  };
+
+  closePreviewPanel = function() {
+    _origClose.apply(this, arguments);
+    updateResizeHandles();
+    // Reset preview flex
+    var pp = document.getElementById('previewPanel');
+    if (pp) { pp.style.flex = ''; pp.style.minWidth = ''; }
+  };
+})();
+
+// Initialize handles on load
+(function() {
+  function initHandles() {
+    updateResizeHandles();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHandles);
+  } else {
+    setTimeout(initHandles, 600);
+  }
+})();
+
+// ===== COMBO SKILLS (工作流卡片) =====
+var comboSkills = [
+  {
+    id: 'competitor-analysis',
+    name: '竞品数据分析',
+    desc: '上传竞品资料，Agent 自动提取关键数据并生成对比报告',
+    icon: 'icon-analyze',
+    iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+    tags: ['文件+预览+聊天', '自动分析'],
+    layout: 'three-panel',
+    agent: null,
+    prompt: '请帮我分析上传的竞品资料，提取以下关键信息：\n1. 产品名称和主要成分\n2. 定价策略和市场定位\n3. 核心卖点和差异化优势\n4. 目标客群画像\n\n请以表格形式呈现对比结果，并给出我们的应对策略建议。'
+  },
+  {
+    id: 'script-generator',
+    name: '话术一键生成',
+    desc: '选择场景和客户类型，自动生成专业咨询话术模板',
+    icon: 'icon-content',
+    iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>',
+    tags: ['预览+聊天', '话术模板'],
+    layout: 'preview-chat',
+    agent: 'senior-consultant',
+    prompt: '请帮我生成一套完整的客户咨询话术，包括：\n1. 开场破冰话术（3种场景）\n2. 需求挖掘问题清单（SPIN模型）\n3. 产品推荐话术（FAB法则）\n4. 异议处理话术（价格/效果/安全性）\n5. 成交促单话术（3种收尾方式）\n\n请按场景分类，每条话术附带使用说明。'
+  },
+  {
+    id: 'training-drill',
+    name: '话术实战陪练',
+    desc: '模拟真实客户场景，AI 扮演客户进行对话训练',
+    icon: 'icon-train',
+    iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+    tags: ['聊天模式', '角色扮演'],
+    layout: 'chat-only',
+    agent: 'sparring-robot',
+    prompt: '请开始一场话术陪练。你扮演一位对玻尿酸填充感兴趣但犹豫不决的客户，我来练习咨询话术。\n\n客户设定：\n- 30岁女性，首次了解医美\n- 主要顾虑：安全性、效果持续时间、价格\n- 性格：理性谨慎，喜欢对比\n\n请直接以客户身份开始对话。'
+  },
+  {
+    id: 'content-creation',
+    name: '种草内容创作',
+    desc: '一键生成小红书/抖音/公众号多平台种草内容',
+    icon: 'icon-content',
+    iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    tags: ['预览+聊天', '多平台'],
+    layout: 'preview-chat',
+    agent: 'trend-setter',
+    prompt: '请帮我创作一套医美种草内容，需要同时适配以下平台：\n1. 小红书图文笔记（标题+正文+标签）\n2. 抖音短视频脚本（开头/中间/结尾）\n3. 微信公众号推文（标题+摘要+正文）\n\n主题：[请告诉我你想推广的项目或产品]\n\n请确保内容符合三品一规合规要求。'
+  },
+  {
+    id: 'weekly-report',
+    name: '周报自动生成',
+    desc: '汇总本周对话数据，自动生成结构化工作周报',
+    icon: 'icon-report',
+    iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>',
+    tags: ['预览+聊天', '报告生成'],
+    layout: 'preview-chat',
+    agent: null,
+    prompt: '请帮我生成本周工作周报，包括：\n1. 本周重点工作完成情况\n2. 客户跟进进展（新增/跟进/成交）\n3. 遇到的问题和解决方案\n4. 下周工作计划\n5. 需要的支持和资源\n\n请以结构化表格+文字说明的形式呈现。'
+  },
+  {
+    id: 'compliance-check',
+    name: '合规内容审查',
+    desc: '上传宣传材料，自动检查三品一规合规风险',
+    icon: 'icon-compliance',
+    iconSvg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    tags: ['文件+预览+聊天', 'NMPA'],
+    layout: 'three-panel',
+    agent: null,
+    prompt: '请帮我审查上传的宣传材料，按照以下标准进行合规检查：\n1. 是否含有绝对化用语（最好、第一、100%等）\n2. 是否涉及未经批准的适应症宣传\n3. 是否有虚假或夸大的效果承诺\n4. 是否符合NMPA广告法规要求\n5. 是否有使用前后对比的违规内容\n\n请逐条标注风险等级（高/中/低），并给出合规修改建议。'
+  }
+];
+
+function renderComboSkills() {
+  var grid = document.getElementById('comboSkillsGrid');
+  if (!grid) return;
+
+  grid.innerHTML = comboSkills.map(function(skill) {
+    var tagsHtml = skill.tags.map(function(t) {
+      return '<span class="combo-skill-tag">' + t + '</span>';
+    }).join('');
+
+    return '<div class="combo-skill-card" onclick="launchComboSkill(\'' + skill.id + '\')">' +
+      '<div class="combo-skill-card-top">' +
+        '<div class="combo-skill-icon ' + skill.icon + '">' + skill.iconSvg + '</div>' +
+        '<div class="combo-skill-name">' + skill.name + '</div>' +
+      '</div>' +
+      '<div class="combo-skill-desc">' + skill.desc + '</div>' +
+      '<div class="combo-skill-tags">' + tagsHtml + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function launchComboSkill(skillId) {
+  var skill = comboSkills.find(function(s) { return s.id === skillId; });
+  if (!skill) return;
+
+  // 1. If skill specifies an agent, switch to it via quickStart
+  if (skill.agent) {
+    quickStart(skill.agent);
+  } else {
+    // Create new conversation or use current
+    var input = document.getElementById('desktopInput');
+    if (input) {
+      input.value = skill.prompt;
+      autoResize(input);
+    }
+  }
+
+  // 2. After entering chat, switch to specified layout
+  // Use a small delay to let the chat view initialize
+  setTimeout(function() {
+    if (typeof switchLayout === 'function' && skill.layout) {
+      switchLayout(skill.layout);
+    }
+
+    // 3. If no agent was specified (didn't auto-send), fill the chat input
+    if (!skill.agent) {
+      var chatInput = document.getElementById('messageInput');
+      if (chatInput) {
+        chatInput.value = skill.prompt;
+        if (typeof autoResize === 'function') autoResize(chatInput);
+        chatInput.focus();
+      }
+    }
+  }, 800);
+}
+
+// Render combo skills on page load
+(function() {
+  function initComboSkills() {
+    renderComboSkills();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initComboSkills);
+  } else {
+    setTimeout(initComboSkills, 300);
+  }
+})();
