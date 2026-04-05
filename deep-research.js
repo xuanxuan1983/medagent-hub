@@ -243,7 +243,7 @@ function buildResearchContext(allResults) {
       if (seen.has(key)) return;
       seen.add(key);
       context += `[知识库-${i + 1}] ${r.title || r.fileName || '文档'}\n`;
-      if (r.content) context += r.content.substring(0, 500) + '\n';
+      if (r.content) context += r.content.substring(0, 800) + '\n';
     });
   }
 
@@ -266,7 +266,9 @@ function buildResearchContext(allResults) {
       seen.add(key);
       context += `[联网-${i + 1}] ${r.title || '网页'}\n`;
       if (r.url) context += `来源: ${r.url}\n`;
-      if (r.content) context += `内容: ${r.content.substring(0, 300)}\n`;
+      if (r.content) context += `摘要: ${r.content.substring(0, 500)}\n`;
+      // 包含原始网页内容（如果有）
+      if (r.raw_content) context += `详细内容: ${r.raw_content.substring(0, 1500)}\n`;
     });
   }
 

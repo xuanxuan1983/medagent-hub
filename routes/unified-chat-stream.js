@@ -323,9 +323,9 @@ async function handleUnifiedChatStream(req, res, deps) {
    
    console.log(`[DeepResearch] 搜索完成，共 ${allResults.totalSources} 条结果，上下文 ${deepResearchContext.length} 字符`);
    
-   // 注入研究上下文到 system prompt
+   // 注入研究上下文到 system prompt（研究报告模式）
    if (deepResearchContext) {
-     enrichedSystemPrompt += `\n\n【深度研究结果】以下是多源并行搜索的结果，请基于这些信息进行深度分析和整合：${deepResearchContext}`;
+     enrichedSystemPrompt += `\n\n【深度研究结果】以下是多源并行搜索的结果。请基于这些信息撰写研究报告，每个关键论点必须标注来源编号（如[联网-1][知识库-2]），不要编造数据：${deepResearchContext}`;
    }
  } catch (drErr) {
    console.error('[DeepResearch] 深度研究失败，继续正常流程:', drErr.message);
@@ -448,16 +448,32 @@ async function handleUnifiedChatStream(req, res, deps) {
    streamer.updateTaskPlanDesc(matchedToolStep.id, 'done', summary);
  }
 
- // skill_dispatch 特殊处理
- let stream2SystemPrompt = enrichedSystemPrompt;
- if (toolResult.skillPrompt) {
- // 如果有深度研究结果，将搜索结果注入到专家 prompt 中，确保专家基于实时信息回答
- if (deepResearchContext) {
-   stream2SystemPrompt = toolResult.skillPrompt + `\n\n【实时搜索结果】以下是从网络和知识库检索到的实时信息，请基于这些信息进行分析和回答，确保内容真实可靠：${deepResearchContext}`;
-   console.log(`[SkillDispatch] 将深度研究结果 (${deepResearchContext.length}字符) 注入到专家 prompt`);
- } else {
-   stream2SystemPrompt = toolResult.skillPrompt;
- }
+     // skill_dispatch 特殊处理
+     let stream2SystemPrompt = enrichedSystemPrompt;
+     if (toolResult.skillPrompt) {
+     // 核心改造：深度研究模式下，用“研究报告”模式替代纯专家模板
+     if (deepResearchContext) {
+       const researchReportPrompt = `你是一位专业的医美行业研究分析师。请基于以下搜索结果，撰写一份专业的研究报告。
+
+【输出要求】
+1. 必须基于搜索结果中的真实信息撰写，不要编造数据或事件
+2. 每个关键论点必须标注来源编号，如 [联网-1][知识库-2]
+3. 包含具体的时间线、事件、人物、数据（从搜索结果中提取）
+4. 如果搜索结果中没有某个信息，明确说明“未找到相关信息”，而不是编造
+5. 用中文回答，使用 Markdown 格式，层次清晰
+6. 报告结构：概述 → 核心发现（分主题）→ 关键数据/表格 → 总结与建议
+7. 末尾附上参考来源列表
+
+【专家视角】
+${toolResult.skillPrompt.substring(0, 500)}
+
+【搜索结果】
+${deepResearchContext}`;
+       stream2SystemPrompt = researchReportPrompt;
+       console.log(`[DeepResearch] 使用研究报告模式，搜索结果 ${deepResearchContext.length} 字符，专家 prompt 截取 500 字符作为视角参考`);
+     } else {
+       stream2SystemPrompt = toolResult.skillPrompt;
+     }
  console.log(`[SkillDispatch] 切换到专家: ${toolResult.skillDisplayName || toolCallName}`);
  if (toolResult.toolEvent) {
  streamer.sendDelta('');

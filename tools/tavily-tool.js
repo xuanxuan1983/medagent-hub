@@ -50,7 +50,7 @@ async function executeTavilySearch(args, apiKey) {
     search_depth: isDeep ? 'advanced' : search_depth,
     include_answer: isDeep,
     include_images: false,
-    include_raw_content: false,
+    include_raw_content: isDeep,
     max_results: isDeep ? 8 : 5
   });
 
@@ -92,9 +92,14 @@ async function executeTavilySearch(args, apiKey) {
       const maxItems = isDeep ? 8 : 5;
       const items = tavilyData.results.slice(0, maxItems);
       
-      const resultsText = items.map((item, i) =>
-        `[${i+1}] ${item.title}\n来源: ${item.url}\n摘要: ${item.content}`
-      ).join('\n\n');
+      const resultsText = items.map((item, i) => {
+        let text = `[${i+1}] ${item.title}\n来源: ${item.url}\n摘要: ${item.content}`;
+        // 深度模式下附加原始网页内容（截取前2000字）
+        if (isDeep && item.raw_content) {
+          text += `\n详细内容: ${item.raw_content.substring(0, 2000)}`;
+        }
+        return text;
+      }).join('\n\n');
       
       // 如果 Tavily 返回了 AI 摘要，附加到内容前面
       let answerSection = '';
@@ -102,10 +107,17 @@ async function executeTavilySearch(args, apiKey) {
         answerSection = `【AI 搜索摘要】\n${tavilyData.answer}\n\n`;
       }
       
+      // rawResults 保留完整的 Tavily 结果对象（包含 raw_content）
       return {
         success: true,
         content: `${answerSection}【实时搜索结果（${searchDate}）】\n\n${resultsText}`,
-        rawResults: items,
+        rawResults: items.map(item => ({
+          title: item.title,
+          url: item.url,
+          content: item.content,
+          raw_content: item.raw_content || null,
+          score: item.score
+        })),
         answer: tavilyData.answer || null
       };
     }
