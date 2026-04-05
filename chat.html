@@ -372,6 +372,9 @@
  <div class="chat-status" id="chatStatus" style="display:none">
  <div class="chat-status-dot"></div>在线
  </div>
+ <button class="chat-topbar-btn" onclick="showExportDialog()" title="导出对话">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+ </button>
  <button class="chat-topbar-btn" onclick="showHistory()" title="历史记录">
  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
  </button>
@@ -753,5 +756,6 @@
 <script>document.write('<scr'+'ipt src="/chat-app.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>document.write('<scr'+'ipt src="/combo-builder.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>document.write('<scr'+'ipt src="/web-viewer.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/chat-export.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 </body>
 </html>
