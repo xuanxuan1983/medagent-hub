@@ -56,9 +56,33 @@ const kbSearchTool = {
     const result = await executeKbSearch(
       args, kb, agentId, sfKey, bm25Retrieve, mergeRetrievalResults, rerankChunks
     );
+    // 标准化 KB 搜索结果，确保前端能正确显示来源标题
+    const normalizedResults = (result.rawResults || []).map(chunk => {
+      // 从 fileName 中提取可读标题：去掉时间戳前缀和下划线填充
+      let displayTitle = chunk.fileName || '知识库文档';
+      // 处理类似 "1772441086073___xxx.pdf" 的格式
+      displayTitle = displayTitle
+        .replace(/^\d{10,}_+/, '')  // 去掉时间戳+下划线前缀
+        .replace(/_+/g, ' ')        // 下划线转空格
+        .replace(/\.[^.]+$/, '')    // 去掉文件扩展名
+        .trim();
+      // 如果处理后为空（纯时间戳文件名），从内容提取标题
+      if (!displayTitle || displayTitle.length < 2) {
+        const textPreview = (chunk.text || '').substring(0, 60).split('\n')[0].trim();
+        displayTitle = textPreview || '知识库文档';
+      }
+      return {
+        title: displayTitle,
+        fileName: chunk.fileName,
+        content: (chunk.text || '').substring(0, 200),
+        text: chunk.text,
+        score: chunk.score,
+        fileId: chunk.fileId
+      };
+    });
     return { 
       text: result.content, 
-      searchResults: result.rawResults || [],
+      searchResults: normalizedResults,
       toolEvent: { type: 'tool_call', tool: 'knowledge_search', args } 
     };
   }

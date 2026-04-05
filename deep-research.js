@@ -170,7 +170,7 @@ async function executeParallelSearch(options) {
     // 知识库搜索
     if (toolContext.kb) {
       searchPromises.push(
-        toolRegistry.executeTool('knowledge_search', { query, top_k: 3 }, toolContext)
+        toolRegistry.executeTool('knowledge_search', { query, top_k: 5 }, toolContext)
           .then(r => {
             if (r.searchResults && r.searchResults.length > 0) {
               allResults.knowledge.push(...r.searchResults);
@@ -215,9 +215,15 @@ async function executeParallelSearch(options) {
     // 等待所有搜索完成
     const results = await Promise.allSettled(searchPromises);
     
-    // 更新步骤状态
-    const successCount = results.filter(r => r.status === 'fulfilled' && r.value && !r.value.error).length;
-    streamer.updateStep(searchStepId, `${queryLabel} (${successCount} 个来源)`, 'done');
+    // 统计本次子查询实际获取的搜索结果条数（而非成功工具数）
+    let resultCount = 0;
+    results.forEach(r => {
+      if (r.status === 'fulfilled' && r.value && !r.value.error && r.value.result) {
+        const sr = r.value.result.searchResults;
+        if (sr && sr.length > 0) resultCount += sr.length;
+      }
+    });
+    streamer.updateStep(searchStepId, `${queryLabel} (${resultCount} 条结果)`, 'done');
   }
 
   // 计算总来源数
@@ -236,14 +242,18 @@ function buildResearchContext(allResults) {
 
   if (allResults.knowledge.length > 0) {
     context += '\n\n===== 内部知识库检索结果 =====\n';
-    // 去重
+    // 去重，使用独立计数器确保编号连续
     const seen = new Set();
-    allResults.knowledge.forEach((r, i) => {
+    let kbIdx = 0;
+    allResults.knowledge.forEach((r) => {
       const key = r.title || r.fileName || '';
       if (seen.has(key)) return;
       seen.add(key);
-      context += `[知识库-${i + 1}] ${r.title || r.fileName || '文档'}\n`;
-      if (r.content) context += r.content.substring(0, 800) + '\n';
+      kbIdx++;
+      context += `[知识库-${kbIdx}] ${r.title || r.fileName || '文档'}\n`;
+      // 优先使用 text 字段（完整内容），截取前 1200 字
+      const textContent = r.text || r.content || '';
+      if (textContent) context += textContent.substring(0, 1200) + '\n';
     });
   }
 
@@ -258,17 +268,19 @@ function buildResearchContext(allResults) {
 
   if (allResults.web.length > 0) {
     context += '\n\n===== 联网搜索最新信息 =====\n';
-    // 去重
+    // 去重，使用独立计数器确保编号连续
     const seen = new Set();
-    allResults.web.forEach((r, i) => {
+    let webIdx = 0;
+    allResults.web.forEach((r) => {
       const key = r.url || r.title || '';
       if (seen.has(key)) return;
       seen.add(key);
-      context += `[联网-${i + 1}] ${r.title || '网页'}\n`;
+      webIdx++;
+      context += `[联网-${webIdx}] ${r.title || '网页'}\n`;
       if (r.url) context += `来源: ${r.url}\n`;
-      if (r.content) context += `摘要: ${r.content.substring(0, 500)}\n`;
-      // 包含原始网页内容（如果有）
-      if (r.raw_content) context += `详细内容: ${r.raw_content.substring(0, 1500)}\n`;
+      if (r.content) context += `摘要: ${r.content.substring(0, 600)}\n`;
+      // 包含原始网页内容（如果有），增加截取长度
+      if (r.raw_content) context += `详细内容: ${r.raw_content.substring(0, 2000)}\n`;
     });
   }
 
