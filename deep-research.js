@@ -169,53 +169,93 @@ async function executeParallelSearch(options) {
 
     // 知识库搜索
     if (toolContext.kb) {
+      // 发送搜索开始活动
+      streamer.sendSearchActivity({ stepId: searchStepId, tool: 'knowledge_search', toolLabel: '知识库', status: 'searching', query: query });
       searchPromises.push(
         toolRegistry.executeTool('knowledge_search', { query, top_k: 5 }, toolContext)
           .then(r => {
             if (r.searchResults && r.searchResults.length > 0) {
               allResults.knowledge.push(...r.searchResults);
               streamer.sendSearchGrouped('knowledge_search', r.searchResults);
+              // 发送找到结果活动，带上文档标题
+              streamer.sendSearchActivity({
+                stepId: searchStepId, tool: 'knowledge_search', toolLabel: '知识库',
+                status: 'found', count: r.searchResults.length,
+                sites: r.searchResults.slice(0, 4).map(s => ({ title: s.title || s.fileName || '文档', domain: '知识库' }))
+              });
+            } else {
+              streamer.sendSearchActivity({ stepId: searchStepId, tool: 'knowledge_search', toolLabel: '知识库', status: 'empty' });
             }
             return { tool: 'knowledge_search', result: r };
           })
-          .catch(e => ({ tool: 'knowledge_search', error: e.message }))
+          .catch(e => {
+            streamer.sendSearchActivity({ stepId: searchStepId, tool: 'knowledge_search', toolLabel: '知识库', status: 'error' });
+            return { tool: 'knowledge_search', error: e.message };
+          })
       );
     }
 
     // NMPA 搜索（仅对第一个查询执行）
     if (i === 0 && toolContext.nmpaSearch) {
+      streamer.sendSearchActivity({ stepId: searchStepId, tool: 'nmpa_search', toolLabel: '药监局', status: 'searching', query: query });
       searchPromises.push(
         toolRegistry.executeTool('nmpa_search', { query }, toolContext)
           .then(r => {
             if (r.searchResults && r.searchResults.length > 0) {
               allResults.nmpa.push(...r.searchResults);
               streamer.sendSearchGrouped('nmpa_search', r.searchResults);
+              streamer.sendSearchActivity({
+                stepId: searchStepId, tool: 'nmpa_search', toolLabel: '药监局',
+                status: 'found', count: r.searchResults.length,
+                sites: r.searchResults.slice(0, 4).map(s => ({ title: s.title || '记录', domain: 'nmpa.gov.cn' }))
+              });
+            } else {
+              streamer.sendSearchActivity({ stepId: searchStepId, tool: 'nmpa_search', toolLabel: '药监局', status: 'empty' });
             }
             return { tool: 'nmpa_search', result: r };
           })
-          .catch(e => ({ tool: 'nmpa_search', error: e.message }))
+          .catch(e => {
+            streamer.sendSearchActivity({ stepId: searchStepId, tool: 'nmpa_search', toolLabel: '药监局', status: 'error' });
+            return { tool: 'nmpa_search', error: e.message };
+          })
       );
     }
 
     // 联网搜索
     if (toolContext.tavilyApiKey) {
+      streamer.sendSearchActivity({ stepId: searchStepId, tool: 'web_search', toolLabel: '联网搜索', status: 'searching', query: query });
       searchPromises.push(
         toolRegistry.executeTool('web_search', { query, expert_mode: true }, toolContext)
           .then(r => {
             if (r.searchResults && r.searchResults.length > 0) {
               allResults.web.push(...r.searchResults);
               streamer.sendSearchGrouped('web_search', r.searchResults);
+              // 从 URL 提取域名作为网站标签
+              streamer.sendSearchActivity({
+                stepId: searchStepId, tool: 'web_search', toolLabel: '联网搜索',
+                status: 'found', count: r.searchResults.length,
+                sites: r.searchResults.slice(0, 6).map(s => {
+                  let domain = '';
+                  try { domain = new URL(s.url).hostname.replace('www.', ''); } catch(e) {}
+                  return { title: (s.title || '').substring(0, 30), domain: domain, url: s.url };
+                })
+              });
+            } else {
+              streamer.sendSearchActivity({ stepId: searchStepId, tool: 'web_search', toolLabel: '联网搜索', status: 'empty' });
             }
             return { tool: 'web_search', result: r };
           })
-          .catch(e => ({ tool: 'web_search', error: e.message }))
+          .catch(e => {
+            streamer.sendSearchActivity({ stepId: searchStepId, tool: 'web_search', toolLabel: '联网搜索', status: 'error' });
+            return { tool: 'web_search', error: e.message };
+          })
       );
     }
 
     // 等待所有搜索完成
     const results = await Promise.allSettled(searchPromises);
     
-    // 统计本次子查询实际获取的搜索结果条数（而非成功工具数）
+    // 统计本次子查询实际获取的搜索结果条数
     let resultCount = 0;
     results.forEach(r => {
       if (r.status === 'fulfilled' && r.value && !r.value.error && r.value.result) {

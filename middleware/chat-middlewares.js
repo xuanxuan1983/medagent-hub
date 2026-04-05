@@ -145,6 +145,14 @@ class SSEStreamer {
   }
 
   /**
+   * 发送搜索活动动态（深度研究模式专用）
+   * @param {Object} activity 搜索活动信息
+   */
+  sendSearchActivity(activity) {
+    this.res.write(`data: ${JSON.stringify({ type: 'search_activity', ...activity })}\n\n`);
+  }
+
+  /**
    * 初始化任务规划容器（只发标题，不发步骤）
    * @param {number} totalSteps 预计总步骤数
    */

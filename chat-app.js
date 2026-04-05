@@ -1570,6 +1570,65 @@
  progressEl.textContent = `${doneSteps.length}/${allSteps.length} 已完成`;
  }
  container.scrollTop = container.scrollHeight;
+ } else if (evt.type === 'search_activity') {
+ // 搜索活动动态展示：在对应的 step 卡片下方显示搜索动态
+ var stepsContainer2 = bubble.querySelector('.expert-steps-container');
+ if (stepsContainer2) {
+   var stepEl2 = stepsContainer2.querySelector('[data-step-id="' + evt.stepId + '"]');
+   if (stepEl2) {
+     // 获取或创建该步骤的搜索活动容器
+     var activityBox = stepEl2.querySelector('.search-activity-box');
+     if (!activityBox) {
+       activityBox = document.createElement('div');
+       activityBox.className = 'search-activity-box';
+       stepEl2.appendChild(activityBox);
+     }
+     
+     if (evt.status === 'searching') {
+       // 显示“正在搜索...”动态
+       var searchingEl = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
+       if (!searchingEl) {
+         searchingEl = document.createElement('div');
+         searchingEl.className = 'search-activity-item searching';
+         searchingEl.dataset.tool = evt.tool;
+         var toolIcon = evt.tool === 'web_search' ? '🌐' : (evt.tool === 'knowledge_search' ? '📚' : '🏥');
+         searchingEl.innerHTML = '<span class="sa-icon">' + toolIcon + '</span>' +
+           '<span class="sa-label">正在搜索' + (evt.toolLabel || '') + '...</span>' +
+           '<span class="sa-spinner"></span>';
+         activityBox.appendChild(searchingEl);
+       }
+     } else if (evt.status === 'found' && evt.sites) {
+       // 替换“正在搜索”为找到的网站标签
+       var searchingEl2 = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
+       if (searchingEl2) {
+         searchingEl2.classList.remove('searching');
+         searchingEl2.classList.add('found');
+         var toolIcon2 = evt.tool === 'web_search' ? '🌐' : (evt.tool === 'knowledge_search' ? '📚' : '🏥');
+         var chipsHtml = evt.sites.map(function(site) {
+           var label = site.domain || site.title || '来源';
+           if (label.length > 20) label = label.substring(0, 20) + '...';
+           if (site.url) {
+             return '<a class="sa-chip" href="' + site.url + '" target="_blank" rel="noopener" title="' + (site.title || '') + '">' + label + '</a>';
+           }
+           return '<span class="sa-chip" title="' + (site.title || '') + '">' + label + '</span>';
+         }).join('');
+         searchingEl2.innerHTML = '<span class="sa-icon">' + toolIcon2 + '</span>' +
+           '<span class="sa-label">' + (evt.toolLabel || '') + '</span>' +
+           '<span class="sa-count">' + (evt.count || '') + '条</span>' +
+           '<div class="sa-chips">' + chipsHtml + '</div>';
+       }
+     } else if (evt.status === 'empty' || evt.status === 'error') {
+       var searchingEl3 = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
+       if (searchingEl3) {
+         searchingEl3.classList.remove('searching');
+         searchingEl3.classList.add(evt.status === 'error' ? 'error' : 'empty');
+         searchingEl3.innerHTML = '<span class="sa-icon">—</span>' +
+           '<span class="sa-label">' + (evt.toolLabel || '') + '：' + (evt.status === 'error' ? '搜索失败' : '未找到结果') + '</span>';
+       }
+     }
+   }
+ }
+ container.scrollTop = container.scrollHeight;
  } else if (evt.type === 'delta') {
  hideNmpaIndicator(); // 开始输出回答，隐藏查询提示
  hideToolStatusIndicator(); // 隐藏工具状态提示
