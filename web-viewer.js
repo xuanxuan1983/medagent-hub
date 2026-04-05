@@ -1,9 +1,39 @@
 // ===== WEB VIEWER (网页深度感知) =====
 // 在预览面板中内嵌网页浏览 + 一键截取发给 Agent 分析
+// 对微信等禁止 iframe 嵌入的网站，自动降级为后端抓取渲染
 
 // --- State ---
 var webViewerUrl = '';
 var webViewerContent = null; // { title, content, description, url }
+
+// --- 需要跳过 iframe、直接后端抓取的域名列表 ---
+var DIRECT_EXTRACT_DOMAINS = [
+  'mp.weixin.qq.com',
+  'weixin.qq.com',
+  'wx.qq.com',
+  'xhslink.com',
+  'www.xiaohongshu.com',
+  'www.douyin.com',
+  'www.toutiao.com',
+  'zhuanlan.zhihu.com',
+  'www.zhihu.com',
+  'twitter.com',
+  'x.com',
+  'www.instagram.com',
+  'www.facebook.com'
+];
+
+// --- 检查 URL 是否需要直接抓取（跳过 iframe）---
+function shouldDirectExtract(url) {
+  try {
+    var hostname = new URL(url).hostname;
+    return DIRECT_EXTRACT_DOMAINS.some(function(d) {
+      return hostname === d || hostname.endsWith('.' + d);
+    });
+  } catch(e) {
+    return false;
+  }
+}
 
 // --- Open URL input dialog ---
 function openWebUrlInput() {
@@ -23,7 +53,7 @@ function openWebUrlInput() {
         '</div>' +
         '<div class="web-url-dialog-body">' +
           '<input type="text" id="webUrlInput" placeholder="输入网址，例如 https://example.com" autocomplete="off">' +
-          '<div class="web-url-dialog-hint">支持 HTTP/HTTPS 网页，将在预览面板中加载</div>' +
+          '<div class="web-url-dialog-hint">支持 HTTP/HTTPS 网页，微信公众号等链接将自动提取内容</div>' +
         '</div>' +
         '<div class="web-url-dialog-footer">' +
           '<button class="web-url-dialog-cancel" onclick="document.getElementById(\'webUrlDialog\').classList.remove(\'active\')">取消</button>' +
@@ -61,13 +91,96 @@ function loadWebUrl() {
   var dialog = document.getElementById('webUrlDialog');
   if (dialog) dialog.classList.remove('active');
 
-  // Open preview panel with iframe
-  showWebInPreview(url);
+  // 对微信等特殊域名，直接后端抓取，不走 iframe
+  if (shouldDirectExtract(url)) {
+    showDirectExtractInPreview(url);
+  } else {
+    showWebInPreview(url);
+  }
 }
 
-// --- Show web page in preview panel ---
+// --- 直接后端抓取模式（微信等） ---
+async function showDirectExtractInPreview(url) {
+  var previewPanel = document.getElementById('previewPanel');
+  if (!previewPanel) return;
+
+  // Show preview panel
+  previewPanel.style.display = 'flex';
+
+  // Update preview header
+  var titleEl = document.getElementById('previewTitle') || previewPanel.querySelector('.preview-panel-title');
+  if (titleEl) {
+    var domain = '';
+    try { domain = new URL(url).hostname; } catch(e) { domain = url; }
+    titleEl.textContent = domain;
+  }
+
+  // Show loading state in preview body
+  var body = document.getElementById('previewBody') || previewPanel.querySelector('.preview-panel-body');
+  if (!body) return;
+
+  body.innerHTML =
+    '<div class="web-viewer-container">' +
+      '<div class="web-viewer-toolbar">' +
+        '<div class="web-viewer-url-bar">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>' +
+          '<span class="web-viewer-url-text" title="' + url + '">' + url + '</span>' +
+        '</div>' +
+        '<div class="web-viewer-actions">' +
+          '<button class="web-viewer-btn web-viewer-btn-primary" onclick="extractAndSendToAgent()" title="截取并发送给 Agent">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' +
+            ' 发送给 Agent' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="web-viewer-iframe-container" style="display:flex;align-items:center;justify-content:center">' +
+        '<div class="web-viewer-loading" id="webViewerLoading" style="display:flex">' +
+          '<div class="web-viewer-spinner"></div>' +
+          '<span>正在提取网页内容...</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  // Update toolbar buttons
+  updatePreviewToolbarForWeb();
+
+  // 直接调用后端抓取
+  try {
+    var resp = await fetch('/api/web/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ url: url })
+    });
+    var data = await resp.json();
+
+    if (data.success) {
+      webViewerContent = {
+        title: data.title,
+        content: data.content,
+        description: data.description,
+        url: data.url
+      };
+      showExtractedContent(data);
+      showToast('内容提取成功');
+    } else {
+      var loading = document.getElementById('webViewerLoading');
+      if (loading) {
+        loading.innerHTML = '<span style="color:var(--text-3)">提取失败: ' + (data.error || '未知错误') + '</span>';
+      }
+      showToast(data.error || '提取失败');
+    }
+  } catch (e) {
+    var loading = document.getElementById('webViewerLoading');
+    if (loading) {
+      loading.innerHTML = '<span style="color:var(--text-3)">提取失败: ' + e.message + '</span>';
+    }
+    showToast('提取失败: ' + e.message);
+  }
+}
+
+// --- Show web page in preview panel (iframe mode) ---
 function showWebInPreview(url) {
-  // Use the existing openPreviewPanel mechanism
   var previewPanel = document.getElementById('previewPanel');
   if (!previewPanel) return;
 
@@ -119,16 +232,32 @@ function showWebInPreview(url) {
   if (iframe) {
     iframe.onload = function() {
       if (loading) loading.style.display = 'none';
-    };
-    iframe.onerror = function() {
-      if (loading) {
-        loading.innerHTML = '<span style="color:var(--text-3)">无法加载此页面，请尝试"截取内容"功能</span>';
+      // 检测 iframe 是否真正加载成功（某些网站会显示空白或错误）
+      try {
+        var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        var bodyText = iframeDoc.body ? iframeDoc.body.innerText : '';
+        // 如果 iframe 内容很短或包含错误提示，自动降级
+        if (bodyText.length < 50 || bodyText.indexOf('环境异常') >= 0 || bodyText.indexOf('请在微信客户端打开') >= 0) {
+          showToast('页面无法在 iframe 中正常显示，正在自动提取内容...');
+          showDirectExtractInPreview(url);
+        }
+      } catch(e) {
+        // 跨域无法访问 iframe 内容，这是正常的
       }
     };
-    // Timeout fallback
+    iframe.onerror = function() {
+      // iframe 加载失败，自动降级为后端抓取
+      showToast('页面无法加载，正在自动提取内容...');
+      showDirectExtractInPreview(url);
+    };
+    // Timeout fallback - 15秒后如果还在加载，提示用户
     setTimeout(function() {
       if (loading && loading.style.display !== 'none') {
-        loading.innerHTML = '<span style="color:var(--text-3)">页面加载较慢或被阻止，可直接使用"截取内容"</span>';
+        loading.innerHTML =
+          '<span style="color:var(--text-3)">页面加载较慢</span>' +
+          '<button class="web-viewer-btn" onclick="showDirectExtractInPreview(\'' + url.replace(/'/g, "\\'") + '\')" style="margin-top:8px">' +
+            '切换为内容提取模式' +
+          '</button>';
       }
     }, 15000);
   }
@@ -208,15 +337,17 @@ function showExtractedContent(data) {
   var titleEl = document.getElementById('previewTitle') || document.querySelector('.preview-panel-title');
   if (titleEl) titleEl.textContent = data.title || '网页内容';
 
+  var safeUrl = (data.url || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
   var contentHtml =
     '<div class="web-extracted-content">' +
       '<div class="web-extracted-header">' +
-        '<div class="web-extracted-title">' + (data.title || '无标题') + '</div>' +
+        '<div class="web-extracted-title">' + escapeHtml(data.title || '无标题') + '</div>' +
         '<div class="web-extracted-url">' +
           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>' +
-          '<a href="' + data.url + '" target="_blank" rel="noopener">' + data.url + '</a>' +
+          '<a href="' + safeUrl + '" target="_blank" rel="noopener">' + escapeHtml(data.url || '') + '</a>' +
         '</div>' +
-        (data.description ? '<div class="web-extracted-desc">' + data.description + '</div>' : '') +
+        (data.description ? '<div class="web-extracted-desc">' + escapeHtml(data.description) + '</div>' : '') +
       '</div>' +
       '<div class="web-extracted-actions">' +
         '<button class="web-extracted-btn" onclick="sendExtractedToAgent()">' +
@@ -227,9 +358,9 @@ function showExtractedContent(data) {
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
           ' 复制内容' +
         '</button>' +
-        '<button class="web-extracted-btn web-extracted-btn-secondary" onclick="showWebInPreview(\'' + data.url.replace(/'/g, "\\'") + '\')">' +
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>' +
-          ' 返回网页' +
+        '<button class="web-extracted-btn web-extracted-btn-secondary" onclick="window.open(\'' + safeUrl + '\', \'_blank\')">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+          ' 在新标签页打开' +
         '</button>' +
       '</div>' +
       '<div class="web-extracted-body">' +
@@ -242,6 +373,7 @@ function showExtractedContent(data) {
 
 // --- Helper: escape HTML ---
 function escapeHtml(text) {
+  if (!text) return '';
   var div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;

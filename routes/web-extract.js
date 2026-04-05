@@ -38,20 +38,32 @@ function extractTextFromHTML(html) {
 
   // 尝试提取 article/main 内容
   let mainContent = '';
-  const articleMatch = html.match(/<article[\s\S]*?>([\s\S]*?)<\/article>/i);
-  if (articleMatch) {
-    mainContent = articleMatch[1];
+
+  // 微信公众号文章特殊处理：提取 js_content div
+  const wechatMatch = html.match(/<div[^>]*id=["']js_content["'][^>]*>([\s\S]*?)<\/div>\s*<\/div>/i);
+  if (wechatMatch) {
+    mainContent = wechatMatch[1];
+    // 微信文章标题可能在 og:title 中
+    if (!title) {
+      const ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([\s\S]*?)["']/i);
+      if (ogTitle) title = ogTitle[1].trim();
+    }
   } else {
-    const mainMatch = html.match(/<main[\s\S]*?>([\s\S]*?)<\/main>/i);
-    if (mainMatch) {
-      mainContent = mainMatch[1];
+    const articleMatch = html.match(/<article[\s\S]*?>([\s\S]*?)<\/article>/i);
+    if (articleMatch) {
+      mainContent = articleMatch[1];
     } else {
-      // 尝试提取 body 中最大的 div
-      const bodyMatch = html.match(/<body[\s\S]*?>([\s\S]*?)<\/body>/i);
-      if (bodyMatch) {
-        mainContent = bodyMatch[1];
+      const mainMatch = html.match(/<main[\s\S]*?>([\s\S]*?)<\/main>/i);
+      if (mainMatch) {
+        mainContent = mainMatch[1];
       } else {
-        mainContent = text;
+        // 尝试提取 body 中最大的 div
+        const bodyMatch = html.match(/<body[\s\S]*?>([\s\S]*?)<\/body>/i);
+        if (bodyMatch) {
+          mainContent = bodyMatch[1];
+        } else {
+          mainContent = text;
+        }
       }
     }
   }
@@ -125,10 +137,16 @@ function fetchWebPage(targetUrl, timeout) {
       path: parsedUrl.pathname + parsedUrl.search,
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; MedAgent/1.0)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'identity' // 不压缩，简化处理
+        'Accept-Encoding': 'identity', // 不压缩，简化处理
+        'Referer': parsedUrl.protocol + '//' + parsedUrl.hostname + '/',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1'
       },
       timeout: timeout || 10000
     };
