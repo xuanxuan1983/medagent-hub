@@ -276,13 +276,20 @@
  <div class="preview-panel-title" id="previewTitle">文档预览</div>
  <div class="preview-panel-meta" id="previewMeta"></div>
  <div class="preview-panel-actions">
+ <button class="preview-action-btn" id="previewEditBtn" onclick="togglePreviewEdit()" title="编辑文档">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+ </button>
+ <button class="preview-action-btn" onclick="copyPreviewContent()" title="复制内容">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+ </button>
+ <button class="preview-action-btn" onclick="downloadPreviewContent()" title="下载文件">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+ </button>
  <button class="preview-action-btn" onclick="askAboutPreview()" title="基于当前文档向 Agent 提问">
  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
- 问 Agent
  </button>
- <button class="preview-action-btn" onclick="citePreviewInInput()" title="将当前文档引用到输入框">
+ <button class="preview-action-btn" onclick="citePreviewInInput()" title="引用到对话">
  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
- 引用
  </button>
  <button class="preview-close-btn" onclick="closePreviewPanel()" title="关闭预览">
  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -290,7 +297,22 @@
  </div>
  </div>
  <div class="preview-panel-body" id="previewBody">
- <div style="text-align:center;color:var(--text-3);padding:3rem">选择左侧文件进行预览</div>
+ <div class="preview-empty-state">
+ <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="color:var(--border);margin-bottom:1rem"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+ <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:0.5rem">文档预览</div>
+ <div style="font-size:0.85rem;color:var(--text-3);line-height:1.6;max-width:280px">点击左侧文件列表中的文件，即可在此预览内容</div>
+ <div style="display:flex;gap:1.5rem;margin-top:1.5rem;font-size:0.78rem;color:var(--text-3)">
+ <div style="display:flex;align-items:center;gap:0.35rem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> 问 Agent 分析</div>
+ <div style="display:flex;align-items:center;gap:0.35rem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> 引用到聊天</div>
+ </div>
+ </div>
+ </div>
+ <div class="preview-edit-bar" id="previewEditBar">
+ <div class="edit-status"><span class="dot"></span> 编辑模式 · 修改后可保存并发送给 Agent</div>
+ <div class="edit-actions">
+ <button class="edit-cancel-btn" onclick="cancelPreviewEdit()">取消</button>
+ <button class="edit-save-btn" onclick="savePreviewEdit()">保存并发送</button>
+ </div>
  </div>
  </div>
  <!-- CHAT MAIN PANEL (右栏) -->
@@ -335,6 +357,8 @@
  </div>
  <div class="template-panel-grid" id="templateGrid"></div>
  </div>
+ <!-- Combo Skills 快捷标签 -->
+ <div class="combo-quick-tags" id="comboQuickTags" style="display:none"></div>
  <div class="chat-input-area">
  <!-- File preview card -->
  <div id="filePreviewArea" style="display:none"></div>
@@ -345,15 +369,19 @@
  <div class="chat-input-footer">
  <div class="chat-input-left">
  <button class="upload-btn" id="uploadBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件">
+ <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
  <span class="btn-label">上传文件</span>
  </button>
  <button class="search-toggle-btn" id="searchToggleBtn" onclick="toggleWebSearch()" title="开启联网搜索">
+ <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
  <span class="btn-label">联网</span>
  </button>
  <button class="draw-btn" id="drawBtn" onclick="openDrawModal()" title="AI 绘图" style="display:none">
+ <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
  <span class="btn-label">绘图</span>
  </button>
  <button class="draw-btn" id="snapshotBtn" onclick="openSnapshotModal()" title="保存快照" style="display:none">
+ <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
  <span class="btn-label">快照</span>
  </button>
  <button class="template-btn" id="templateBtn" onclick="toggleTemplatePanel()" title="输出模板">
@@ -364,6 +392,7 @@
  </div>
  <div class="chat-input-right">
  <button class="mic-btn" id="micBtn" disabled onclick="toggleVoiceInput()" title="语音输入" style="display:none">
+ <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
  <span class="btn-label">语音</span>
  </button>
  <button class="chat-send-btn" id="sendBtn" disabled onclick="sendMessage()">发送</button>

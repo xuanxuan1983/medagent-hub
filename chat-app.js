@@ -699,6 +699,7 @@
  document.getElementById('messageInput').disabled = true;
  document.getElementById('sendBtn').disabled = true;
  document.getElementById('chatInputHint').textContent = '初始化中...';
+ renderComboTags(agentId);
 
  try {
  const res = await fetch('/api/chat/init', {
@@ -729,10 +730,24 @@
  // ===== FILE UPLOAD =====
  let pendingFile = null; // { name, size, content, type }
 
- function getFileIcon(name) {
+ function getFileIcon(name, returnSvg) {
  const ext = name.split('.').pop().toLowerCase();
+ // Legacy text labels for backward compatibility
  const icons = { pdf: 'PDF', doc: 'DOC', docx: 'DOC', xls: 'XLS', xlsx: 'XLS', txt: 'TXT', csv: 'CSV', md: 'MD', png: 'IMG', jpg: 'IMG', jpeg: 'IMG', gif: 'IMG', webp: 'IMG', bmp: 'IMG' };
- return icons[ext] || 'FILE';
+ if (!returnSvg) return icons[ext] || 'FILE';
+ // SVG icons with CSS class for colored backgrounds
+ const svgDoc = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+ const svgSheet = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>';
+ const svgImg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+ const typeMap = {
+ pdf: { cls: 'pdf', svg: svgDoc },
+ doc: { cls: 'doc', svg: svgDoc }, docx: { cls: 'doc', svg: svgDoc },
+ xls: { cls: 'xls', svg: svgSheet }, xlsx: { cls: 'xls', svg: svgSheet }, csv: { cls: 'xls', svg: svgSheet },
+ md: { cls: 'md', svg: svgDoc }, txt: { cls: 'md', svg: svgDoc },
+ png: { cls: 'img', svg: svgImg }, jpg: { cls: 'img', svg: svgImg }, jpeg: { cls: 'img', svg: svgImg }, gif: { cls: 'img', svg: svgImg }, webp: { cls: 'img', svg: svgImg }, bmp: { cls: 'img', svg: svgImg }
+ };
+ const t = typeMap[ext] || { cls: 'md', svg: svgDoc };
+ return { cls: t.cls, svg: t.svg };
  }
 
  function formatFileSize(bytes) {
@@ -832,6 +847,7 @@
  function addFileToResourcePanel(fileInfo) {
  const exists = resourceFiles.find(f => f.name === fileInfo.name);
  if (exists) return;
+ fileInfo.timestamp = fileInfo.timestamp || Date.now();
  resourceFiles.push(fileInfo);
  renderResourceFileList();
  if (!resourcePanelOpen) toggleResourcePanel();
@@ -840,17 +856,106 @@
  function renderResourceFileList() {
  const container = document.getElementById('resourceFileList');
  if (!resourceFiles.length) {
- container.innerHTML = '<div class="resource-empty">暂无上传文件<br><span style="font-size:0.7rem">上传文件后可在此快速引用</span></div>';
+ container.innerHTML = '<div class="resource-empty"><div class="resource-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="resource-empty-title">暂无上传文件</div><div class="resource-empty-desc">上传文件后可在此快速引用</div></div>';
  return;
  }
- container.innerHTML = resourceFiles.map((f, idx) => {
- const icon = getFileIcon(f.name);
- return '<div class="resource-item" draggable="true" ondragstart="onResourceItemDragStart(event,' + idx + ')" onclick="citeFileInInput(' + idx + ')">'
- + '<span class="resource-item-icon">' + icon + '</span>'
- + '<span class="resource-item-name" title="' + f.name + '">' + f.name + '</span>'
- + '<button class="resource-item-cite" onclick="event.stopPropagation();citeFileInInput(' + idx + ')">引用</button>'
+ // Sort by timestamp descending (newest first)
+ const sorted = resourceFiles.map((f, idx) => ({ ...f, _idx: idx })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+ // Group by time period
+ const now = new Date();
+ const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+ const yesterdayStart = todayStart - 86400000;
+ const weekStart = todayStart - (now.getDay() || 7) * 86400000;
+ const groups = { today: [], yesterday: [], week: [], earlier: [] };
+ sorted.forEach(f => {
+ const ts = f.timestamp || 0;
+ if (ts >= todayStart) groups.today.push(f);
+ else if (ts >= yesterdayStart) groups.yesterday.push(f);
+ else if (ts >= weekStart) groups.week.push(f);
+ else groups.earlier.push(f);
+ });
+ const labels = { today: '今天', yesterday: '昨天', week: '本周', earlier: '更早' };
+ let html = '';
+ Object.keys(groups).forEach(key => {
+ if (!groups[key].length) return;
+ html += '<div class="file-group-label">' + labels[key] + '</div>';
+ groups[key].forEach(f => {
+ const icon = getFileIcon(f.name, true);
+ const meta = formatFileTimeMeta(f.timestamp, todayStart, yesterdayStart);
+ html += '<div class="file-item" draggable="true" ondragstart="onResourceItemDragStart(event,' + f._idx + ')" onclick="previewResourceFile(' + f._idx + ')" oncontextmenu="showFileContextMenu(event,' + f._idx + ')">' 
+ + '<div class="file-icon ' + icon.cls + '">' + icon.svg + '</div>'
+ + '<span class="file-name" title="' + f.name + '">' + f.name + '</span>'
+ + '<span class="file-meta">' + meta + '</span>'
  + '</div>';
- }).join('');
+ });
+ });
+ container.innerHTML = html;
+ }
+
+ function formatFileTimeMeta(ts, todayStart, yesterdayStart) {
+ if (!ts) return '';
+ const d = new Date(ts);
+ if (ts >= todayStart) {
+ const diffMin = Math.floor((Date.now() - ts) / 60000);
+ if (diffMin < 1) return '刚刚';
+ if (diffMin < 60) return diffMin + '分钟前';
+ return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+ }
+ if (ts >= yesterdayStart) return '昨天';
+ const weekDays = ['周日','周一','周二','周三','周四','周五','周六'];
+ return weekDays[d.getDay()];
+ }
+
+ // ===== FILE CONTEXT MENU =====
+ function showFileContextMenu(event, idx) {
+ event.preventDefault();
+ event.stopPropagation();
+ // Remove existing menu
+ const old = document.getElementById('fileContextMenu');
+ if (old) old.remove();
+ const f = resourceFiles[idx];
+ if (!f) return;
+ const menu = document.createElement('div');
+ menu.id = 'fileContextMenu';
+ menu.className = 'file-context-menu';
+ menu.innerHTML = '<div class="file-ctx-item" onclick="previewResourceFile(' + idx + ');closeFileContextMenu()">'
+ + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+ + ' \u9884\u89c8</div>'
+ + '<div class="file-ctx-item" onclick="citeFileInInput(' + idx + ');closeFileContextMenu()">'
+ + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>'
+ + ' \u5f15\u7528</div>'
+ + '<div class="file-ctx-divider"></div>'
+ + '<div class="file-ctx-item file-ctx-danger" onclick="deleteResourceFile(' + idx + ');closeFileContextMenu()">'
+ + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>'
+ + ' \u5220\u9664</div>';
+ menu.style.left = event.clientX + 'px';
+ menu.style.top = event.clientY + 'px';
+ document.body.appendChild(menu);
+ // Adjust if overflows viewport
+ const rect = menu.getBoundingClientRect();
+ if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 8) + 'px';
+ if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 8) + 'px';
+ // Close on click outside
+ setTimeout(() => document.addEventListener('click', closeFileContextMenu, { once: true }), 10);
+ }
+
+ function closeFileContextMenu() {
+ const m = document.getElementById('fileContextMenu');
+ if (m) m.remove();
+ }
+
+ function deleteResourceFile(idx) {
+ if (!confirm('\u786e\u5b9a\u5220\u9664\u6587\u4ef6\u300c' + resourceFiles[idx].name + '\u300d\uff1f')) return;
+ resourceFiles.splice(idx, 1);
+ renderResourceFileList();
+ }
+
+ function previewResourceFile(idx) {
+ const f = resourceFiles[idx];
+ if (!f) return;
+ const content = f.content || '暂无可预览的文本内容';
+ const meta = f.size ? (f.size / 1024).toFixed(1) + ' KB' : '';
+ openPreviewPanel('resource_' + idx, f.name, content, meta);
  }
 
  function citeFileInInput(idx) {
@@ -946,6 +1051,107 @@
 
  function willSearch(msg) {
  return webSearchEnabled;
+ }
+
+ // ===== Combo Skills 快捷标签 =====
+ const COMBO_SKILLS_MAP = {
+   // 豆子（上游厂商入口）
+   'doudou': [
+     { id: 'competitor', name: '竞品分析', prompt: '帮我做一份竞品分析报告，包含产品对比、市场份额、价格策略和竞争优势分析' },
+     { id: 'gtm', name: 'GTM 策略', prompt: '帮我制定一套 GTM（Go-To-Market）策略，包含目标市场定位、渠道策略、定价策略和推广节奏' },
+     { id: 'speech', name: '话术生成', prompt: '帮我生成一套专业的销售话术，包含开场白、产品介绍、异议处理和成交促成' },
+     { id: 'compliance', name: '合规审查', prompt: '帮我进行产品合规审查，检查注册信息、广告合规性和潜在风险' }
+   ],
+   // 豆丁（下游机构入口）
+   'douding': [
+     { id: 'consult', name: '咨询话术', prompt: '帮我设计一套客户咨询话术体系，包含需求挖掘、项目介绍、价格异议处理和成交促成' },
+     { id: 'operation', name: '运营方案', prompt: '帮我制定一份机构运营方案，包含获客策略、活动设计、预算分配和 KPI 设定' },
+     { id: 'postop', name: '术后管理', prompt: '帮我建立一套术后管理流程，包含随访节点、风险分诊、客户关怀和复购转化' },
+     { id: 'training', name: '培训材料', prompt: '帮我编写一份培训材料，包含产品知识、操作流程、FAQ 和考核要点' }
+   ],
+   // 豆芽（内容创作入口）
+   'douya': [
+     { id: 'xhs', name: '小红书文案', prompt: '帮我写一篇小红书种草笔记，包含吸睛标题、正文内容、配图建议和标签' },
+     { id: 'wechat', name: '公众号推文', prompt: '帮我写一篇微信公众号推文，包含标题、导语、正文和尾部 CTA' },
+     { id: 'ip', name: '个人 IP', prompt: '帮我规划个人 IP 打造方案，包含人设定位、内容策略、视觉系统和变现路径' },
+     { id: 'topic', name: '爆款选题', prompt: '帮我做一次爆款选题分析，找出当前医美行业最有传播潜力的内容方向' }
+   ],
+   // GTM战略大师
+   'gtm-strategist': [
+     { id: 'competitor', name: '竞品分析', prompt: '帮我做一份竞品分析报告，包含产品矩阵对比、市场份额、价格策略和竞争优势' },
+     { id: 'gtm', name: 'GTM 策略', prompt: '帮我制定一套完整的 GTM 策略，包含市场定位、渠道策略、定价策略和推广节奏' },
+     { id: 'market', name: '市场调研', prompt: '帮我撰写一份市场调研报告，包含行业现状、市场规模、增长趋势和机会分析' },
+     { id: 'channel', name: '渠道策略', prompt: '帮我制定渠道拓展策略，包含目标机构画像、合作模式、进场策略和维护方案' }
+   ],
+   // 金牌咨询师
+   'senior-consultant': [
+     { id: 'consult', name: '咨询话术', prompt: '帮我设计一套客户咨询话术体系，包含破冰、需求挖掘、项目推荐和成交促成' },
+     { id: 'objection', name: '异议处理', prompt: '帮我设计常见异议处理话术，包含价格异议、效果疑虑、竞品对比和犹豫不决' },
+     { id: 'closing', name: '成交技巧', prompt: '帮我梳理成交促成技巧，包含信号识别、报价策略、限时促销和追踪节奏' },
+     { id: 'followup', name: '客户跟进', prompt: '帮我制定客户跟进计划，包含跟进时间节点、沟通话术和复购转化策略' }
+   ],
+   // 小红书图文创作顾问
+   'xhs-content-creator': [
+     { id: 'xhs_note', name: '种草笔记', prompt: '帮我写一篇小红书种草笔记，要有吸引力的标题和真实感的内容' },
+     { id: 'xhs_series', name: '系列规划', prompt: '帮我规划一个小红书内容系列，包含主题规划、发布节奏和互动策略' },
+     { id: 'xhs_style', name: '风格设计', prompt: '帮我设计小红书图文视觉风格，包含配色、布局、字体和图片风格' },
+     { id: 'xhs_data', name: '数据复盘', prompt: '帮我复盘小红书账号数据，分析爆款内容特征和优化方向' }
+   ],
+   // 微信公众号运营顾问
+   'wechat-content-creator': [
+     { id: 'wechat_article', name: '深度文章', prompt: '帮我写一篇微信公众号深度文章，包含标题、导语、正文和尾部 CTA' },
+     { id: 'wechat_plan', name: '内容规划', prompt: '帮我规划一个月的公众号内容日历，包含主题、发布时间和配合活动' },
+     { id: 'wechat_growth', name: '增长策略', prompt: '帮我制定公众号增长策略，包含涨粉方案、活动设计和留存优化' },
+     { id: 'wechat_convert', name: '转化优化', prompt: '帮我优化公众号到店转化链路，包含落地页设计、活动机制和跟进流程' }
+   ]
+ };
+
+ // 通用 Combo 标签（未单独配置的 Agent 使用）
+ const DEFAULT_COMBO_SKILLS = [
+   { id: 'competitor', name: '竞品分析', prompt: '帮我做一份竞品分析报告' },
+   { id: 'copywriting', name: '营销文案', prompt: '帮我撰写一套营销文案' },
+   { id: 'compliance', name: '合规审查', prompt: '帮我进行合规审查' },
+   { id: 'swot', name: 'SWOT 分析', prompt: '帮我做一份 SWOT 分析' }
+ ];
+
+ function renderComboTags(agentId) {
+   const container = document.getElementById('comboQuickTags');
+   if (!container) return;
+   const skills = COMBO_SKILLS_MAP[agentId] || DEFAULT_COMBO_SKILLS;
+   if (!skills || skills.length === 0) {
+     container.style.display = 'none';
+     return;
+   }
+   const lightningIcon = '<span class="combo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>';
+   let html = '';
+   skills.forEach(function(skill, idx) {
+     const isFirst = idx === 0;
+     html += '<div class="combo-quick-tag' + (isFirst ? ' active' : '') + '" data-combo-id="' + skill.id + '" data-combo-prompt="' + skill.prompt.replace(/"/g, '&quot;') + '" onclick="triggerCombo(this)">';
+     html += lightningIcon;
+     html += skill.name;
+     if (!isFirst) html += ' <span class="combo-plus">+</span>';
+     html += '</div>';
+   });
+   container.innerHTML = html;
+   container.style.display = 'flex';
+ }
+
+ function triggerCombo(el) {
+   const prompt = el.getAttribute('data-combo-prompt');
+   if (!prompt) return;
+   // 高亮点击的标签
+   document.querySelectorAll('.combo-quick-tag').forEach(function(t) { t.classList.remove('active'); });
+   el.classList.add('active');
+   // 填充到输入框并发送
+   const input = document.getElementById('messageInput');
+   if (input) {
+     input.value = prompt;
+     input.style.height = 'auto';
+     input.style.height = input.scrollHeight + 'px';
+     input.focus();
+     // 自动发送
+     sendMessage();
+   }
  }
 
  // ===== 输出模板 =====
@@ -1987,28 +2193,17 @@
  exportBar.className = 'export-toolbar';
  // 将 mainContent 存储在 bubble 上，供导出函数使用
  bubble.dataset.rawMarkdown = mainContent;
- exportBar.innerHTML = '<button class="export-btn" onclick="exportCopyMarkdown(this)" title="复制 Markdown">' +
-   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><path d="M9 9h1M9 13h6M9 17h6"/></svg>' +
-   '<span>Markdown</span></button>' +
-   '<button class="export-btn" onclick="exportCopyText(this)" title="复制纯文本">' +
-   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
-   '<span>纯文本</span></button>' +
-   '<button class="export-btn" onclick="exportCopyWechat(this)" title="复制为微信公众号格式">' +
-   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>' +
-   '<span>公众号</span></button>' +
-   '<button class="export-btn" onclick="exportPDF(this)" title="导出 PDF">' +
-   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>' +
-   '<span>PDF</span></button>';
+ var feedbackIdx = messageIndex++;
+ exportBar.innerHTML = '<button class="export-btn" onclick="exportCopyMarkdown(this)" title="复制 Markdown">Markdown</button>' +
+   '<button class="export-btn" onclick="exportCopyText(this)" title="复制纯文本">纯文本</button>' +
+   '<button class="export-btn" onclick="exportCopyWechat(this)" title="复制为微信公众号格式">公众号</button>' +
+   '<button class="export-btn" onclick="exportPDF(this)" title="导出 PDF">PDF</button>' +
+   '<span class="feedback-spacer"></span>' +
+   '<button class="feedback-btn-inline" onclick="submitFeedback(this,' + feedbackIdx + ',\'up\')" title="有帮助">&#128077;</button>' +
+   '<button class="feedback-btn-inline" onclick="submitFeedback(this,' + feedbackIdx + ',\'down\')" title="需改进">&#128078;</button>';
+ exportBar.dataset.userMsg = lastUserMsg;
+ exportBar.dataset.assistantMsg = mainContent.substring(0, 2000);
  bubble.appendChild(exportBar);
-
- // Feedback buttons
- const feedback = document.createElement('div');
- feedback.className = 'msg-feedback';
- const idx = messageIndex++;
- feedback.dataset.userMsg = lastUserMsg;
- feedback.dataset.assistantMsg = mainContent.substring(0, 2000); // 最多取2000字
- feedback.innerHTML = '<span class="feedback-hint">感谢反馈，将用于改进训练</span><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">+1</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">​-1</button>';
- bubble.appendChild(feedback);
 
  // Suggested questions
  if (suggestedQuestions.length > 0) {
@@ -2809,6 +3004,9 @@
  document.getElementById('chatStatus').style.display = 'none';
  sessionId = null;
  currentHistorySessionId = historySessionId;
+ // Hide combo tags in history view
+ const comboEl = document.getElementById('comboQuickTags');
+ if (comboEl) { comboEl.style.display = 'none'; comboEl.innerHTML = ''; }
  } catch (e) {
  console.error('Load history session error:', e);
  alert('加载历史记录失败，请稍后重试');
@@ -3801,6 +3999,8 @@ function openPreviewPanel(fileId, fileName, content, meta) {
   // Update layout state
   const resourceVisible = !document.getElementById('resourcePanel').classList.contains('collapsed');
   currentLayout = resourceVisible ? 'three-panel' : 'preview-chat';
+  const chatPanel = document.querySelector('.chat-main-panel');
+  if (chatPanel) chatPanel.classList.add('fixed-width');
   document.querySelectorAll('.layout-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.layout === currentLayout);
   });
@@ -3814,6 +4014,8 @@ function closePreviewPanel() {
   // Update layout state
   const resourceVisible = !document.getElementById('resourcePanel').classList.contains('collapsed');
   currentLayout = resourceVisible ? 'resource-chat' : 'chat-only';
+  const chatPanel = document.querySelector('.chat-main-panel');
+  if (chatPanel) chatPanel.classList.remove('fixed-width');
   document.querySelectorAll('.layout-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.layout === currentLayout);
   });
@@ -3854,3 +4056,497 @@ function closePreviewPanel() {
     }
   } catch(e) {}
 })();
+
+
+// ===== SPRINT 3: PREVIEW ENHANCEMENT =====
+// Enhanced preview panel with editing, copy, download, and Agent document push
+
+let previewEditMode = false;
+let previewOriginalContent = ''; // Store original content for cancel
+
+// Detect file type from filename
+function detectFileType(fileName) {
+  if (!fileName) return 'txt';
+  const ext = fileName.split('.').pop().toLowerCase();
+  if (['md', 'markdown'].includes(ext)) return 'md';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc', 'docx'].includes(ext)) return 'doc';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'xls';
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) return 'img';
+  return 'txt';
+}
+
+// Get file type badge HTML
+function getFileTypeBadge(fileType) {
+  const labels = { md: 'MD', pdf: 'PDF', doc: 'DOC', xls: 'XLS', img: 'IMG', txt: 'TXT', agent: 'Agent' };
+  return '<span class="preview-file-type-badge type-' + fileType + '">' + (labels[fileType] || 'TXT') + '</span>';
+}
+
+// Show toast notification
+function showPreviewToast(message) {
+  let toast = document.getElementById('previewToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'previewToast';
+    toast.className = 'preview-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2000);
+}
+
+// Enhanced openPreviewPanel with file type detection and rich rendering
+(function() {
+  const _origOpen = openPreviewPanel;
+  window.openPreviewPanel = function(fileId, fileName, content, meta, options) {
+    const previewPanel = document.getElementById('previewPanel');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewMeta = document.getElementById('previewMeta');
+    const previewBody = document.getElementById('previewBody');
+    const editBar = document.getElementById('previewEditBar');
+
+    // Exit edit mode if active
+    previewEditMode = false;
+    previewBody.classList.remove('edit-mode');
+    if (editBar) editBar.classList.remove('visible');
+    var editBtn = document.getElementById('previewEditBtn');
+    if (editBtn) editBtn.classList.remove('editing');
+
+    options = options || {};
+    const fileType = options.fileType || detectFileType(fileName);
+    const isAgent = options.isAgent || false;
+
+    currentPreviewFile = { fileId: fileId, fileName: fileName, content: content, fileType: fileType, isAgent: isAgent };
+
+    // Build title with file type badge
+    previewTitle.innerHTML = getFileTypeBadge(isAgent ? 'agent' : fileType) + ' ' + (fileName || '文档预览');
+    previewMeta.textContent = meta || '';
+
+    // Render content based on file type
+    var renderHTML = '';
+    if (fileType === 'img' && content) {
+      // Image preview - content could be a URL or base64
+      if (content.startsWith('http') || content.startsWith('data:') || content.startsWith('/')) {
+        renderHTML = '<div class="preview-image-container"><img src="' + content + '" alt="' + (fileName || 'image') + '" /></div>';
+      } else {
+        renderHTML = '<div class="preview-image-container"><p style="color:var(--text-3)">图片内容已提取为文本描述：</p></div>' +
+          '<div class="preview-doc"><p>' + content.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p></div>';
+      }
+    } else if (fileType === 'pdf' && options.pdfUrl) {
+      // PDF preview with iframe
+      renderHTML = '<div class="preview-pdf-container"><iframe src="' + options.pdfUrl + '" title="PDF Preview"></iframe></div>';
+    } else if (typeof marked !== 'undefined' && content) {
+      // Markdown / rich text rendering
+      var renderText = content;
+      renderText = renderText.replace(/##([^\s#\n])/g, '## $1');
+      // Fix table rendering
+      renderText = (function(text) {
+        text = text.replace(/^[ \t]+\|/gm, '|');
+        var changed = true;
+        while (changed) { var prev = text; text = text.replace(/(\|[^\n]*)\n\n(\|)/g, '$1\n$2'); changed = (text !== prev); }
+        var lines = text.split('\n'), out = [];
+        for (var i = 0; i < lines.length; i++) {
+          var ln = lines[i], prev2 = i > 0 ? lines[i-1] : '';
+          if (ln.trimStart().startsWith('|') && prev2 !== '' && !prev2.trimStart().startsWith('|')) out.push('');
+          out.push(ln);
+        }
+        return out.join('\n');
+      })(renderText);
+      var parsed = marked.parse(renderText);
+      if (typeof DOMPurify !== 'undefined') parsed = DOMPurify.sanitize(parsed);
+      renderHTML = '<div class="preview-render"><div class="preview-doc">' + parsed + '</div></div>';
+    } else {
+      // Plain text fallback
+      renderHTML = '<div class="preview-render"><div class="preview-doc"><pre style="white-space:pre-wrap;font-family:inherit;font-size:0.85rem;line-height:1.75;color:var(--text-2)">' +
+        (content || '暂无可预览的文本内容').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre></div></div>';
+    }
+
+    // Add hidden editor textarea
+    renderHTML += '<textarea class="preview-editor" id="previewEditor" placeholder="在此编辑 Markdown 内容..."></textarea>';
+
+    previewBody.innerHTML = renderHTML;
+
+    // Show preview panel
+    previewPanel.style.display = '';
+
+    // Update layout state
+    var resourceVisible = !document.getElementById('resourcePanel').classList.contains('collapsed');
+    currentLayout = resourceVisible ? 'three-panel' : 'preview-chat';
+    var chatPanel = document.querySelector('.chat-main-panel');
+    if (chatPanel) chatPanel.classList.add('fixed-width');
+    document.querySelectorAll('.layout-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.layout === currentLayout);
+    });
+
+    // Show/hide edit button based on file type (editable for md, txt, doc, agent-generated)
+    if (editBtn) {
+      editBtn.style.display = (fileType === 'img' || fileType === 'pdf') ? 'none' : '';
+    }
+  };
+})();
+
+// Toggle edit mode
+function togglePreviewEdit() {
+  if (!currentPreviewFile) return;
+  var previewBody = document.getElementById('previewBody');
+  var editBar = document.getElementById('previewEditBar');
+  var editBtn = document.getElementById('previewEditBtn');
+  var editor = document.getElementById('previewEditor');
+
+  if (previewEditMode) {
+    // Exit edit mode - render the edited content
+    previewEditMode = false;
+    previewBody.classList.remove('edit-mode');
+    if (editBar) editBar.classList.remove('visible');
+    if (editBtn) editBtn.classList.remove('editing');
+
+    // Update content from editor
+    var editedContent = editor ? editor.value : currentPreviewFile.content;
+    currentPreviewFile.content = editedContent;
+
+    // Re-render
+    var renderDiv = previewBody.querySelector('.preview-render');
+    if (renderDiv && typeof marked !== 'undefined') {
+      var parsed = marked.parse(editedContent);
+      if (typeof DOMPurify !== 'undefined') parsed = DOMPurify.sanitize(parsed);
+      renderDiv.innerHTML = '<div class="preview-doc">' + parsed + '</div>';
+    }
+  } else {
+    // Enter edit mode
+    previewEditMode = true;
+    previewOriginalContent = currentPreviewFile.content || '';
+    previewBody.classList.add('edit-mode');
+    if (editBar) editBar.classList.add('visible');
+    if (editBtn) editBtn.classList.add('editing');
+
+    // Populate editor with current content
+    if (editor) {
+      editor.value = currentPreviewFile.content || '';
+      editor.focus();
+      // Auto-update word count
+      editor.addEventListener('input', updatePreviewWordCount);
+    }
+  }
+}
+
+// Cancel edit
+function cancelPreviewEdit() {
+  if (!previewEditMode) return;
+  var previewBody = document.getElementById('previewBody');
+  var editBar = document.getElementById('previewEditBar');
+  var editBtn = document.getElementById('previewEditBtn');
+  var editor = document.getElementById('previewEditor');
+
+  previewEditMode = false;
+  previewBody.classList.remove('edit-mode');
+  if (editBar) editBar.classList.remove('visible');
+  if (editBtn) editBtn.classList.remove('editing');
+
+  // Restore original content
+  currentPreviewFile.content = previewOriginalContent;
+  if (editor) editor.value = previewOriginalContent;
+
+  // Re-render original
+  var renderDiv = previewBody.querySelector('.preview-render');
+  if (renderDiv && typeof marked !== 'undefined') {
+    var parsed = marked.parse(previewOriginalContent);
+    if (typeof DOMPurify !== 'undefined') parsed = DOMPurify.sanitize(parsed);
+    renderDiv.innerHTML = '<div class="preview-doc">' + parsed + '</div>';
+  }
+}
+
+// Save edit and send to Agent as new context
+function savePreviewEdit() {
+  if (!previewEditMode) return;
+  var editor = document.getElementById('previewEditor');
+  var editedContent = editor ? editor.value : '';
+
+  // Update current preview file content
+  currentPreviewFile.content = editedContent;
+
+  // Exit edit mode
+  togglePreviewEdit();
+
+  // Inject edited content as context into the chat input
+  var input = document.getElementById('messageInput');
+  var docName = currentPreviewFile.fileName || '文档';
+  var contextPrefix = '[已编辑文档《' + docName + '》，以下是修改后的内容：]\n' + editedContent.substring(0, 5000) + '\n\n';
+
+  // Set as pending file context so it gets sent with the next message
+  if (!pendingFile) {
+    pendingFile = {
+      name: docName,
+      size: editedContent.length,
+      content: editedContent,
+      type: 'document',
+      isImage: false,
+      objectUrl: null
+    };
+    var previewArea = document.getElementById('filePreviewArea');
+    if (previewArea) {
+      previewArea.style.display = 'block';
+      previewArea.innerHTML = '<div class="file-preview-card">'
+        + '<span class="file-preview-icon">' + getFileIcon(docName) + '</span>'
+        + '<span class="file-preview-name">' + docName + ' (已编辑)</span>'
+        + '<span class="file-preview-size">已引用</span>'
+        + '<button class="file-preview-remove" onclick="removePendingFile()" title="移除"></button>'
+        + '</div>';
+    }
+  }
+
+  input.value = '请基于我刚才编辑的文档内容，继续帮我完善和优化';
+  input.focus();
+  autoResize(input);
+
+  showPreviewToast('文档已保存，可发送给 Agent');
+}
+
+// Update word count during editing
+function updatePreviewWordCount() {
+  var editor = document.getElementById('previewEditor');
+  if (!editor) return;
+  var text = editor.value;
+  var charCount = text.length;
+  var lineCount = text.split('\n').length;
+  var statusEl = document.querySelector('.preview-edit-bar .edit-status');
+  if (statusEl) {
+    statusEl.innerHTML = '<span class="dot"></span> 编辑模式 · ' + charCount + ' 字 · ' + lineCount + ' 行';
+  }
+}
+
+// Copy preview content to clipboard
+function copyPreviewContent() {
+  if (!currentPreviewFile || !currentPreviewFile.content) {
+    showPreviewToast('暂无可复制的内容');
+    return;
+  }
+  var content = currentPreviewFile.content;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(content).then(function() {
+      showPreviewToast('已复制到剪贴板');
+    }).catch(function() {
+      fallbackCopy(content);
+    });
+  } else {
+    fallbackCopy(content);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showPreviewToast('已复制到剪贴板'); }
+  catch(e) { showPreviewToast('复制失败，请手动复制'); }
+  document.body.removeChild(ta);
+}
+
+// Download preview content as file
+function downloadPreviewContent() {
+  if (!currentPreviewFile) {
+    showPreviewToast('暂无可下载的内容');
+    return;
+  }
+  var content = currentPreviewFile.content || '';
+  var fileName = currentPreviewFile.fileName || '文档.md';
+  var fileType = currentPreviewFile.fileType || 'txt';
+
+  // Determine download filename
+  if (!fileName.includes('.')) {
+    fileName += (fileType === 'md' ? '.md' : '.txt');
+  }
+
+  var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showPreviewToast('文件已下载：' + fileName);
+}
+
+// Override askAboutPreview to work with new preview panel
+(function() {
+  window.askAboutPreview = function() {
+    // Try new preview panel first
+    if (currentPreviewFile && currentPreviewFile.content) {
+      var input = document.getElementById('messageInput');
+      var docName = currentPreviewFile.fileName || '文档';
+      var contextSnippet = (currentPreviewFile.content || '').substring(0, 3000);
+
+      // Set as pending file context
+      if (!pendingFile) {
+        pendingFile = {
+          name: docName,
+          size: currentPreviewFile.content.length,
+          content: currentPreviewFile.content,
+          type: 'document',
+          isImage: false,
+          objectUrl: null
+        };
+        var previewArea = document.getElementById('filePreviewArea');
+        if (previewArea) {
+          previewArea.style.display = 'block';
+          previewArea.innerHTML = '<div class="file-preview-card">'
+            + '<span class="file-preview-icon">' + getFileIcon(docName) + '</span>'
+            + '<span class="file-preview-name">' + docName + '</span>'
+            + '<span class="file-preview-size">已引用</span>'
+            + '<button class="file-preview-remove" onclick="removePendingFile()" title="移除"></button>'
+            + '</div>';
+        }
+      }
+
+      input.value = '请帮我解读这份文档的核心要点';
+      input.focus();
+      autoResize(input);
+      return;
+    }
+    // Fallback to old KB preview doc
+    if (typeof currentPreviewDoc !== 'undefined' && currentPreviewDoc) {
+      var input2 = document.getElementById('messageInput');
+      var docName2 = currentPreviewDoc.name;
+      var contextSnippet2 = (currentPreviewDoc.content || '').substring(0, 3000);
+      var contextPrefix2 = '[正在阅读知识库文档《' + docName2 + '》，以下是文档内容摘要：]\n' + contextSnippet2 + '\n\n';
+      input2.value = contextPrefix2 + '请帮我解读这份文档的核心要点';
+      input2.focus();
+      autoResize(input2);
+    }
+  };
+})();
+
+// Override citePreviewInInput to work with new preview panel
+(function() {
+  window.citePreviewInInput = function() {
+    if (currentPreviewFile && currentPreviewFile.content) {
+      var input = document.getElementById('messageInput');
+      var docName = currentPreviewFile.fileName || '文档';
+      var citeText = '[引用文档《' + docName + '》] ';
+
+      if (!pendingFile) {
+        pendingFile = {
+          name: docName,
+          size: currentPreviewFile.content.length,
+          content: currentPreviewFile.content,
+          type: 'document',
+          isImage: false,
+          objectUrl: null
+        };
+        var previewArea = document.getElementById('filePreviewArea');
+        if (previewArea) {
+          previewArea.style.display = 'block';
+          previewArea.innerHTML = '<div class="file-preview-card">'
+            + '<span class="file-preview-icon">' + getFileIcon(docName) + '</span>'
+            + '<span class="file-preview-name">' + docName + '</span>'
+            + '<span class="file-preview-size">已引用</span>'
+            + '<button class="file-preview-remove" onclick="removePendingFile()" title="移除"></button>'
+            + '</div>';
+        }
+      }
+
+      if (!input.value.trim()) {
+        input.value = citeText;
+      } else {
+        input.value = input.value.trimEnd() + ' ' + citeText;
+      }
+      input.focus();
+      autoResize(input);
+      return;
+    }
+    // Fallback to old KB preview
+    if (typeof currentPreviewDoc !== 'undefined' && currentPreviewDoc) {
+      citeKBInInputById(currentPreviewDoc.id, currentPreviewDoc.name);
+    }
+  };
+})();
+
+// Push Agent-generated document to preview panel
+// Called from finalizeStreamBubble or export toolbar
+function pushAgentDocToPreview(content, title) {
+  if (!content) return;
+  title = title || 'Agent 生成文档';
+  // Auto-generate a timestamp-based name
+  var now = new Date();
+  var timeStr = now.getFullYear() + '' + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '_' + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+  var fileName = title + '_' + timeStr + '.md';
+
+  openPreviewPanel('agent_' + Date.now(), fileName, content, '由 Agent 生成 · ' + formatTimeAgo(now), {
+    fileType: 'md',
+    isAgent: true
+  });
+}
+
+// Add "预览编辑" button to export toolbar via MutationObserver
+// This approach is more reliable than monkey-patching since finalizeStreamBubble
+// is a hoisted function declaration that may be called before the patch runs.
+(function() {
+  // Watch for new export toolbars being added to chat messages
+  var chatContainer = document.getElementById('chatMessages');
+  if (!chatContainer) {
+    document.addEventListener('DOMContentLoaded', function() {
+      initPreviewEditButtons();
+    });
+  } else {
+    initPreviewEditButtons();
+  }
+
+  function initPreviewEditButtons() {
+    var container = document.getElementById('chatMessages');
+    if (!container) return;
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType !== 1) return;
+          // Check if this node or its children contain an export toolbar
+          var toolbars = [];
+          if (node.classList && node.classList.contains('export-toolbar')) {
+            toolbars.push(node);
+          } else if (node.querySelectorAll) {
+            toolbars = node.querySelectorAll('.export-toolbar');
+          }
+          toolbars.forEach(function(exportBar) {
+            // Don't add duplicate buttons
+            if (exportBar.querySelector('.preview-edit-trigger')) return;
+            var bubble = exportBar.closest('.msg-bubble');
+            if (!bubble) return;
+            var rawMd = bubble.dataset.rawMarkdown;
+            if (!rawMd || rawMd.length < 50) return;
+            var previewBtn = document.createElement('button');
+            previewBtn.className = 'export-btn preview-edit-trigger';
+            previewBtn.title = '在预览面板中查看和编辑';
+            previewBtn.textContent = '预览编辑';
+            previewBtn.onclick = function() {
+              var md = bubble.dataset.rawMarkdown;
+              pushAgentDocToPreview(md, (typeof currentAgentName !== 'undefined' ? currentAgentName : '') || 'Agent');
+            };
+            var spacer = exportBar.querySelector('.feedback-spacer');
+            if (spacer) {
+              exportBar.insertBefore(previewBtn, spacer);
+            } else {
+              exportBar.appendChild(previewBtn);
+            }
+          });
+        });
+      });
+    });
+    observer.observe(container, { childList: true, subtree: true });
+  }
+})();
+
+// Helper: format time ago (reuse if exists)
+function formatTimeAgo(date) {
+  if (typeof window._formatTimeAgo === 'function') return window._formatTimeAgo(date);
+  var now = new Date();
+  var diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+  return date.getMonth() + 1 + '月' + date.getDate() + '日';
+}
