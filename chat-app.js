@@ -1982,13 +1982,32 @@
  bubble.appendChild(srcDiv);
  }
 
+ // ===== 导出工具栏 =====
+ var exportBar = document.createElement('div');
+ exportBar.className = 'export-toolbar';
+ // 将 mainContent 存储在 bubble 上，供导出函数使用
+ bubble.dataset.rawMarkdown = mainContent;
+ exportBar.innerHTML = '<button class="export-btn" onclick="exportCopyMarkdown(this)" title="复制 Markdown">' +
+   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/><path d="M9 9h1M9 13h6M9 17h6"/></svg>' +
+   '<span>Markdown</span></button>' +
+   '<button class="export-btn" onclick="exportCopyText(this)" title="复制纯文本">' +
+   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
+   '<span>纯文本</span></button>' +
+   '<button class="export-btn" onclick="exportCopyWechat(this)" title="复制为微信公众号格式">' +
+   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>' +
+   '<span>公众号</span></button>' +
+   '<button class="export-btn" onclick="exportPDF(this)" title="导出 PDF">' +
+   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>' +
+   '<span>PDF</span></button>';
+ bubble.appendChild(exportBar);
+
  // Feedback buttons
  const feedback = document.createElement('div');
  feedback.className = 'msg-feedback';
  const idx = messageIndex++;
  feedback.dataset.userMsg = lastUserMsg;
  feedback.dataset.assistantMsg = mainContent.substring(0, 2000); // 最多取2000字
- feedback.innerHTML = '<span class="feedback-hint">有帮助吗？</span><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">+1</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">-1</button>';
+ feedback.innerHTML = '<span class="feedback-hint">感谢反馈，将用于改进训练</span><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'up\')">+1</button><button class="feedback-btn" onclick="submitFeedback(this,' + idx + ',\'down\')">​-1</button>';
  bubble.appendChild(feedback);
 
  // Suggested questions
@@ -3457,3 +3476,171 @@
  };
  fileInput.click();
  }
+
+
+// ===== 导出功能 =====
+
+function showExportToast(btn, text) {
+  var toast = btn.querySelector('.export-toast');
+  if (!toast) {
+    toast = document.createElement('span');
+    toast.className = 'export-toast';
+    btn.appendChild(toast);
+  }
+  toast.textContent = text;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 1800);
+}
+
+// 1. 复制 Markdown
+function exportCopyMarkdown(btn) {
+  var bubble = btn.closest('.msg-bubble');
+  var md = bubble ? bubble.dataset.rawMarkdown : '';
+  if (!md) { showExportToast(btn, '无内容'); return; }
+  navigator.clipboard.writeText(md).then(function() {
+    showExportToast(btn, '已复制');
+  }).catch(function() {
+    // fallback
+    var ta = document.createElement('textarea');
+    ta.value = md; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showExportToast(btn, '已复制');
+  });
+}
+
+// 2. 复制纯文本
+function exportCopyText(btn) {
+  var bubble = btn.closest('.msg-bubble');
+  var answerDiv = bubble ? bubble.querySelector('.expert-answer-content') : null;
+  if (!answerDiv) { showExportToast(btn, '无内容'); return; }
+  var text = answerDiv.innerText || answerDiv.textContent || '';
+  navigator.clipboard.writeText(text).then(function() {
+    showExportToast(btn, '已复制');
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showExportToast(btn, '已复制');
+  });
+}
+
+// 3. 复制为微信公众号格式
+function exportCopyWechat(btn) {
+  var bubble = btn.closest('.msg-bubble');
+  var md = bubble ? bubble.dataset.rawMarkdown : '';
+  if (!md) { showExportToast(btn, '无内容'); return; }
+
+  // 使用 marked 渲染 markdown 为 HTML
+  var html = typeof marked !== 'undefined' ? marked.parse(md) : md;
+
+  // 包裹公众号友好的样式
+  var wechatHtml = '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Helvetica Neue\',\'PingFang SC\',\'Microsoft YaHei\',sans-serif;font-size:15px;line-height:1.8;color:#333;padding:10px 0;">';
+
+  // 替换标题样式
+  wechatHtml += html
+    .replace(/<h1([^>]*)>/g, '<h1 style="font-size:22px;font-weight:700;color:#1a1a1a;margin:24px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8e8e8;">')
+    .replace(/<h2([^>]*)>/g, '<h2 style="font-size:18px;font-weight:700;color:#1a1a1a;margin:20px 0 10px;padding-left:10px;border-left:3px solid #2563eb;">')
+    .replace(/<h3([^>]*)>/g, '<h3 style="font-size:16px;font-weight:600;color:#333;margin:16px 0 8px;">')
+    .replace(/<p([^>]*)>/g, '<p style="margin:10px 0;text-indent:0;">')
+    .replace(/<strong>/g, '<strong style="color:#1a1a1a;">')
+    .replace(/<blockquote([^>]*)>/g, '<blockquote style="margin:12px 0;padding:10px 16px;background:#f7f8fa;border-left:3px solid #2563eb;color:#555;font-size:14px;">')
+    .replace(/<table([^>]*)>/g, '<table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;">')
+    .replace(/<th([^>]*)>/g, '<th style="background:#f0f5ff;padding:8px 12px;border:1px solid #d9d9d9;text-align:left;font-weight:600;">')
+    .replace(/<td([^>]*)>/g, '<td style="padding:8px 12px;border:1px solid #d9d9d9;">')
+    .replace(/<ul([^>]*)>/g, '<ul style="margin:8px 0;padding-left:20px;">')
+    .replace(/<ol([^>]*)>/g, '<ol style="margin:8px 0;padding-left:20px;">')
+    .replace(/<li([^>]*)>/g, '<li style="margin:4px 0;">');
+
+  wechatHtml += '</div>';
+
+  // 使用 ClipboardItem 复制富文本
+  try {
+    var blob = new Blob([wechatHtml], { type: 'text/html' });
+    var textBlob = new Blob([bubble.querySelector('.expert-answer-content').innerText || ''], { type: 'text/plain' });
+    navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': blob,
+        'text/plain': textBlob
+      })
+    ]).then(function() {
+      showExportToast(btn, '已复制，可直接粘贴到公众号编辑器');
+    });
+  } catch (e) {
+    // fallback: 选中内容并复制
+    var container = document.createElement('div');
+    container.innerHTML = wechatHtml;
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.opacity = '0';
+    document.body.appendChild(container);
+    var range = document.createRange();
+    range.selectNodeContents(container);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    document.body.removeChild(container);
+    showExportToast(btn, '已复制');
+  }
+}
+
+// 4. 导出 PDF
+function exportPDF(btn) {
+  var bubble = btn.closest('.msg-bubble');
+  var answerDiv = bubble ? bubble.querySelector('.expert-answer-content') : null;
+  if (!answerDiv) { showExportToast(btn, '无内容'); return; }
+
+  showExportToast(btn, '正在生成 PDF...');
+
+  // 创建一个用于 PDF 的容器
+  var pdfContainer = document.createElement('div');
+  pdfContainer.style.cssText = 'font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;font-size:14px;line-height:1.8;color:#333;padding:30px;max-width:680px;';
+  pdfContainer.innerHTML = answerDiv.innerHTML;
+
+  // 修复 PDF 中的表格样式
+  pdfContainer.querySelectorAll('table').forEach(function(t) {
+    t.style.cssText = 'width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;';
+  });
+  pdfContainer.querySelectorAll('th').forEach(function(th) {
+    th.style.cssText = 'background:#f0f5ff;padding:6px 10px;border:1px solid #d9d9d9;text-align:left;font-weight:600;font-size:12px;';
+  });
+  pdfContainer.querySelectorAll('td').forEach(function(td) {
+    td.style.cssText = 'padding:6px 10px;border:1px solid #d9d9d9;font-size:12px;';
+  });
+  pdfContainer.querySelectorAll('h1,h2,h3').forEach(function(h) {
+    h.style.color = '#1a1a1a';
+  });
+
+  // 添加页脚
+  var footer = document.createElement('div');
+  footer.style.cssText = 'margin-top:30px;padding-top:12px;border-top:1px solid #e8e8e8;font-size:11px;color:#999;text-align:center;';
+  footer.textContent = 'MedAgent Hub \u00b7 ' + new Date().toLocaleDateString('zh-CN');
+  pdfContainer.appendChild(footer);
+
+  if (typeof html2pdf !== 'undefined') {
+    var opt = {
+      margin: [15, 15, 15, 15],
+      filename: 'MedAgent_' + new Date().toISOString().slice(0, 10) + '.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    html2pdf().set(opt).from(pdfContainer).save().then(function() {
+      showExportToast(btn, 'PDF 已下载');
+    }).catch(function(err) {
+      console.error('PDF export error:', err);
+      showExportToast(btn, '导出失败');
+    });
+  } else {
+    // fallback: 使用浏览器打印
+    var printWin = window.open('', '_blank');
+    printWin.document.write('<html><head><title>MedAgent Report</title><style>body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.8;color:#333;padding:30px;max-width:680px;margin:0 auto;}table{width:100%;border-collapse:collapse;margin:12px 0;}th{background:#f0f5ff;padding:6px 10px;border:1px solid #d9d9d9;text-align:left;}td{padding:6px 10px;border:1px solid #d9d9d9;}h1,h2,h3{color:#1a1a1a;}</style></head><body>' + pdfContainer.innerHTML + '</body></html>');
+    printWin.document.close();
+    printWin.print();
+    showExportToast(btn, '请在打印对话框中选择"另存为 PDF"');
+  }
+}
