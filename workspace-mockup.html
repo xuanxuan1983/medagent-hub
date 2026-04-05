@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedAgent Hub — 工作台布局草图</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-2: #f7f7f8;
+    --bg-3: #efefef;
+    --border: #e5e5e5;
+    --text: #1a1a1a;
+    --text-2: #555;
+    --text-3: #999;
+    --accent: #E8652B;
+    --accent-light: #FFF3ED;
+    --accent-dark: #C4501F;
+    --sidebar-w: 52px;
+    --panel-min: 240px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
+  /* ===== TOP BAR ===== */
+  .topbar {
+    height: 44px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 2px;
+    z-index: 100;
+  }
+  .topbar-logo {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .topbar-workspace {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .topbar-workspace:hover { background: var(--bg-2); }
+  .topbar-workspace svg { opacity: 0.5; }
+  .topbar-divider { width: 1px; height: 20px; background: var(--border); margin: 0 6px; }
+  .topbar-tab {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: var(--text-2);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .topbar-tab:hover { background: var(--bg-2); }
+  .topbar-tab.active { background: var(--bg-2); color: var(--text); font-weight: 600; border-color: var(--border); }
+  .topbar-tab .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+  .topbar-tab .close-tab { opacity: 0; font-size: 14px; color: var(--text-3); margin-left: 4px; transition: opacity 0.15s; }
+  .topbar-tab:hover .close-tab { opacity: 1; }
+  .topbar-add { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; color: var(--text-3); font-size: 18px; transition: background 0.15s; }
+  .topbar-add:hover { background: var(--bg-2); color: var(--text); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+  .topbar-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; color: var(--text-3); transition: all 0.15s; }
+  .topbar-icon:hover { background: var(--bg-2); color: var(--text); }
+  .topbar-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #f59e0b); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main-layout {
+    display: flex;
+    height: calc(100vh - 44px);
+  }
+
+  /* ===== ICON SIDEBAR ===== */
+  .icon-sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .icon-sidebar-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; cursor: pointer;
+    color: var(--text-3); transition: all 0.15s;
+    position: relative;
+  }
+  .icon-sidebar-btn:hover { background: var(--bg-2); color: var(--text); }
+  .icon-sidebar-btn.active { background: var(--accent-light); color: var(--accent); }
+  .icon-sidebar-btn .tooltip {
+    position: absolute; left: 48px; top: 50%; transform: translateY(-50%);
+    background: var(--text); color: #fff; font-size: 11px; padding: 4px 8px;
+    border-radius: 4px; white-space: nowrap; opacity: 0; pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .icon-sidebar-btn:hover .tooltip { opacity: 1; }
+  .icon-sidebar-spacer { flex: 1; }
+
+  /* ===== WORKSPACE CONTAINER ===== */
+  .workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ===== PANELS ===== */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.3s ease, opacity 0.2s ease;
+    position: relative;
+  }
+  .panel.hidden { width: 0 !important; opacity: 0; overflow: hidden; border: none !important; }
+  .panel-header {
+    height: 42px;
+    display: flex; align-items: center;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+  .panel-header-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+  .panel-header-icon { color: var(--text-3); cursor: pointer; display: flex; align-items: center; transition: color 0.15s; }
+  .panel-header-icon:hover { color: var(--text); }
+  .panel-header-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+  /* Resize handle */
+  .resize-handle {
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.15s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .resize-handle:hover, .resize-handle.dragging { background: var(--accent); }
+  .resize-handle::after {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px; height: 32px;
+    border-radius: 1px;
+    background: var(--border);
+    transition: background 0.15s;
+  }
+  .resize-handle:hover::after { background: var(--accent); }
+
+  /* ===== RESOURCE PANEL (LEFT) ===== */
+  .resource-panel-ws {
+    width: 280px;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .resource-tabs-ws {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+  }
+  .resource-tab-ws {
+    flex: 1; padding: 8px 0; text-align: center;
+    font-size: 11.5px; color: var(--text-3); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .resource-tab-ws:hover { color: var(--text-2); }
+  .resource-tab-ws.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .resource-body {
+    flex: 1; overflow-y: auto; padding: 8px;
+  }
+  .file-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px; cursor: pointer;
+    transition: background 0.12s; font-size: 12.5px;
+  }
+  .file-item:hover { background: var(--bg-2); }
+  .file-item.selected { background: var(--accent-light); }
+  .file-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .file-icon.pdf { background: #FEE2E2; color: #DC2626; }
+  .file-icon.doc { background: #DBEAFE; color: #2563EB; }
+  .file-icon.xls { background: #D1FAE5; color: #059669; }
+  .file-icon.img { background: #F3E8FF; color: #7C3AED; }
+  .file-icon.md { background: #E0E7FF; color: #4338CA; }
+  .file-icon.folder { background: #FEF3C7; color: #D97706; }
+  .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-meta { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .file-group-label { font-size: 11px; color: var(--text-3); padding: 10px 10px 4px; font-weight: 600; letter-spacing: 0.03em; }
+
+  /* ===== PREVIEW PANEL (CENTER) ===== */
+  .preview-panel {
+    flex: 1;
+    min-width: 300px;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .preview-body {
+    flex: 1; overflow-y: auto; padding: 24px 32px;
+  }
+  .preview-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; color: var(--text-3); gap: 12px;
+  }
+  .preview-placeholder svg { opacity: 0.3; }
+  .preview-placeholder p { font-size: 13px; }
+  .preview-doc h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .preview-doc .doc-meta { font-size: 12px; color: var(--text-3); margin-bottom: 20px; display: flex; gap: 12px; }
+  .preview-doc h2 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; color: var(--text); }
+  .preview-doc p { font-size: 13.5px; line-height: 1.75; color: var(--text-2); margin-bottom: 12px; }
+  .preview-doc table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12.5px; }
+  .preview-doc th { background: var(--bg-2); padding: 8px 12px; text-align: left; font-weight: 600; border: 1px solid var(--border); }
+  .preview-doc td { padding: 8px 12px; border: 1px solid var(--border); }
+
+  /* ===== CHAT PANEL (RIGHT) ===== */
+  .chat-panel {
+    width: 420px;
+    min-width: 340px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-messages-ws {
+    flex: 1; overflow-y: auto; padding: 16px;
+  }
+  .chat-welcome {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px 20px; text-align: center;
+  }
+  .chat-welcome-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .chat-welcome-sub { font-size: 13px; color: var(--text-3); margin-bottom: 24px; line-height: 1.6; }
+
+  /* Combo Skills */
+  .combo-tabs {
+    display: flex; gap: 4px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .combo-tab {
+    font-size: 12px; padding: 5px 12px; border-radius: 20px;
+    cursor: pointer; transition: all 0.15s;
+    color: var(--text-3); background: transparent;
+  }
+  .combo-tab:hover { background: var(--bg-2); color: var(--text-2); }
+  .combo-tab.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+  .combo-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; padding: 0 8px;
+  }
+  .combo-card {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; cursor: pointer;
+    transition: all 0.15s; text-align: left;
+  }
+  .combo-card:hover { border-color: var(--accent); background: var(--accent-light); }
+  .combo-card-name { font-size: 12.5px; font-weight: 600; margin-bottom: 3px; }
+  .combo-card-desc { font-size: 11px; color: var(--text-3); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Chat bubbles */
+  .msg-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .msg-row.user { justify-content: flex-end; }
+  .msg-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .msg-avatar.agent { background: var(--accent-light); color: var(--accent); }
+  .msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.65; }
+  .msg-bubble.agent { background: var(--bg-2); color: var(--text); border-top-left-radius: 4px; }
+  .msg-bubble.user { background: var(--accent); color: #fff; border-top-right-radius: 4px; }
+  .msg-actions { display: flex; gap: 4px; margin-top: 6px; }
+  .msg-action-btn { font-size: 11px; color: var(--text-3); padding: 2px 8px; border-radius: 4px; cursor: pointer; transition: all 0.12s; background: transparent; border: 1px solid transparent; }
+  .msg-action-btn:hover { background: var(--bg-2); border-color: var(--border); color: var(--text-2); }
+
+  /* Chat input */
+  .chat-input-ws {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .chat-input-box-ws {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    transition: border-color 0.15s;
+  }
+  .chat-input-box-ws:focus-within { border-color: var(--accent); }
+  .chat-input-box-ws textarea {
+    width: 100%; border: none; outline: none; resize: none;
+    font-size: 13px; font-family: inherit; color: var(--text);
+    background: transparent; line-height: 1.5;
+  }
+  .chat-input-footer-ws {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 8px;
+  }
+  .chat-input-left-ws { display: flex; gap: 4px; align-items: center; }
+  .chat-input-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-3); transition: all 0.12s;
+  }
+  .chat-input-btn:hover { background: var(--bg-2); color: var(--text); }
+  .chat-input-btn.active { color: var(--accent); background: var(--accent-light); }
+  .chat-send-ws {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .chat-send-ws:hover { opacity: 0.85; }
+
+  /* Combo quick tags */
+  .combo-quick-tags {
+    display: flex; gap: 6px; padding: 8px 16px; overflow-x: auto;
+    border-top: 1px solid var(--bg-3);
+  }
+  .combo-quick-tag {
+    font-size: 11px; padding: 4px 10px; border-radius: 12px;
+    background: var(--bg-2); color: var(--text-2);
+    white-space: nowrap; cursor: pointer; transition: all 0.12s;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .combo-quick-tag:hover { background: var(--accent-light); color: var(--accent); }
+  .combo-quick-tag .plus { font-size: 13px; opacity: 0.5; }
+
+  /* ===== LAYOUT SWITCHER ===== */
+  .layout-switcher {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--text); color: #fff; border-radius: 12px;
+    padding: 8px 12px; display: flex; gap: 6px; align-items: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    z-index: 200;
+  }
+  .layout-switcher-label { font-size: 11px; opacity: 0.6; margin-right: 4px; }
+  .layout-btn {
+    width: 36px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; gap: 2px;
+    cursor: pointer; transition: all 0.15s;
+    padding: 4px;
+  }
+  .layout-btn:hover { background: rgba(255,255,255,0.15); }
+  .layout-btn.active { background: var(--accent); }
+  .layout-btn .lb { background: rgba(255,255,255,0.4); border-radius: 2px; }
+  .layout-btn.active .lb { background: rgba(255,255,255,0.8); }
+
+  /* ===== ANNOTATION BADGE ===== */
+  .annotation {
+    position: absolute;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    z-index: 50;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(232,101,43,0.3);
+    white-space: nowrap;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+  /* Thinking steps */
+  .thinking-block { background: var(--bg-2); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 12px; }
+  .thinking-title { font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .thinking-step { display: flex; align-items: center; gap: 6px; padding: 3px 0; color: var(--text-2); }
+  .thinking-step .check { color: #22c55e; font-size: 13px; }
+  .sa-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; padding-left: 18px; }
+  .sa-label { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 4px; }
+  .sa-chip { font-size: 10px; background: var(--bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">M</div>
+  <div class="topbar-workspace">
+    MedAgent Hub
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-tab active">
+    <span class="dot"></span>
+    豆子 · 竞品分析
+    <span class="close-tab">&times;</span>
+  </div>
+  <div class="topbar-tab">
+    话术陪练
+    <span class="close-tab">&times;</span>
+  </div>
+  <div class="topbar-add">+</div>
+  <div class="topbar-right">
+    <div class="topbar-icon" title="历史">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="topbar-icon" title="桌面">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    </div>
+    <div class="topbar-icon" title="设置">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </div>
+    <div class="topbar-avatar">管</div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- ICON SIDEBAR -->
+  <div class="icon-sidebar">
+    <div class="icon-sidebar-btn active" onclick="togglePanel('resource')" id="btnResource">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+      <span class="tooltip">文件管理</span>
+    </div>
+    <div class="icon-sidebar-btn" onclick="togglePanel('preview')" id="btnPreview">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="tooltip">文档预览</span>
+    </div>
+    <div class="icon-sidebar-btn" id="btnKB">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      <span class="tooltip">知识库</span>
+    </div>
+    <div class="icon-sidebar-btn" id="btnStore">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span class="tooltip">Agent 商店</span>
+    </div>
+    <div class="icon-sidebar-btn" id="btnDaily">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="tooltip">行业日报</span>
+    </div>
+    <div class="icon-sidebar-spacer"></div>
+    <div class="icon-sidebar-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span class="tooltip">设置</span>
+    </div>
+  </div>
+
+  <!-- WORKSPACE -->
+  <div class="workspace" id="workspace">
+
+    <!-- RESOURCE PANEL -->
+    <div class="panel resource-panel-ws" id="resourcePanel">
+      <div class="panel-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        <span class="panel-header-title">文件管理</span>
+        <div class="panel-header-right">
+          <div class="panel-header-icon" title="上传文件">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="panel-header-icon" title="搜索">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="resource-tabs-ws">
+        <div class="resource-tab-ws active">全部文件</div>
+        <div class="resource-tab-ws">知识库</div>
+        <div class="resource-tab-ws">技能包</div>
+      </div>
+      <div class="resource-body">
+        <div class="file-group-label">今天</div>
+        <div class="file-item selected" onclick="showPreview('report')">
+          <div class="file-icon pdf">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <span class="file-name">艾尔建竞品分析报告.pdf</span>
+          <span class="file-meta">刚刚</span>
+        </div>
+        <div class="file-item" onclick="showPreview('data')">
+          <div class="file-icon xls">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>
+          </div>
+          <span class="file-name">2025Q1玻尿酸市场数据.xlsx</span>
+          <span class="file-meta">10:32</span>
+        </div>
+        <div class="file-item">
+          <div class="file-icon md">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <span class="file-name">保妥适推广话术模板.md</span>
+          <span class="file-meta">09:15</span>
+        </div>
+        <div class="file-group-label">昨天</div>
+        <div class="file-item">
+          <div class="file-icon img">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          <span class="file-name">小红书种草图-水光针.png</span>
+          <span class="file-meta">昨天</span>
+        </div>
+        <div class="file-item">
+          <div class="file-icon doc">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <span class="file-name">乔雅登产品培训材料.docx</span>
+          <span class="file-meta">昨天</span>
+        </div>
+        <div class="file-group-label">本周</div>
+        <div class="file-item">
+          <div class="file-icon folder">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          </div>
+          <span class="file-name">GTM 策略方案集</span>
+          <span class="file-meta">3 个文件</span>
+        </div>
+        <div class="file-item">
+          <div class="file-icon pdf">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <span class="file-name">NMPA 审批流程指南.pdf</span>
+          <span class="file-meta">周一</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="resize-handle" id="resize1"></div>
+
+    <!-- PREVIEW PANEL -->
+    <div class="panel preview-panel" id="previewPanel">
+      <div class="panel-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="panel-header-title" id="previewTitle">艾尔建竞品分析报告.pdf</span>
+        <div class="panel-header-right">
+          <div class="panel-header-icon" title="引用到对话">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          </div>
+          <div class="panel-header-icon" title="全屏">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          </div>
+          <div class="panel-header-icon" title="关闭" onclick="hidePreview()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="preview-body" id="previewBody">
+        <div class="preview-doc">
+          <h1>艾尔建美学中国市场竞品分析报告</h1>
+          <div class="doc-meta">
+            <span>由 豆子 生成</span>
+            <span>2026-04-05</span>
+            <span>12 页</span>
+          </div>
+          <h2>一、市场概览</h2>
+          <p>中国医美市场在 2025 年达到约 3,500 亿元规模，其中注射类产品占比约 42%。艾尔建美学作为全球领先的医美企业，凭借保妥适和乔雅登两大核心产品线，在中国市场占据了显著的竞争优势。</p>
+          <h2>二、核心产品矩阵对比</h2>
+          <table>
+            <thead>
+              <tr><th>维度</th><th>艾尔建</th><th>华熙生物</th><th>昊海生科</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>肉毒毒素</td><td>保妥适 (A型)</td><td>—</td><td>—</td></tr>
+              <tr><td>玻尿酸</td><td>乔雅登 (6款)</td><td>润百颜 (4款)</td><td>海薇 (3款)</td></tr>
+              <tr><td>身体塑形</td><td>酷塑 (冷冻)</td><td>—</td><td>—</td></tr>
+              <tr><td>护肤品</td><td>丝缇珂</td><td>润百颜护肤</td><td>—</td></tr>
+              <tr><td>NMPA 批文</td><td>12 张</td><td>8 张</td><td>6 张</td></tr>
+            </tbody>
+          </table>
+          <h2>三、渠道与推广策略</h2>
+          <p>艾尔建在中国市场采用"学术驱动 + 数字化赋能"的双轮策略。通过与三甲医院和头部机构建立深度合作关系，构建了覆盖全国的学术推广网络。同时，其 2026 全新数字化生态的发布，标志着从传统营销向数据驱动的精准营销转型。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="resize-handle" id="resize2"></div>
+
+    <!-- CHAT PANEL -->
+    <div class="panel chat-panel" id="chatPanel">
+      <div class="panel-header">
+        <div style="width:24px;height:24px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </div>
+        <span class="panel-header-title">豆子 · 竞品分析模式</span>
+        <div class="panel-header-right">
+          <div class="panel-header-icon" title="专家模式" style="color:var(--accent)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="chat-messages-ws">
+        <!-- User message -->
+        <div class="msg-row user">
+          <div class="msg-bubble user">帮我分析艾尔建在中国市场的核心竞品，对比产品矩阵和推广策略</div>
+        </div>
+
+        <!-- Agent thinking -->
+        <div class="msg-row">
+          <div class="msg-avatar agent">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="thinking-block">
+              <div class="thinking-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                思考过程
+                <span style="margin-left:auto;font-size:11px;color:var(--text-3);font-weight:400">3/3 已完成</span>
+              </div>
+              <div class="thinking-step"><span class="check">&#10003;</span> 子查询 1/3: 艾尔建 中国 竞品</div>
+              <div class="sa-row">
+                <span class="sa-label">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                  知识库 5条
+                </span>
+                <span class="sa-chip">保妥适产品手册</span>
+                <span class="sa-chip">乔雅登系列</span>
+                <span class="sa-chip">+3</span>
+              </div>
+              <div class="sa-row">
+                <span class="sa-label">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                  联网搜索 8条
+                </span>
+                <span class="sa-chip">nmpa.gov.cn</span>
+                <span class="sa-chip">21jingji.com</span>
+                <span class="sa-chip">+6</span>
+              </div>
+              <div class="thinking-step"><span class="check">&#10003;</span> 子查询 2/3: 华熙生物 润百颜 产品</div>
+              <div class="thinking-step"><span class="check">&#10003;</span> 子查询 3/3: 昊海生科 海薇 市场份额</div>
+            </div>
+
+            <div class="msg-bubble agent">
+              <p style="margin-bottom:8px">根据深度搜索结果，我已为您生成了完整的竞品分析报告。报告涵盖产品矩阵对比、渠道策略分析和市场份额数据。</p>
+              <p style="margin-bottom:8px">核心发现：艾尔建凭借 <b>12 张 NMPA 批文</b>和"学术驱动+数字化赋能"双轮策略，在注射类产品市场保持领先。华熙生物和昊海生科分别在玻尿酸和眼科领域形成差异化竞争。</p>
+              <p style="margin-bottom:4px;font-size:12px;color:var(--text-3)">已生成文件：艾尔建竞品分析报告.pdf</p>
+            </div>
+
+            <div class="msg-actions">
+              <span class="msg-action-btn">Markdown</span>
+              <span class="msg-action-btn">纯文本</span>
+              <span class="msg-action-btn">公众号</span>
+              <span class="msg-action-btn">PDF</span>
+              <span style="margin-left:8px"></span>
+              <span class="msg-action-btn">&#128077;</span>
+              <span class="msg-action-btn">&#128078;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Combo quick tags -->
+      <div class="combo-quick-tags">
+        <div class="combo-quick-tag" style="background:var(--accent-light);color:var(--accent)">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          竞品分析
+        </div>
+        <div class="combo-quick-tag">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          GTM 策略
+          <span class="plus">+</span>
+        </div>
+        <div class="combo-quick-tag">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          话术生成
+          <span class="plus">+</span>
+        </div>
+        <div class="combo-quick-tag">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          合规审查
+          <span class="plus">+</span>
+        </div>
+      </div>
+
+      <!-- Chat input -->
+      <div class="chat-input-ws">
+        <div class="chat-input-box-ws">
+          <textarea rows="1" placeholder="继续提问，或选择一个 Combo 工作流..."></textarea>
+          <div class="chat-input-footer-ws">
+            <div class="chat-input-left-ws">
+              <div class="chat-input-btn" title="上传文件">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+              </div>
+              <div class="chat-input-btn active" title="联网搜索">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+              </div>
+              <div class="chat-input-btn" title="模板">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              </div>
+              <span style="font-size:11px;color:var(--text-3);margin-left:4px">Enter 发送，Shift+Enter 换行</span>
+            </div>
+            <div class="chat-send-ws">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /workspace -->
+</div><!-- /main-layout -->
+
+<!-- LAYOUT SWITCHER -->
+<div class="layout-switcher">
+  <span class="layout-switcher-label">布局</span>
+  <div class="layout-btn" onclick="setLayout('chat')" id="layoutChat" title="仅聊天">
+    <div class="lb" style="width:100%;height:100%"></div>
+  </div>
+  <div class="layout-btn" onclick="setLayout('file-chat')" id="layoutFC" title="文件 + 聊天">
+    <div class="lb" style="width:35%;height:100%"></div>
+    <div class="lb" style="width:65%;height:100%"></div>
+  </div>
+  <div class="layout-btn active" onclick="setLayout('all')" id="layoutAll" title="文件 + 预览 + 聊天">
+    <div class="lb" style="width:25%;height:100%"></div>
+    <div class="lb" style="width:40%;height:100%"></div>
+    <div class="lb" style="width:35%;height:100%"></div>
+  </div>
+  <div class="layout-btn" onclick="setLayout('preview-chat')" id="layoutPC" title="预览 + 聊天">
+    <div class="lb" style="width:55%;height:100%"></div>
+    <div class="lb" style="width:45%;height:100%"></div>
+  </div>
+</div>
+
+<script>
+  // Layout switching
+  function setLayout(mode) {
+    const resource = document.getElementById('resourcePanel');
+    const preview = document.getElementById('previewPanel');
+    const chat = document.getElementById('chatPanel');
+    const r1 = document.getElementById('resize1');
+    const r2 = document.getElementById('resize2');
+    const btnR = document.getElementById('btnResource');
+    const btnP = document.getElementById('btnPreview');
+
+    // Reset
+    document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+
+    if (mode === 'chat') {
+      resource.classList.add('hidden'); r1.style.display='none';
+      preview.classList.add('hidden'); r2.style.display='none';
+      chat.style.width = '100%';
+      btnR.classList.remove('active'); btnP.classList.remove('active');
+      document.getElementById('layoutChat').classList.add('active');
+    } else if (mode === 'file-chat') {
+      resource.classList.remove('hidden'); resource.style.width='300px'; r1.style.display='';
+      preview.classList.add('hidden'); r2.style.display='none';
+      chat.style.width = ''; chat.style.flex = '1';
+      btnR.classList.add('active'); btnP.classList.remove('active');
+      document.getElementById('layoutFC').classList.add('active');
+    } else if (mode === 'all') {
+      resource.classList.remove('hidden'); resource.style.width='280px'; r1.style.display='';
+      preview.classList.remove('hidden'); r2.style.display='';
+      chat.style.width = '420px'; chat.style.flex = '';
+      btnR.classList.add('active'); btnP.classList.add('active');
+      document.getElementById('layoutAll').classList.add('active');
+    } else if (mode === 'preview-chat') {
+      resource.classList.add('hidden'); r1.style.display='none';
+      preview.classList.remove('hidden'); r2.style.display='';
+      chat.style.width = '420px'; chat.style.flex = '';
+      btnR.classList.remove('active'); btnP.classList.add('active');
+      document.getElementById('layoutPC').classList.add('active');
+    }
+  }
+
+  function togglePanel(panel) {
+    const el = document.getElementById(panel === 'resource' ? 'resourcePanel' : 'previewPanel');
+    if (el.classList.contains('hidden')) {
+      el.classList.remove('hidden');
+      el.style.width = panel === 'resource' ? '280px' : '';
+      document.getElementById(panel === 'resource' ? 'resize1' : 'resize2').style.display = '';
+      document.getElementById(panel === 'resource' ? 'btnResource' : 'btnPreview').classList.add('active');
+    } else {
+      el.classList.add('hidden');
+      document.getElementById(panel === 'resource' ? 'resize1' : 'resize2').style.display = 'none';
+      document.getElementById(panel === 'resource' ? 'btnResource' : 'btnPreview').classList.remove('active');
+    }
+  }
+
+  function showPreview(type) {
+    const preview = document.getElementById('previewPanel');
+    if (preview.classList.contains('hidden')) {
+      preview.classList.remove('hidden');
+      document.getElementById('resize2').style.display = '';
+      document.getElementById('btnPreview').classList.add('active');
+    }
+    document.querySelectorAll('.file-item').forEach(f => f.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+
+    if (type === 'report') {
+      document.getElementById('previewTitle').textContent = '艾尔建竞品分析报告.pdf';
+    } else if (type === 'data') {
+      document.getElementById('previewTitle').textContent = '2025Q1玻尿酸市场数据.xlsx';
+    }
+  }
+
+  function hidePreview() {
+    document.getElementById('previewPanel').classList.add('hidden');
+    document.getElementById('resize2').style.display = 'none';
+    document.getElementById('btnPreview').classList.remove('active');
+  }
+
+  // Resize handles
+  function initResize(handleId, leftPanelId) {
+    const handle = document.getElementById(handleId);
+    const leftPanel = document.getElementById(leftPanelId);
+    let startX, startW;
+
+    handle.addEventListener('mousedown', (e) => {
+      startX = e.clientX;
+      startW = leftPanel.offsetWidth;
+      handle.classList.add('dragging');
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      e.preventDefault();
+    });
+
+    function onMove(e) {
+      const diff = e.clientX - startX;
+      const newW = Math.max(200, Math.min(600, startW + diff));
+      leftPanel.style.width = newW + 'px';
+    }
+    function onUp() {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+  }
+
+  initResize('resize1', 'resourcePanel');
+  initResize('resize2', 'previewPanel');
+</script>
+
+</body>
+</html>
