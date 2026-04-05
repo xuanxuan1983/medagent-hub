@@ -1,0 +1,426 @@
+/* ===== DARK THEME v1.0 ===== */
+
+/* 暗色主题变量覆盖 */
+[data-theme="dark"] {
+  --text: #E8E4DF;
+  --text-2: #A8A29E;
+  --text-3: #8A8580;
+  --bg: #1A1A1A;
+  --bg-warm: #222222;
+  --bg-sidebar: #1E1E1E;
+  --bg-2: #2A2A2A;
+  --border: #3A3A3A;
+  --border-light: #2E2E2E;
+  --coral: #E8715A;
+  --coral-light: #3D2520;
+  color-scheme: dark;
+}
+
+/* --- 全局覆盖 --- */
+[data-theme="dark"] body {
+  background: var(--bg-warm);
+  color: var(--text);
+}
+
+/* --- 侧边栏 --- */
+[data-theme="dark"] .sidebar {
+  background: var(--bg-sidebar);
+  border-right-color: var(--border);
+}
+[data-theme="dark"] .sidebar-new-btn {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text-2);
+}
+[data-theme="dark"] .sidebar-new-btn:hover {
+  background: var(--border);
+  border-color: var(--coral);
+  color: var(--text);
+}
+[data-theme="dark"] .sidebar-history-item {
+  color: var(--text);
+}
+[data-theme="dark"] .sidebar-history-item:hover,
+[data-theme="dark"] .sidebar-history-item.active {
+  background: var(--bg-warm);
+}
+[data-theme="dark"] .sidebar-search-input {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* --- 聊天区域 --- */
+[data-theme="dark"] .chat-topbar {
+  background: var(--bg);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .chat-topbar-btn:hover {
+  background: var(--border);
+}
+[data-theme="dark"] .chat-messages {
+  background: var(--bg);
+}
+[data-theme="dark"] .msg-row.user .msg-bubble {
+  background: var(--coral);
+  color: #fff;
+}
+[data-theme="dark"] .msg-row.assistant .msg-bubble {
+  background: var(--bg-warm);
+  color: var(--text);
+  border-color: var(--border);
+}
+[data-theme="dark"] .msg-bubble code {
+  background: #2D2D2D;
+  color: #E8E4DF;
+}
+[data-theme="dark"] .msg-bubble pre {
+  background: #2D2D2D;
+  border-color: var(--border);
+}
+[data-theme="dark"] .msg-bubble table th {
+  background: #2D2D2D;
+}
+[data-theme="dark"] .msg-bubble table td {
+  border-color: var(--border);
+}
+[data-theme="dark"] .msg-bubble table tr:nth-child(even) td {
+  background: #252525;
+}
+[data-theme="dark"] .msg-bubble blockquote {
+  background: rgba(232,113,90,0.1);
+  border-left-color: var(--coral);
+}
+[data-theme="dark"] .msg-copy-btn {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text-2);
+}
+[data-theme="dark"] .msg-copy-btn:hover {
+  background: var(--border);
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+/* --- 输入区域 --- */
+[data-theme="dark"] .chat-input-area {
+  background: var(--bg);
+  border-top-color: var(--border);
+}
+[data-theme="dark"] .chat-input-box {
+  background: var(--bg-warm);
+  border-color: var(--border);
+}
+[data-theme="dark"] .chat-input-box:focus-within {
+  border-color: var(--coral);
+}
+[data-theme="dark"] .chat-textarea {
+  color: var(--text);
+}
+[data-theme="dark"] .chat-textarea::placeholder {
+  color: var(--text-3);
+}
+[data-theme="dark"] .chat-send-btn {
+  background: var(--coral);
+}
+[data-theme="dark"] .upload-btn,
+[data-theme="dark"] .search-toggle-btn,
+[data-theme="dark"] .draw-btn,
+[data-theme="dark"] .mic-btn {
+  color: var(--text-3);
+}
+[data-theme="dark"] .upload-btn:hover,
+[data-theme="dark"] .search-toggle-btn:hover,
+[data-theme="dark"] .draw-btn:hover,
+[data-theme="dark"] .mic-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* --- 引导问题 --- */
+[data-theme="dark"] .guided-q-btn {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text-2);
+}
+[data-theme="dark"] .guided-q-btn:hover {
+  background: var(--border);
+  border-color: var(--coral);
+  color: var(--text);
+}
+
+/* --- 资源面板 --- */
+[data-theme="dark"] .resource-panel {
+  background: var(--bg-warm);
+  border-right-color: var(--border);
+}
+[data-theme="dark"] .resource-tabs {
+  background: var(--bg-warm);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .resource-tab.active {
+  color: var(--coral);
+  border-bottom-color: var(--coral);
+}
+
+/* --- 预览面板 --- */
+[data-theme="dark"] .preview-panel {
+  background: var(--bg);
+}
+[data-theme="dark"] .preview-panel-header {
+  background: var(--bg-warm);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .preview-panel-body {
+  background: var(--bg);
+  color: var(--text);
+}
+[data-theme="dark"] .preview-doc h1,
+[data-theme="dark"] .preview-doc h2,
+[data-theme="dark"] .preview-doc h3 {
+  color: var(--text);
+}
+[data-theme="dark"] .preview-doc th {
+  background: #2D2D2D;
+  color: var(--text);
+}
+[data-theme="dark"] .preview-doc td {
+  border-color: var(--border);
+  color: var(--text-2);
+}
+[data-theme="dark"] .preview-doc blockquote {
+  background: rgba(232,113,90,0.1);
+}
+[data-theme="dark"] .preview-doc code {
+  background: #2D2D2D;
+}
+
+/* --- 弹窗/模态框 --- */
+[data-theme="dark"] .snapshot-modal,
+[data-theme="dark"] .settings-modal,
+[data-theme="dark"] .history-modal,
+[data-theme="dark"] .export-dialog,
+[data-theme="dark"] .web-url-dialog,
+[data-theme="dark"] .send-instruction-dialog,
+[data-theme="dark"] .combo-builder-modal,
+[data-theme="dark"] .move-dialog {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text);
+}
+[data-theme="dark"] .snapshot-modal input,
+[data-theme="dark"] .settings-modal input,
+[data-theme="dark"] .settings-modal select,
+[data-theme="dark"] .settings-modal textarea,
+[data-theme="dark"] .combo-builder-modal input,
+[data-theme="dark"] .combo-builder-modal select,
+[data-theme="dark"] .combo-builder-modal textarea {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* --- 桌面首页 --- */
+[data-theme="dark"] .desktop-view {
+  background: var(--bg);
+}
+[data-theme="dark"] .desktop-input-btn {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text-2);
+}
+[data-theme="dark"] .desktop-input-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+[data-theme="dark"] .desktop-quick-btn {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text-2);
+}
+[data-theme="dark"] .desktop-quick-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* --- Agent 商店 --- */
+[data-theme="dark"] .store-view {
+  background: var(--bg);
+}
+[data-theme="dark"] .store-card {
+  background: var(--bg-warm);
+  border-color: var(--border);
+}
+[data-theme="dark"] .store-card:hover {
+  border-color: var(--coral);
+}
+[data-theme="dark"] .store-card-icon {
+  background: var(--border);
+}
+
+/* --- 工具状态 --- */
+[data-theme="dark"] .tool-status {
+  background: var(--bg-warm);
+  border-color: var(--border);
+}
+
+/* --- 反馈按钮 --- */
+[data-theme="dark"] .feedback-btn:hover {
+  background: var(--border);
+}
+
+/* --- 文件预览 --- */
+[data-theme="dark"] .file-preview-item {
+  background: var(--bg-warm);
+  border-color: var(--border);
+}
+
+/* --- 知识库预览 --- */
+[data-theme="dark"] .kb-preview-container {
+  background: var(--bg-warm);
+}
+[data-theme="dark"] .kb-preview-header {
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .kb-preview-markdown th {
+  background: #2D2D2D;
+}
+[data-theme="dark"] .kb-preview-markdown code {
+  background: #2D2D2D;
+}
+[data-theme="dark"] .kb-preview-markdown pre {
+  background: #2D2D2D;
+}
+
+/* --- 模板面板 --- */
+[data-theme="dark"] .template-panel {
+  background: var(--bg-warm);
+  border-color: var(--border);
+}
+[data-theme="dark"] .template-card {
+  background: var(--bg);
+  border-color: var(--border);
+}
+[data-theme="dark"] .template-card:hover {
+  border-color: var(--coral);
+}
+
+/* --- 导出对话框 --- */
+[data-theme="dark"] .export-dialog {
+  background: var(--bg-warm);
+}
+[data-theme="dark"] .export-btn {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-2);
+}
+[data-theme="dark"] .export-btn:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+/* --- Combo Skills --- */
+[data-theme="dark"] .combo-skill-card {
+  background: var(--bg-warm);
+  border-color: var(--border);
+}
+[data-theme="dark"] .combo-skill-card:hover {
+  border-color: var(--coral);
+}
+
+/* --- 资源文件树 --- */
+[data-theme="dark"] .resource-file-item:hover {
+  background: var(--border);
+}
+[data-theme="dark"] .file-context-menu {
+  background: var(--bg-warm);
+  border-color: var(--border);
+}
+[data-theme="dark"] .file-context-menu-item:hover {
+  background: var(--border);
+}
+
+/* --- 滚动条 --- */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-3);
+}
+
+/* --- 思考过程 --- */
+[data-theme="dark"] .reasoning-box {
+  background: rgba(255,255,255,0.03);
+  border-left-color: var(--border);
+  color: var(--text-3);
+}
+
+/* --- 专家模式 --- */
+[data-theme="dark"] .expert-mode-bar {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text-3);
+}
+
+/* --- 底部导航（移动端） --- */
+[data-theme="dark"] .mobile-bottom-nav {
+  background: var(--bg);
+  border-top-color: var(--border);
+}
+
+/* --- 用户菜单 --- */
+[data-theme="dark"] .user-menu {
+  background: var(--bg-warm);
+  border-color: var(--border);
+}
+[data-theme="dark"] .user-menu-item:hover {
+  background: var(--border);
+}
+
+/* --- 主题切换按钮 --- */
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.theme-toggle-btn:hover {
+  background: var(--bg-warm);
+  color: var(--text);
+}
+.theme-toggle-btn .icon-sun,
+.theme-toggle-btn .icon-moon {
+  display: none;
+}
+[data-theme="dark"] .theme-toggle-btn .icon-sun {
+  display: block;
+}
+:root:not([data-theme="dark"]) .theme-toggle-btn .icon-moon,
+[data-theme="light"] .theme-toggle-btn .icon-moon {
+  display: block;
+}
+
+/* --- 过渡动画 --- */
+body,
+.sidebar,
+.chat-topbar,
+.chat-messages,
+.chat-input-area,
+.chat-input-box,
+.msg-bubble,
+.resource-panel,
+.preview-panel,
+.preview-panel-header,
+.preview-panel-body {
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
