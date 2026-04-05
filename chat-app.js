@@ -3701,6 +3701,7 @@ function switchLayout(layout) {
   currentLayout = layout;
   const resourcePanel = document.getElementById('resourcePanel');
   const previewPanel = document.getElementById('previewPanel');
+  const chatPanel = document.querySelector('.chat-main-panel');
   const layoutBtns = document.querySelectorAll('.layout-btn[data-layout]');
 
   // Update active button
@@ -3712,21 +3713,25 @@ function switchLayout(layout) {
     case 'chat-only':
       resourcePanel.classList.add('collapsed');
       previewPanel.style.display = 'none';
+      if (chatPanel) chatPanel.classList.remove('fixed-width');
       resourcePanelOpen = false;
       break;
     case 'resource-chat':
       resourcePanel.classList.remove('collapsed');
       previewPanel.style.display = 'none';
+      if (chatPanel) chatPanel.classList.remove('fixed-width');
       resourcePanelOpen = true;
       break;
     case 'three-panel':
       resourcePanel.classList.remove('collapsed');
       previewPanel.style.display = '';
+      if (chatPanel) chatPanel.classList.add('fixed-width');
       resourcePanelOpen = true;
       break;
     case 'preview-chat':
       resourcePanel.classList.add('collapsed');
       previewPanel.style.display = '';
+      if (chatPanel) chatPanel.classList.add('fixed-width');
       resourcePanelOpen = false;
       break;
   }
@@ -3746,17 +3751,21 @@ function switchLayout(layout) {
     resourcePanelOpen = !resourcePanelOpen;
     const panel = document.getElementById('resourcePanel');
     const btn = document.getElementById('resourcePanelBtn');
+    const chatPanel = document.querySelector('.chat-main-panel');
     if (resourcePanelOpen) {
       panel.classList.remove('collapsed');
       if (btn) btn.classList.add('active');
-      // Update layout state
       const previewVisible = document.getElementById('previewPanel').style.display !== 'none';
       currentLayout = previewVisible ? 'three-panel' : 'resource-chat';
+      // In three-panel mode, fix chat width; in resource-chat, let it flex
+      if (chatPanel) chatPanel.classList.toggle('fixed-width', previewVisible);
     } else {
       panel.classList.add('collapsed');
       if (btn) btn.classList.remove('active');
       const previewVisible = document.getElementById('previewPanel').style.display !== 'none';
       currentLayout = previewVisible ? 'preview-chat' : 'chat-only';
+      // In preview-chat, fix chat width; in chat-only, let it flex
+      if (chatPanel) chatPanel.classList.toggle('fixed-width', previewVisible);
     }
     // Update layout buttons
     document.querySelectorAll('.layout-btn').forEach(b => {

@@ -297,20 +297,27 @@
  <div class="chat-main-panel">
  <div class="chat-topbar">
  <div class="chat-agent-avatar" id="topbarAvatar"></div>
- <div>
+ <div class="chat-agent-info-wrap">
  <div class="chat-agent-name" id="topbarName">加载中...</div>
  <div class="chat-agent-desc" id="topbarDesc">正在初始化...</div>
  </div>
+ <div class="chat-topbar-actions">
  <div class="chat-status" id="chatStatus" style="display:none">
  <div class="chat-status-dot"></div>在线
  </div>
- <button class="chat-topbar-btn" onclick="showHistory()"><span class="btn-label">历史</span></button>
- <button class="chat-topbar-btn" onclick="clearChat()"><span class="btn-label">清空对话</span></button>
- <button class="chat-topbar-btn" onclick="openSettings('api')"><span class="btn-label">设置</span></button>
- <button class="resource-panel-open-btn" id="resourcePanelBtn" onclick="toggleResourcePanel()" title="工作区资源面板" style="margin-left:auto">
- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
- <span class="btn-label">资源</span>
+ <button class="chat-topbar-btn" onclick="showHistory()" title="历史记录">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
  </button>
+ <button class="chat-topbar-btn" onclick="clearChat()" title="清空对话">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+ </button>
+ <button class="chat-topbar-btn" onclick="openSettings('api')" title="设置">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+ </button>
+ <button class="chat-topbar-btn" id="resourcePanelBtn" onclick="toggleResourcePanel()" title="资源面板">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+ </button>
+ </div>
  </div>
  <div class="chat-messages" id="chatMessages">
  <div class="welcome-wrap" id="welcomeWrap">
