@@ -844,7 +844,12 @@
  if (exists) return;
  fileInfo.timestamp = fileInfo.timestamp || Date.now();
  resourceFiles.push(fileInfo);
+ // Reload from server to get DB id and folder info
+ if (typeof loadPersistentFiles === 'function') {
+ loadPersistentFiles();
+ } else {
  renderResourceFileList();
+ }
  if (!resourcePanelOpen) toggleResourcePanel();
  }
 
@@ -5384,5 +5389,468 @@ function launchComboSkill(skillId) {
     document.addEventListener('DOMContentLoaded', initComboSkills);
   } else {
     setTimeout(initComboSkills, 300);
+  }
+})();
+
+
+// ===== SPRINT: FILE MANAGEMENT ENHANCEMENT =====
+
+// --- Persistent file list state ---
+let persistentFiles = [];   // from server DB
+let persistentFolders = [];  // from server DB
+let batchMode = false;
+let selectedFileIds = new Set();
+let openFolderIds = new Set();
+
+// Load files from server on page load
+async function loadPersistentFiles() {
+  try {
+    const resp = await fetch('/api/files', { credentials: 'include' });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    persistentFiles = data.files || [];
+    persistentFolders = data.folders || [];
+    // Merge into resourceFiles for backward compatibility
+    syncResourceFiles();
+    renderResourceFileTree();
+  } catch (e) {
+    console.warn('loadPersistentFiles failed:', e);
+  }
+}
+
+function syncResourceFiles() {
+  // Build resourceFiles from persistentFiles for backward compat
+  resourceFiles = persistentFiles.map(f => ({
+    name: f.original_name,
+    size: f.size,
+    content: f.extracted_content || '',
+    contentType: f.content_type || 'document',
+    timestamp: f.created_at ? new Date(f.created_at + 'Z').getTime() : Date.now(),
+    _dbId: f.id,
+    _folderId: f.folder_id || 0
+  }));
+}
+
+function refreshFileList() {
+  loadPersistentFiles();
+  showToast('已刷新文件列表');
+}
+
+// --- Tree-structure rendering ---
+function renderResourceFileTree() {
+  const container = document.getElementById('resourceFileList');
+  if (!container) return;
+
+  const allFiles = resourceFiles || [];
+  const folders = persistentFolders || [];
+
+  if (!allFiles.length && !folders.length) {
+    container.innerHTML = '<div class="resource-empty"><div class="resource-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="resource-empty-title">暂无上传文件</div><div class="resource-empty-desc">上传文件后可在此快速引用</div></div>';
+    return;
+  }
+
+  // Group files by folder
+  const rootFiles = allFiles.filter(f => !f._folderId || f._folderId === 0);
+  const folderMap = {};
+  folders.forEach(fd => { folderMap[fd.id] = { ...fd, files: [] }; });
+  allFiles.forEach((f, idx) => {
+    if (f._folderId && folderMap[f._folderId]) {
+      folderMap[f._folderId].files.push({ ...f, _idx: idx });
+    }
+  });
+
+  let html = '';
+  const batchCls = batchMode ? ' batch-mode' : '';
+
+  // Render folders first
+  folders.forEach(fd => {
+    const isOpen = openFolderIds.has(fd.id);
+    const fFiles = folderMap[fd.id] ? folderMap[fd.id].files : [];
+    html += '<div class="folder-item' + (isOpen ? ' open' : '') + '" '
+      + 'onclick="toggleFolder(' + fd.id + ')" '
+      + 'ondragover="onFolderDragOver(event,' + fd.id + ')" '
+      + 'ondragleave="onFolderDragLeave(event)" '
+      + 'ondrop="onFolderDrop(event,' + fd.id + ')" '
+      + 'oncontextmenu="showFolderContextMenu(event,' + fd.id + ')" '
+      + 'data-folder-id="' + fd.id + '">'
+      + '<span class="folder-toggle' + (isOpen ? ' open' : '') + '"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>'
+      + '<span class="folder-icon' + (isOpen ? ' open' : '') + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span>'
+      + '<span class="folder-name">' + fd.name + '</span>'
+      + '<span class="folder-count">' + fFiles.length + '</span>'
+      + '</div>';
+    html += '<div class="folder-children' + (isOpen ? ' open' : '') + batchCls + '" id="folderChildren_' + fd.id + '">';
+    fFiles.forEach(f => {
+      html += renderFileItemHTML(f, f._idx);
+    });
+    html += '</div>';
+  });
+
+  // Render root files (not in any folder)
+  if (rootFiles.length) {
+    if (folders.length) {
+      html += '<div class="file-group-label">未分类文件</div>';
+    }
+    rootFiles.forEach((f, i) => {
+      const idx = allFiles.indexOf(f);
+      html += renderFileItemHTML(f, idx);
+    });
+  }
+
+  container.className = batchMode ? 'batch-mode' : '';
+  container.innerHTML = html;
+}
+
+function renderFileItemHTML(f, idx) {
+  const icon = getFileIcon(f.name, true);
+  const checked = selectedFileIds.has(f._dbId) ? ' checked' : '';
+  const selectedCls = selectedFileIds.has(f._dbId) ? ' selected' : '';
+  const sizeStr = f.size ? (f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : (f.size/1024).toFixed(1)+'KB') : '';
+  return '<div class="file-item' + selectedCls + '" draggable="true" '
+    + 'ondragstart="onFileTreeDragStart(event,' + idx + ',' + (f._dbId||0) + ')" '
+    + 'onclick="' + (batchMode ? 'toggleFileSelect(' + (f._dbId||0) + ',event)' : 'previewResourceFile(' + idx + ')') + '" '
+    + 'oncontextmenu="showFileContextMenuV2(event,' + idx + ',' + (f._dbId||0) + ')">'
+    + (batchMode ? '<input type="checkbox" class="file-checkbox"' + checked + ' onclick="toggleFileSelect(' + (f._dbId||0) + ',event)">' : '')
+    + '<div class="file-icon ' + icon.cls + '">' + icon.svg + '</div>'
+    + '<span class="file-name" title="' + f.name + '">' + f.name + '</span>'
+    + '<span class="file-meta">' + sizeStr + '</span>'
+    + '</div>';
+}
+
+// --- Folder operations ---
+function toggleFolder(folderId) {
+  if (openFolderIds.has(folderId)) {
+    openFolderIds.delete(folderId);
+  } else {
+    openFolderIds.add(folderId);
+  }
+  renderResourceFileTree();
+}
+
+async function createNewFolder() {
+  const name = prompt('请输入文件夹名称：');
+  if (!name || !name.trim()) return;
+  try {
+    const resp = await fetch('/api/files/folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ name: name.trim(), parentId: 0 })
+    });
+    if (resp.ok) {
+      showToast('文件夹已创建');
+      loadPersistentFiles();
+    } else {
+      showToast('创建失败');
+    }
+  } catch (e) {
+    showToast('创建失败');
+  }
+}
+
+async function renameItem(id, type, currentName) {
+  const newName = prompt('请输入新名称：', currentName);
+  if (!newName || !newName.trim() || newName.trim() === currentName) return;
+  try {
+    const resp = await fetch('/api/files/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id, name: newName.trim(), type })
+    });
+    if (resp.ok) {
+      showToast('已重命名');
+      loadPersistentFiles();
+    }
+  } catch (e) {
+    showToast('重命名失败');
+  }
+}
+
+async function deleteItem(ids, type) {
+  try {
+    const resp = await fetch('/api/files/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ ids, type })
+    });
+    if (resp.ok) {
+      showToast('已删除');
+      loadPersistentFiles();
+    }
+  } catch (e) {
+    showToast('删除失败');
+  }
+}
+
+async function moveFilesToFolder(fileIds, folderId) {
+  try {
+    const resp = await fetch('/api/files/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ fileIds, folderId })
+    });
+    if (resp.ok) {
+      showToast('已移动');
+      loadPersistentFiles();
+    }
+  } catch (e) {
+    showToast('移动失败');
+  }
+}
+
+// --- Batch selection ---
+function toggleBatchSelect() {
+  batchMode = !batchMode;
+  selectedFileIds.clear();
+  const btn = document.getElementById('batchSelectBtn');
+  const actions = document.getElementById('batchActions');
+  if (batchMode) {
+    btn.classList.add('active');
+    actions.style.display = 'flex';
+  } else {
+    btn.classList.remove('active');
+    actions.style.display = 'none';
+  }
+  renderResourceFileTree();
+}
+
+function toggleFileSelect(dbId, event) {
+  if (event) { event.stopPropagation(); }
+  if (selectedFileIds.has(dbId)) {
+    selectedFileIds.delete(dbId);
+  } else {
+    selectedFileIds.add(dbId);
+  }
+  document.getElementById('batchCount').textContent = selectedFileIds.size + ' 项已选';
+  renderResourceFileTree();
+}
+
+function batchDeleteFiles() {
+  if (!selectedFileIds.size) { showToast('请先选择文件'); return; }
+  if (!confirm('确定删除 ' + selectedFileIds.size + ' 个文件？')) return;
+  deleteItem(Array.from(selectedFileIds), 'file');
+  selectedFileIds.clear();
+  batchMode = false;
+  document.getElementById('batchSelectBtn').classList.remove('active');
+  document.getElementById('batchActions').style.display = 'none';
+}
+
+function batchMoveFiles() {
+  if (!selectedFileIds.size) { showToast('请先选择文件'); return; }
+  showMoveDialog(Array.from(selectedFileIds));
+}
+
+// --- Move dialog ---
+function showMoveDialog(fileIds) {
+  const overlay = document.createElement('div');
+  overlay.className = 'move-dialog-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+  let selectedFolderId = 0;
+  let listHtml = '<div class="move-dialog-item selected" data-fid="0" onclick="selectMoveTarget(this,0)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> 根目录</div>';
+  persistentFolders.forEach(fd => {
+    listHtml += '<div class="move-dialog-item" data-fid="' + fd.id + '" onclick="selectMoveTarget(this,' + fd.id + ')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> ' + fd.name + '</div>';
+  });
+
+  overlay.innerHTML = '<div class="move-dialog">'
+    + '<h4>移动到文件夹</h4>'
+    + '<div class="move-dialog-list">' + listHtml + '</div>'
+    + '<div class="move-dialog-actions">'
+    + '<button onclick="this.closest(\'.move-dialog-overlay\').remove()">取消</button>'
+    + '<button class="primary" onclick="confirmMove(this,' + JSON.stringify(fileIds).replace(/"/g,'&quot;') + ')">确定</button>'
+    + '</div></div>';
+
+  document.body.appendChild(overlay);
+  window._moveSelectedFolderId = 0;
+}
+
+function selectMoveTarget(el, fid) {
+  el.closest('.move-dialog-list').querySelectorAll('.move-dialog-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  window._moveSelectedFolderId = fid;
+}
+
+function confirmMove(btn, fileIds) {
+  moveFilesToFolder(fileIds, window._moveSelectedFolderId || 0);
+  btn.closest('.move-dialog-overlay').remove();
+  if (batchMode) {
+    selectedFileIds.clear();
+    batchMode = false;
+    document.getElementById('batchSelectBtn').classList.remove('active');
+    document.getElementById('batchActions').style.display = 'none';
+  }
+}
+
+// --- Drag & drop for tree ---
+function onFileTreeDragStart(event, idx, dbId) {
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('application/x-file-id', dbId.toString());
+  event.dataTransfer.setData('text/plain', '[引用文件《' + (resourceFiles[idx]||{}).name + '》] ');
+}
+
+function onFolderDragOver(event, folderId) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  event.currentTarget.classList.add('drop-target');
+}
+
+function onFolderDragLeave(event) {
+  event.currentTarget.classList.remove('drop-target');
+}
+
+function onFolderDrop(event, folderId) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drop-target');
+  const fileIdStr = event.dataTransfer.getData('application/x-file-id');
+  if (fileIdStr) {
+    moveFilesToFolder([parseInt(fileIdStr)], folderId);
+  }
+}
+
+// --- Enhanced context menu ---
+function showFileContextMenuV2(event, idx, dbId) {
+  event.preventDefault();
+  event.stopPropagation();
+  const old = document.getElementById('fileContextMenu');
+  if (old) old.remove();
+  const f = resourceFiles[idx];
+  if (!f) return;
+  const menu = document.createElement('div');
+  menu.id = 'fileContextMenu';
+  menu.className = 'file-context-menu';
+  menu.innerHTML = '<div class="file-ctx-item" onclick="previewResourceFile(' + idx + ');closeFileContextMenu()">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+    + ' 预览</div>'
+    + '<div class="file-ctx-item" onclick="citeFileInInput(' + idx + ');closeFileContextMenu()">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>'
+    + ' 引用</div>'
+    + '<div class="file-ctx-item" onclick="renameItem(' + dbId + ',\'file\',\'' + f.name.replace(/'/g,"\\'") + '\');closeFileContextMenu()">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+    + ' 重命名</div>'
+    + '<div class="file-ctx-item" onclick="showMoveDialog([' + dbId + ']);closeFileContextMenu()">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>'
+    + ' 移动到...</div>'
+    + '<div class="file-ctx-divider"></div>'
+    + '<div class="file-ctx-item file-ctx-danger" onclick="if(confirm(\'确定删除？\'))deleteItem([' + dbId + '],\'file\');closeFileContextMenu()">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>'
+    + ' 删除</div>';
+  menu.style.left = event.clientX + 'px';
+  menu.style.top = event.clientY + 'px';
+  document.body.appendChild(menu);
+  const rect = menu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 8) + 'px';
+  if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 8) + 'px';
+  setTimeout(() => document.addEventListener('click', closeFileContextMenu, { once: true }), 10);
+}
+
+function showFolderContextMenu(event, folderId) {
+  event.preventDefault();
+  event.stopPropagation();
+  const old = document.getElementById('fileContextMenu');
+  if (old) old.remove();
+  const fd = persistentFolders.find(f => f.id === folderId);
+  if (!fd) return;
+  const menu = document.createElement('div');
+  menu.id = 'fileContextMenu';
+  menu.className = 'file-context-menu';
+  menu.innerHTML = '<div class="file-ctx-item" onclick="renameItem(' + folderId + ',\'folder\',\'' + fd.name.replace(/'/g,"\\'") + '\');closeFileContextMenu()">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+    + ' 重命名</div>'
+    + '<div class="file-ctx-divider"></div>'
+    + '<div class="file-ctx-item file-ctx-danger" onclick="if(confirm(\'删除文件夹后，其中的文件将移至根目录。确定？\'))deleteItem([' + folderId + '],\'folder\');closeFileContextMenu()">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>'
+    + ' 删除文件夹</div>';
+  menu.style.left = event.clientX + 'px';
+  menu.style.top = event.clientY + 'px';
+  document.body.appendChild(menu);
+  const rect = menu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 8) + 'px';
+  if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 8) + 'px';
+  setTimeout(() => document.addEventListener('click', closeFileContextMenu, { once: true }), 10);
+}
+
+// --- Save-as from preview panel ---
+async function savePreviewAsFile() {
+  const content = currentPreviewFile ? currentPreviewFile.content : '';
+  if (!content) { showToast('没有可保存的内容'); return; }
+  const defaultName = currentPreviewFile.fileName ? currentPreviewFile.fileName.replace(/\.[^.]+$/, '') + '.md' : 'document.md';
+  const fileName = prompt('保存为文件名：', defaultName);
+  if (!fileName || !fileName.trim()) return;
+
+  // Show folder selection
+  let folderId = 0;
+  if (persistentFolders.length) {
+    const folderNames = ['根目录'].concat(persistentFolders.map(f => f.name));
+    const choice = prompt('选择文件夹（输入编号）：\n' + folderNames.map((n,i) => i + '. ' + n).join('\n'), '0');
+    if (choice !== null) {
+      const idx = parseInt(choice);
+      if (idx > 0 && idx <= persistentFolders.length) {
+        folderId = persistentFolders[idx - 1].id;
+      }
+    }
+  }
+
+  try {
+    const resp = await fetch('/api/files/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ fileName: fileName.trim(), content, folderId })
+    });
+    if (resp.ok) {
+      showToast('文件已保存到资源面板');
+      loadPersistentFiles();
+    } else {
+      showToast('保存失败');
+    }
+  } catch (e) {
+    showToast('保存失败');
+  }
+}
+
+// --- Override original renderResourceFileList to use tree version ---
+(function() {
+  var _origRender = typeof renderResourceFileList === 'function' ? renderResourceFileList : null;
+  window.renderResourceFileList = function() {
+    renderResourceFileTree();
+  };
+})();
+
+// --- Add save-as button to preview toolbar ---
+(function() {
+  function addSaveAsBtn() {
+    var toolbar = document.querySelector('.preview-toolbar');
+    if (!toolbar || toolbar.querySelector('.preview-save-as-btn')) return;
+    var btn = document.createElement('button');
+    btn.className = 'preview-save-as-btn';
+    btn.title = '另存为文件';
+    btn.onclick = savePreviewAsFile;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
+    // Insert before close button
+    var closeBtn = toolbar.querySelector('[onclick*="closePreviewPanel"]');
+    if (closeBtn) {
+      toolbar.insertBefore(btn, closeBtn);
+    } else {
+      toolbar.appendChild(btn);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(addSaveAsBtn, 500); });
+  } else {
+    setTimeout(addSaveAsBtn, 500);
+  }
+})();
+
+// --- Init: load persistent files on page load ---
+(function() {
+  function initFileManagement() {
+    loadPersistentFiles();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFileManagement);
+  } else {
+    setTimeout(initFileManagement, 600);
   }
 })();

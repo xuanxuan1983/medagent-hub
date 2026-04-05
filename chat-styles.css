@@ -3231,3 +3231,99 @@
       .combo-skill-card { padding: 0.65rem 0.7rem; }
       .combo-skill-icon { width: 26px; height: 26px; font-size: 0.75rem; }
     }
+
+/* ===== FILE MANAGEMENT TOOLBAR & TREE ===== */
+.resource-file-toolbar {
+  display: flex; gap: 0.2rem; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.res-toolbar-btn {
+  background: none; border: 1px solid var(--border); border-radius: 4px; padding: 0.2rem 0.35rem;
+  cursor: pointer; color: var(--text-3); display: flex; align-items: center; transition: all 0.15s;
+}
+.res-toolbar-btn:hover { background: var(--border-light); color: var(--text); }
+.res-toolbar-btn.active { background: var(--coral); color: #fff; border-color: var(--coral); }
+
+.batch-actions {
+  display: flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.5rem;
+  background: #faf5f0; border-bottom: 1px solid var(--border); font-size: 0.72rem;
+}
+.batch-actions #batchCount { flex: 1; color: var(--coral); font-weight: 500; }
+.batch-action-btn {
+  background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 0.15rem 0.4rem;
+  font-size: 0.68rem; cursor: pointer; color: var(--text-3); transition: all 0.15s;
+}
+.batch-action-btn:hover { background: var(--border-light); color: var(--text); }
+.batch-action-btn.batch-danger { color: #e74c3c; }
+.batch-action-btn.batch-danger:hover { background: #fef0ef; }
+
+/* Folder item */
+.folder-item {
+  display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.5rem;
+  cursor: pointer; font-size: 0.78rem; color: var(--text); transition: background 0.15s;
+  border-bottom: 1px solid transparent; user-select: none;
+}
+.folder-item:hover { background: var(--border-light); }
+.folder-item.open { background: rgba(232,113,90,0.05); }
+.folder-icon { display: flex; align-items: center; color: #f59e0b; flex-shrink: 0; }
+.folder-icon.open { color: #d97706; }
+.folder-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.folder-count { font-size: 0.65rem; color: var(--text-3); background: var(--border-light); border-radius: 8px; padding: 0 0.35rem; }
+.folder-toggle { display: flex; align-items: center; color: var(--text-3); transition: transform 0.2s; }
+.folder-toggle.open { transform: rotate(90deg); }
+
+/* Folder children container */
+.folder-children { padding-left: 0.8rem; display: none; }
+.folder-children.open { display: block; }
+
+/* File item in tree - batch mode */
+.file-item.selected { background: rgba(232,113,90,0.08); }
+.file-item .file-checkbox {
+  position: absolute; left: 0.3rem; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; accent-color: var(--coral); cursor: pointer; display: none;
+}
+.batch-mode .file-item .file-checkbox { display: block; }
+.batch-mode .file-item { padding-left: 1.6rem; }
+.batch-mode .folder-item { padding-left: 1.6rem; }
+
+/* Drop target highlight */
+.folder-item.drop-target { background: rgba(232,113,90,0.15); border-bottom: 2px solid var(--coral); }
+.file-drop-root.drop-target { background: rgba(232,113,90,0.08); }
+
+/* Rename inline input */
+.rename-input {
+  border: 1px solid var(--coral); border-radius: 3px; padding: 0.1rem 0.3rem;
+  font-size: 0.75rem; width: 100%; outline: none; background: #fff;
+}
+
+/* Move dialog */
+.move-dialog-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3);
+  z-index: 9999; display: flex; align-items: center; justify-content: center;
+}
+.move-dialog {
+  background: #fff; border-radius: 10px; padding: 1rem; width: 280px; max-height: 400px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+.move-dialog h4 { margin: 0 0 0.6rem; font-size: 0.85rem; }
+.move-dialog-list { max-height: 200px; overflow-y: auto; margin-bottom: 0.6rem; }
+.move-dialog-item {
+  display: flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.5rem;
+  cursor: pointer; border-radius: 6px; font-size: 0.78rem; transition: background 0.15s;
+}
+.move-dialog-item:hover { background: var(--border-light); }
+.move-dialog-item.selected { background: rgba(232,113,90,0.1); color: var(--coral); font-weight: 500; }
+.move-dialog-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.move-dialog-actions button {
+  padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer; border: 1px solid var(--border);
+  background: #fff; color: var(--text-3); transition: all 0.15s;
+}
+.move-dialog-actions button.primary { background: var(--coral); color: #fff; border-color: var(--coral); }
+.move-dialog-actions button:hover { opacity: 0.85; }
+
+/* Save-as button in preview toolbar */
+.preview-save-as-btn {
+  background: none; border: none; cursor: pointer; color: var(--text-3);
+  display: flex; align-items: center; padding: 0.2rem; border-radius: 4px; transition: all 0.15s;
+}
+.preview-save-as-btn:hover { color: var(--coral); background: rgba(232,113,90,0.08); }
