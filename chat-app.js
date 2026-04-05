@@ -4550,3 +4550,327 @@ function formatTimeAgo(date) {
   if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
   return date.getMonth() + 1 + '月' + date.getDate() + '日';
 }
+
+// ===== ONBOARDING TOUR SYSTEM =====
+var tourSteps = [];
+var tourCurrentStep = 0;
+var tourActive = false;
+
+function getTourSteps() {
+  // Dynamically build steps based on current view
+  var steps = [];
+  var inChat = document.getElementById('chatView') && document.getElementById('chatView').style.display !== 'none';
+
+  if (!inChat) {
+    // On Agent store page
+    steps.push({
+      target: '.sidebar-conversations .conv-item, .sidebar-conversations button',
+      fallbackTarget: '.sidebar-conversations',
+      title: '开始对话',
+      desc: '点击左侧的对话列表，选择一个已有对话或新建对话，即可进入聊天界面。',
+      position: 'right'
+    });
+    return steps;
+  }
+
+  // In chat view
+  var layoutSwitcher = document.getElementById('layoutSwitcher');
+  if (layoutSwitcher) {
+    steps.push({
+      target: '#layoutSwitcher',
+      title: '切换布局',
+      desc: '这里可以切换页面布局。点击第三个方块可以开启「文件 + 预览 + 聊天」三栏模式，让你同时管理文件、预览文档和对话。',
+      position: 'top'
+    });
+  }
+
+  var uploadBtn = document.getElementById('uploadBtn');
+  if (uploadBtn) {
+    steps.push({
+      target: '#uploadBtn',
+      title: '上传文件',
+      desc: '点击这里上传 PDF、Word、图片等文件。上传后的文件会出现在左侧文件面板，可以直接引用到对话中让 Agent 分析。',
+      position: 'top'
+    });
+  }
+
+  var resourceBtn = document.getElementById('resourcePanelBtn');
+  if (resourceBtn) {
+    steps.push({
+      target: '#resourcePanelBtn',
+      title: '文件管理面板',
+      desc: '点击这个按钮可以展开/收起左侧文件管理面板。面板中可以查看已上传的文件、知识库和技能包。',
+      position: 'top'
+    });
+  }
+
+  var messageInput = document.getElementById('messageInput');
+  if (messageInput) {
+    steps.push({
+      target: '#messageInput',
+      title: '发送消息',
+      desc: '在这里输入你的问题，Agent 会根据你的提问和上传的文件给出专业回答。回复完成后，你可以将回答导出为文档、复制或在预览面板中编辑。',
+      position: 'top'
+    });
+  }
+
+  var templateBtn = document.getElementById('templateBtn');
+  if (templateBtn) {
+    steps.push({
+      target: '#templateBtn',
+      title: '输出模板',
+      desc: '选择一个预设的输出模板，Agent 会按照模板格式来组织回答。比如 GTM 策略、竞品分析、话术脚本等。',
+      position: 'top'
+    });
+  }
+
+  // Preview panel tools (only if visible)
+  var previewEditBtn = document.getElementById('previewEditBtn');
+  if (previewEditBtn && previewEditBtn.offsetParent !== null) {
+    steps.push({
+      target: '#previewEditBtn',
+      title: '预览面板工具栏',
+      desc: '预览面板顶部的工具栏提供了丰富的操作：编辑文档、复制内容、下载文件、让 Agent 分析文档、引用到对话等。点击编辑按钮可以直接修改文档内容。',
+      position: 'bottom'
+    });
+  }
+
+  return steps;
+}
+
+function startTour() {
+  tourSteps = getTourSteps();
+  if (tourSteps.length === 0) return;
+  tourCurrentStep = 0;
+  tourActive = true;
+  // Remove welcome card if exists
+  var welcome = document.querySelector('.tour-welcome');
+  if (welcome) welcome.remove();
+  var overlay = document.querySelector('.tour-overlay');
+  if (overlay) overlay.remove();
+  showTourStep(0);
+}
+
+function showTourStep(stepIndex) {
+  // Clean up previous
+  var oldHighlight = document.querySelector('.tour-highlight');
+  var oldTooltip = document.querySelector('.tour-tooltip');
+  var oldOverlay = document.querySelector('.tour-overlay');
+  if (oldHighlight) oldHighlight.remove();
+  if (oldTooltip) oldTooltip.remove();
+  if (oldOverlay) oldOverlay.remove();
+
+  if (stepIndex >= tourSteps.length) {
+    endTour();
+    return;
+  }
+
+  var step = tourSteps[stepIndex];
+  var targetEl = document.querySelector(step.target);
+  if (!targetEl && step.fallbackTarget) {
+    targetEl = document.querySelector(step.fallbackTarget);
+  }
+  if (!targetEl) {
+    // Skip this step
+    tourCurrentStep = stepIndex + 1;
+    showTourStep(tourCurrentStep);
+    return;
+  }
+
+  // Scroll target into view if needed
+  targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  setTimeout(function() {
+    var rect = targetEl.getBoundingClientRect();
+    var pad = 6;
+
+    // Create overlay (transparent, just for click blocking)
+    var overlay = document.createElement('div');
+    overlay.className = 'tour-overlay';
+    overlay.style.background = 'transparent';
+    overlay.onclick = function(e) { e.stopPropagation(); };
+    document.body.appendChild(overlay);
+
+    // Create highlight
+    var highlight = document.createElement('div');
+    highlight.className = 'tour-highlight';
+    highlight.style.top = (rect.top - pad + window.scrollY) + 'px';
+    highlight.style.left = (rect.left - pad) + 'px';
+    highlight.style.width = (rect.width + pad * 2) + 'px';
+    highlight.style.height = (rect.height + pad * 2) + 'px';
+    document.body.appendChild(highlight);
+
+    // Create tooltip
+    var tooltip = document.createElement('div');
+    tooltip.className = 'tour-tooltip';
+
+    var arrowPos = step.position === 'top' ? 'bottom' : step.position === 'bottom' ? 'top' : step.position === 'left' ? 'right' : 'left';
+
+    var isLast = (stepIndex === tourSteps.length - 1);
+    tooltip.innerHTML =
+      '<div class="tour-tooltip-arrow ' + arrowPos + '"></div>' +
+      '<div class="tour-title"><span class="tour-step-badge">' + (stepIndex + 1) + '</span>' + step.title + '</div>' +
+      '<div class="tour-desc">' + step.desc + '</div>' +
+      '<div class="tour-actions">' +
+        '<span class="tour-progress">' + (stepIndex + 1) + ' / ' + tourSteps.length + '</span>' +
+        '<div class="tour-btns">' +
+          '<button class="tour-skip-btn" onclick="endTour()">跳过</button>' +
+          '<button class="tour-next-btn" onclick="nextTourStep()">' + (isLast ? '完成' : '下一步') + '</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(tooltip);
+
+    // Position tooltip
+    var tooltipRect = tooltip.getBoundingClientRect();
+    var pos = step.position || 'bottom';
+    var top, left;
+
+    if (pos === 'bottom') {
+      top = rect.bottom + pad + 12;
+      left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    } else if (pos === 'top') {
+      top = rect.top - pad - 12 - tooltipRect.height;
+      left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    } else if (pos === 'right') {
+      top = rect.top + rect.height / 2 - tooltipRect.height / 2;
+      left = rect.right + pad + 12;
+    } else {
+      top = rect.top + rect.height / 2 - tooltipRect.height / 2;
+      left = rect.left - pad - 12 - tooltipRect.width;
+    }
+
+    // Clamp to viewport
+    left = Math.max(12, Math.min(left, window.innerWidth - tooltipRect.width - 12));
+    top = Math.max(12, Math.min(top, window.innerHeight - tooltipRect.height - 12));
+
+    tooltip.style.top = top + 'px';
+    tooltip.style.left = left + 'px';
+
+    // Reposition arrow
+    var arrow = tooltip.querySelector('.tour-tooltip-arrow');
+    if (pos === 'bottom' || pos === 'top') {
+      var arrowLeft = rect.left + rect.width / 2 - left;
+      arrowLeft = Math.max(16, Math.min(arrowLeft, tooltipRect.width - 16));
+      arrow.style.left = arrowLeft + 'px';
+    } else {
+      var arrowTop = rect.top + rect.height / 2 - top;
+      arrowTop = Math.max(16, Math.min(arrowTop, tooltipRect.height - 16));
+      arrow.style.top = arrowTop + 'px';
+    }
+  }, 300);
+}
+
+function nextTourStep() {
+  tourCurrentStep++;
+  if (tourCurrentStep >= tourSteps.length) {
+    endTour();
+  } else {
+    showTourStep(tourCurrentStep);
+  }
+}
+
+function endTour() {
+  tourActive = false;
+  var highlight = document.querySelector('.tour-highlight');
+  var tooltip = document.querySelector('.tour-tooltip');
+  var overlay = document.querySelector('.tour-overlay');
+  var welcome = document.querySelector('.tour-welcome');
+  if (highlight) highlight.remove();
+  if (tooltip) tooltip.remove();
+  if (overlay) overlay.remove();
+  if (welcome) welcome.remove();
+  // Mark tour as completed
+  try { localStorage.setItem('medagent_tour_done', '1'); } catch(e) {}
+  showPreviewToast('引导完成，开始探索吧');
+}
+
+// Show welcome card for first-time users
+function showTourWelcome() {
+  // Check if tour already completed
+  try {
+    if (localStorage.getItem('medagent_tour_done') === '1') return;
+  } catch(e) {}
+
+  var overlay = document.createElement('div');
+  overlay.className = 'tour-overlay';
+  document.body.appendChild(overlay);
+
+  var card = document.createElement('div');
+  card.className = 'tour-welcome';
+  card.innerHTML =
+    '<div class="tour-welcome-icon">' +
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E8715A" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+    '</div>' +
+    '<h2>欢迎使用 MedAgent Hub</h2>' +
+    '<p>第一次来？让我带你快速了解核心功能：布局切换、文件管理、文档预览编辑、Agent 对话等。只需 1 分钟。</p>' +
+    '<button class="tour-welcome-start" onclick="startTour()">开始引导</button>' +
+    '<button class="tour-welcome-skip" onclick="endTour()">我已经熟悉了，跳过</button>';
+  document.body.appendChild(card);
+}
+
+// Trigger tour on first chat view entry
+(function() {
+  var _origShowChat = null;
+
+  function hookChatView() {
+    // Watch for chatView becoming visible
+    var chatView = document.getElementById('chatView');
+    if (!chatView) return;
+
+    var chatObserver = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        if (m.type === 'attributes' && m.attributeName === 'style') {
+          if (chatView.style.display !== 'none' && chatView.style.display !== '') {
+            // Chat view is now visible - show tour if first time
+            try {
+              if (localStorage.getItem('medagent_tour_done') !== '1') {
+                setTimeout(showTourWelcome, 800);
+              }
+            } catch(e) {}
+          }
+        }
+      });
+    });
+    chatObserver.observe(chatView, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hookChatView);
+  } else {
+    hookChatView();
+  }
+})();
+
+// Manual trigger: add help button to chat topbar
+(function() {
+  function addHelpButton() {
+    var topbarActions = document.querySelector('.chat-topbar-actions');
+    if (!topbarActions) return;
+    // Don't add duplicate
+    if (topbarActions.querySelector('.tour-help-btn')) return;
+    var helpBtn = document.createElement('button');
+    helpBtn.className = 'chat-topbar-btn tour-help-btn';
+    helpBtn.title = '操作引导';
+    helpBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    helpBtn.onclick = function() {
+      // Reset tour state and show
+      try { localStorage.removeItem('medagent_tour_done'); } catch(e) {}
+      showTourWelcome();
+    };
+    // Insert before the last button (settings)
+    var settingsBtn = topbarActions.querySelector('[onclick="showSettings()"]') || topbarActions.lastElementChild;
+    if (settingsBtn) {
+      topbarActions.insertBefore(helpBtn, settingsBtn);
+    } else {
+      topbarActions.appendChild(helpBtn);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', addHelpButton);
+  } else {
+    // Delay to ensure topbar is rendered
+    setTimeout(addHelpButton, 1000);
+  }
+})();

@@ -1768,6 +1768,9 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
     .preview-panel-meta {
       font-size: 0.72rem;
@@ -2794,3 +2797,191 @@
       padding: 0 1rem;
       text-align: right;
     }
+
+    /* ===== ONBOARDING TOUR ===== */
+    .tour-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 9990;
+      transition: opacity 0.3s;
+    }
+    .tour-highlight {
+      position: absolute;
+      z-index: 9991;
+      border-radius: 8px;
+      box-shadow: 0 0 0 4000px rgba(0,0,0,0.45), 0 0 0 3px var(--coral), 0 0 20px rgba(232,113,90,0.3);
+      transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+      pointer-events: none;
+    }
+    .tour-tooltip {
+      position: absolute;
+      z-index: 9992;
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08);
+      max-width: 340px;
+      min-width: 260px;
+      animation: tourFadeIn 0.3s ease;
+    }
+    @keyframes tourFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .tour-tooltip-arrow {
+      position: absolute;
+      width: 12px; height: 12px;
+      background: #fff;
+      transform: rotate(45deg);
+      box-shadow: -2px -2px 4px rgba(0,0,0,0.04);
+    }
+    .tour-tooltip-arrow.top { top: -6px; left: 24px; }
+    .tour-tooltip-arrow.bottom { bottom: -6px; left: 24px; }
+    .tour-tooltip-arrow.left { left: -6px; top: 24px; }
+    .tour-tooltip-arrow.right { right: -6px; top: 24px; }
+    .tour-step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--coral);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      margin-right: 0.5rem;
+      flex-shrink: 0;
+    }
+    .tour-title {
+      display: flex;
+      align-items: center;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #191919;
+      margin-bottom: 0.5rem;
+    }
+    .tour-desc {
+      font-size: 0.8rem;
+      line-height: 1.65;
+      color: #5A5A5A;
+      margin-bottom: 1rem;
+    }
+    .tour-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tour-progress {
+      font-size: 0.7rem;
+      color: #999;
+    }
+    .tour-btns {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .tour-skip-btn {
+      padding: 0.4rem 0.85rem;
+      border: 1px solid #E8E5E0;
+      border-radius: 8px;
+      background: #fff;
+      color: #767676;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .tour-skip-btn:hover { border-color: #999; color: #333; }
+    .tour-next-btn {
+      padding: 0.4rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--coral);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .tour-next-btn:hover { background: #d4604a; }
+
+    /* ===== IMPROVED FILE TYPE BADGE ===== */
+    .preview-file-type-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.55rem;
+      border-radius: 5px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .preview-file-type-badge.type-md { background: #E8EAF6; color: #3949AB; }
+    .preview-file-type-badge.type-pdf { background: #FFEBEE; color: #C62828; }
+    .preview-file-type-badge.type-doc { background: #E3F2FD; color: #1565C0; }
+    .preview-file-type-badge.type-xls { background: #E8F5E9; color: #2E7D32; }
+    .preview-file-type-badge.type-img { background: #F3E5F5; color: #7B1FA2; }
+    .preview-file-type-badge.type-txt { background: #FFF3E0; color: #E65100; }
+    .preview-file-type-badge.type-agent { background: var(--coral-light); color: var(--coral); }
+
+    /* ===== TOUR WELCOME CARD (first-run) ===== */
+    .tour-welcome {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9993;
+      background: #fff;
+      border-radius: 16px;
+      padding: 2rem 2.5rem;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.18);
+      max-width: 420px;
+      text-align: center;
+      animation: tourFadeIn 0.4s ease;
+    }
+    .tour-welcome-icon {
+      width: 56px; height: 56px;
+      margin: 0 auto 1rem;
+      background: var(--coral-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tour-welcome h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #191919;
+      margin-bottom: 0.5rem;
+    }
+    .tour-welcome p {
+      font-size: 0.82rem;
+      color: #5A5A5A;
+      line-height: 1.65;
+      margin-bottom: 1.5rem;
+    }
+    .tour-welcome-start {
+      padding: 0.6rem 2rem;
+      border: none;
+      border-radius: 10px;
+      background: var(--coral);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .tour-welcome-start:hover { background: #d4604a; }
+    .tour-welcome-skip {
+      display: block;
+      margin: 0.75rem auto 0;
+      background: none;
+      border: none;
+      color: #999;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .tour-welcome-skip:hover { color: #666; }
