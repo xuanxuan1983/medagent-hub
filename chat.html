@@ -53,66 +53,65 @@
 <div id="offlineBanner" class="offline-banner">网络连接已断开，请检查网络后重试</div>
 <div id="reconnectBanner" class="reconnect-banner">正在重新连接...</div>
 
-<!-- SIDEBAR -->
+<!-- SIDEBAR (Manus-style) -->
 <aside class="sidebar">
  <div class="sidebar-top">
+ <div class="sidebar-header">
  <a href="/index.html" class="sidebar-logo">
  <div class="sidebar-logo-icon">M</div>
- MedAgent Hub
  </a>
- <button class="sidebar-nav-btn active" id="navDesktop" onclick="switchView('desktop')">
- <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
- 工作台
+ <button class="sidebar-icon-btn" id="sidebarSearchBtn" onclick="toggleSidebarSearch()" title="搜索对话">
+ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
  </button>
- <button class="sidebar-nav-btn" id="navStore" onclick="switchView('store')">
- <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
- Agent 商店
+ </div>
+ <button class="sidebar-new-btn" onclick="newSession()">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+ 新建对话
+ <span class="sidebar-shortcut">Ctrl K</span>
  </button>
- <a href="/daily-brief.html" class="sidebar-nav-btn" id="navBrief" style="text-decoration:none;display:flex;align-items:center;gap:0.4rem;">
- <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
- 行业日报
- <span class="sidebar-nav-badge" style="margin-left:auto;font-size:0.6rem;background:var(--coral);color:white;padding:0.1rem 0.35rem;border-radius:3px;font-weight:700;">NEW</span>
- </a>
+ <!-- 搜索框（默认隐藏） -->
+ <div class="sidebar-search-box" id="sidebarSearchBox" style="display:none">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:0.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+ <input type="text" id="sidebarSearchInput" placeholder="搜索对话..." oninput="filterSidebarHistory(this.value)">
+ <button class="sidebar-search-close" onclick="toggleSidebarSearch()">&times;</button>
+ </div>
  </div>
 
  <div class="sidebar-scroll" id="sidebarScroll">
- <!-- Favorites Section -->
- <div class="sidebar-section-label">
- <span>收藏</span>
- <button class="sidebar-collapse-btn" id="favCollapseBtn" onclick="toggleSection('fav')">▾</button>
- </div>
+ <!-- 收藏区域 -->
  <div id="favSection">
- <div id="favList">
- <div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">暂无收藏对话</div>
- </div>
+ <div id="favList"></div>
  </div>
 
- <!-- History Section -->
- <div class="sidebar-section-label" style="margin-top:0.25rem">
- <span>历史对话</span>
- <button class="sidebar-collapse-btn" id="histCollapseBtn" onclick="toggleSection('hist')">▾</button>
- </div>
+ <!-- 历史对话列表 -->
  <div id="histSection">
  <div id="sidebarHistList">
- <div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">加载中...</div>
+ <div style="padding:1rem 0.75rem;font-size:0.78rem;color:var(--text-3);text-align:center">加载中...</div>
  </div>
  </div>
 
- <!-- Divider -->
- <div id="agentGroupsDivider" style="height:1px;background:var(--border-light);margin:0.5rem 0.625rem;display:none"></div>
-
- <!-- Agent Groups (hidden) -->
- <div id="agentGroupsSection" style="display:none">
- <!-- Groups injected by JS -->
- </div>
+ <!-- Agent Groups (hidden, data only) -->
+ <div id="agentGroupsSection" style="display:none"></div>
  </div>
 
  <div class="sidebar-bottom">
+ <!-- 快捷导航图标栏 -->
+ <div class="sidebar-quick-nav">
+ <button class="sidebar-quick-btn" onclick="switchView('store')" title="Agent 商店" id="navStore">
+ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+ </button>
+ <a href="/daily-brief.html" class="sidebar-quick-btn" title="行业日报" id="navBrief">
+ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+ </a>
+ <button class="sidebar-quick-btn" onclick="openSettings('account')" title="设置">
+ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+ </button>
+ </div>
+ <!-- 用户信息 -->
  <div class="sidebar-user" id="sidebarUser" onclick="toggleUserMenu()">
  <div class="sidebar-user-avatar" id="userAvatar">U</div>
  <div class="sidebar-user-info">
  <div class="sidebar-user-name" id="userName">用户</div>
- <div class="sidebar-user-plan">免费版</div>
  </div>
  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-3);flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>
  <div class="sidebar-user-menu" id="userMenu">
@@ -146,6 +145,8 @@
  </div>
  </div>
 </aside>
+<!-- Hidden nav buttons for JS compatibility -->
+<button id="navDesktop" style="display:none" onclick="switchView('desktop')"></button>
 
 <!-- MAIN AREA -->
 <main class="main-area">

@@ -481,7 +481,7 @@
  const btn = document.getElementById(type === 'fav' ? 'favCollapseBtn' : 'histCollapseBtn');
  const isHidden = section.style.display === 'none';
  section.style.display = isHidden ? '' : 'none';
- btn.classList.toggle('collapsed', !isHidden);
+ if (btn) btn.classList.toggle('collapsed', !isHidden);
  }
 
  function buildStore(filter) {
@@ -3644,3 +3644,51 @@ function exportPDF(btn) {
     showExportToast(btn, '请在打印对话框中选择"另存为 PDF"');
   }
 }
+
+
+// ===== Manus-style sidebar functions =====
+function newSession() {
+  // Reset to desktop view (new conversation)
+  switchView('desktop');
+  // Clear current chat state
+  sessionId = null;
+  currentHistorySessionId = null;
+  currentAgentId = null;
+  // Clear desktop input
+  const desktopInput = document.getElementById('desktopInput');
+  if (desktopInput) { desktopInput.value = ''; desktopInput.focus(); }
+  // Deselect all sidebar history items
+  document.querySelectorAll('.sidebar-history-item').forEach(el => el.classList.remove('active'));
+}
+
+function toggleSidebarSearch() {
+  const box = document.getElementById('sidebarSearchBox');
+  const input = document.getElementById('sidebarSearchInput');
+  if (box.style.display === 'none') {
+    box.style.display = 'flex';
+    input.value = '';
+    input.focus();
+  } else {
+    box.style.display = 'none';
+    input.value = '';
+    filterSidebarHistory('');
+  }
+}
+
+function filterSidebarHistory(query) {
+  const items = document.querySelectorAll('#sidebarHistList .sidebar-history-item, #favList .sidebar-history-item');
+  const q = (query || '').toLowerCase().trim();
+  items.forEach(item => {
+    if (!q) { item.style.display = ''; return; }
+    const text = (item.textContent || '').toLowerCase();
+    item.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+
+// Ctrl+K shortcut for new session
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    newSession();
+  }
+});
