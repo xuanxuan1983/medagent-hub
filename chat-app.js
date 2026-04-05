@@ -1570,11 +1570,11 @@
  progressEl.textContent = `${doneSteps.length}/${allSteps.length} 已完成`;
  }
  container.scrollTop = container.scrollHeight;
- } else if (evt.type === 'search_activity') {
+} else if (evt.type === 'search_activity') {
  // 搜索活动动态展示：在对应的 step 卡片下方显示搜索动态
  var stepsContainer2 = bubble.querySelector('.expert-steps-container');
  if (stepsContainer2) {
-   var stepEl2 = stepsContainer2.querySelector('[data-step-id="' + evt.stepId + '"]');
+   var stepEl2 = stepsContainer2.querySelector('[data-step-id="' + evt.stepId + '"']');
    if (stepEl2) {
      // 获取或创建该步骤的搜索活动容器
      var activityBox = stepEl2.querySelector('.search-activity-box');
@@ -1583,47 +1583,55 @@
        activityBox.className = 'search-activity-box';
        stepEl2.appendChild(activityBox);
      }
+     // SVG 图标定义
+     var svgIcons = {
+       web_search: '<svg class="sa-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M1.5 8h13M8 1.5c-2 2.5-2 9.5 0 13M8 1.5c2 2.5 2 9.5 0 13"/></svg>',
+       knowledge_search: '<svg class="sa-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.5V3a1.5 1.5 0 011.5-1.5h9V11H3.5A1.5 1.5 0 002 12.5zm0 0A1.5 1.5 0 003.5 14H13"/></svg>',
+       nmpa_search: '<svg class="sa-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2h12v10a2 2 0 01-2 2H4a2 2 0 01-2-2V2z"/><path d="M5 5h6M5 8h4"/></svg>'
+     };
+     var getIcon = function(tool) { return svgIcons[tool] || svgIcons.web_search; };
      
      if (evt.status === 'searching') {
-       // 显示“正在搜索...”动态
-       var searchingEl = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
+       var searchingEl = activityBox.querySelector('[data-tool="' + evt.tool + '"']');
        if (!searchingEl) {
          searchingEl = document.createElement('div');
          searchingEl.className = 'search-activity-item searching';
          searchingEl.dataset.tool = evt.tool;
-         var toolIcon = evt.tool === 'web_search' ? '🌐' : (evt.tool === 'knowledge_search' ? '📚' : '🏥');
-         searchingEl.innerHTML = '<span class="sa-icon">' + toolIcon + '</span>' +
-           '<span class="sa-label">正在搜索' + (evt.toolLabel || '') + '...</span>' +
+         searchingEl.innerHTML = '<span class="sa-icon">' + getIcon(evt.tool) + '</span>' +
+           '<span class="sa-label">正在搜索' + (evt.toolLabel || '') + '</span>' +
            '<span class="sa-spinner"></span>';
          activityBox.appendChild(searchingEl);
        }
      } else if (evt.status === 'found' && evt.sites) {
-       // 替换“正在搜索”为找到的网站标签
-       var searchingEl2 = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
+       var searchingEl2 = activityBox.querySelector('[data-tool="' + evt.tool + '"']');
        if (searchingEl2) {
          searchingEl2.classList.remove('searching');
          searchingEl2.classList.add('found');
-         var toolIcon2 = evt.tool === 'web_search' ? '🌐' : (evt.tool === 'knowledge_search' ? '📚' : '🏥');
-         var chipsHtml = evt.sites.map(function(site) {
+         // 限制最多显示4个标签，多余的用 +N 折叠
+         var maxChips = 4;
+         var visibleSites = evt.sites.slice(0, maxChips);
+         var extraCount = evt.sites.length > maxChips ? evt.sites.length - maxChips : 0;
+         var chipsHtml = visibleSites.map(function(site) {
            var label = site.domain || site.title || '来源';
-           if (label.length > 20) label = label.substring(0, 20) + '...';
+           if (label.length > 18) label = label.substring(0, 18) + '...';
            if (site.url) {
              return '<a class="sa-chip" href="' + site.url + '" target="_blank" rel="noopener" title="' + (site.title || '') + '">' + label + '</a>';
            }
            return '<span class="sa-chip" title="' + (site.title || '') + '">' + label + '</span>';
          }).join('');
-         searchingEl2.innerHTML = '<span class="sa-icon">' + toolIcon2 + '</span>' +
+         if (extraCount > 0) chipsHtml += '<span class="sa-chip sa-chip-more">+' + extraCount + '</span>';
+         searchingEl2.innerHTML = '<span class="sa-icon">' + getIcon(evt.tool) + '</span>' +
            '<span class="sa-label">' + (evt.toolLabel || '') + '</span>' +
            '<span class="sa-count">' + (evt.count || '') + '条</span>' +
            '<div class="sa-chips">' + chipsHtml + '</div>';
        }
      } else if (evt.status === 'empty' || evt.status === 'error') {
-       var searchingEl3 = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
+       // 空结果：静默隐藏，不显示冗余信息
+       var searchingEl3 = activityBox.querySelector('[data-tool="' + evt.tool + '"']');
        if (searchingEl3) {
          searchingEl3.classList.remove('searching');
-         searchingEl3.classList.add(evt.status === 'error' ? 'error' : 'empty');
-         searchingEl3.innerHTML = '<span class="sa-icon">—</span>' +
-           '<span class="sa-label">' + (evt.toolLabel || '') + '：' + (evt.status === 'error' ? '搜索失败' : '未找到结果') + '</span>';
+         searchingEl3.classList.add('empty-hidden');
+         searchingEl3.style.display = 'none';
        }
      }
    }

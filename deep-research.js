@@ -181,7 +181,12 @@ async function executeParallelSearch(options) {
               streamer.sendSearchActivity({
                 stepId: searchStepId, tool: 'knowledge_search', toolLabel: '知识库',
                 status: 'found', count: r.searchResults.length,
-                sites: r.searchResults.slice(0, 4).map(s => ({ title: s.title || s.fileName || '文档', domain: '知识库' }))
+                sites: r.searchResults.slice(0, 4).map(s => {
+                  let docLabel = s.title || s.fileName || '文档';
+                  // 去掉文件后缀名
+                  docLabel = docLabel.replace(/\.(pdf|docx?|txt|md|xlsx?)$/i, '');
+                  return { title: docLabel, domain: docLabel };
+                })
               });
             } else {
               streamer.sendSearchActivity({ stepId: searchStepId, tool: 'knowledge_search', toolLabel: '知识库', status: 'empty' });
