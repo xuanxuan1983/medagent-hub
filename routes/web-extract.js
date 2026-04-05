@@ -5,7 +5,7 @@
  * 1. 接收 URL，使用 Node.js 内置 http/https 模块抓取网页
  * 2. 使用简单的 HTML 解析提取正文内容（不依赖 cheerio）
  * 3. 返回标题、正文文本、摘要
- * 4. 安全限制：超时 10s、大小 500KB、基本 URL 校验
+ * 4. 安全限制：超时 15s、大小 2MB、基本 URL 校验
  */
 
 const http = require('http');
@@ -148,7 +148,7 @@ function fetchWebPage(targetUrl, timeout) {
         'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1'
       },
-      timeout: timeout || 10000
+      timeout: timeout || 15000
     };
 
     var req = client.request(options, function(res) {
@@ -169,13 +169,13 @@ function fetchWebPage(targetUrl, timeout) {
 
       var chunks = [];
       var totalSize = 0;
-      var maxSize = 500 * 1024; // 500KB
+      var maxSize = 2 * 1024 * 1024; // 2MB
 
       res.on('data', function(chunk) {
         totalSize += chunk.length;
         if (totalSize > maxSize) {
           req.destroy();
-          reject(new Error('页面内容超过 500KB 限制'));
+          reject(new Error('页面内容超过 2MB 限制'));
           return;
         }
         chunks.push(chunk);
