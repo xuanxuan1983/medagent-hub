@@ -3701,7 +3701,7 @@ function switchLayout(layout) {
   currentLayout = layout;
   const resourcePanel = document.getElementById('resourcePanel');
   const previewPanel = document.getElementById('previewPanel');
-  const layoutBtns = document.querySelectorAll('.layout-btn');
+  const layoutBtns = document.querySelectorAll('.layout-btn[data-layout]');
 
   // Update active button
   layoutBtns.forEach(btn => {
