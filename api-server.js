@@ -2547,6 +2547,53 @@ const server = http.createServer(async (req, res) => {
  }
  }
 
+ // ===== Token 用量统计 API =====
+ if (url.pathname === '/api/user/token-usage' && req.method === 'GET') {
+   if (!isAuthenticated(req)) {
+     res.writeHead(401, { 'Content-Type': 'application/json' });
+     res.end(JSON.stringify({ error: '请先登录' }));
+     return;
+   }
+   try {
+     const code = getUserCode(req);
+     const today = new Date().toISOString().substring(0, 10);
+
+     // 总计
+     const totals = db.prepare('SELECT COUNT(*) as cnt, SUM(input_tokens) as inp, SUM(output_tokens) as outp, SUM(estimated_cost) as cost FROM token_usage WHERE user_code = ?').get(code);
+
+     // 今日
+     const todayStats = db.prepare("SELECT COUNT(*) as cnt, SUM(estimated_cost) as cost FROM token_usage WHERE user_code = ? AND DATE(created_at) = ?").get(code, today);
+
+     // 按 Agent 统计（Top 10）
+     const byAgent = db.prepare('SELECT agent_id as agentId, COUNT(*) as count, SUM(estimated_cost) as cost FROM token_usage WHERE user_code = ? AND agent_id IS NOT NULL GROUP BY agent_id ORDER BY count DESC LIMIT 10').all(code);
+
+     // 按类型统计
+     const byType = db.prepare('SELECT api_type as apiType, COUNT(*) as count FROM token_usage WHERE user_code = ? GROUP BY api_type ORDER BY count DESC').all(code);
+
+     // 最近 7 天趋势
+     const daily = db.prepare("SELECT DATE(created_at) as date, COUNT(*) as messages, SUM(estimated_cost) as cost FROM token_usage WHERE user_code = ? AND created_at >= datetime('now', '-7 days') GROUP BY DATE(created_at) ORDER BY date ASC").all(code);
+
+     res.writeHead(200, { 'Content-Type': 'application/json' });
+     res.end(JSON.stringify({
+       totalMessages: totals.cnt || 0,
+       totalInputTokens: totals.inp || 0,
+       totalOutputTokens: totals.outp || 0,
+       totalCost: totals.cost || 0,
+       todayMessages: todayStats.cnt || 0,
+       todayCost: todayStats.cost || 0,
+       byAgent,
+       byType,
+       daily
+     }));
+   } catch (e) {
+     console.error('Token usage query error:', e);
+     res.writeHead(500, { 'Content-Type': 'application/json' });
+     res.end(JSON.stringify({ error: '查询失败' }));
+   }
+   return;
+ }
+ // ===== Token 用量统计 API 结束 =====
+
  if (url.pathname === '/api/auth/me' && req.method === 'GET') {
  if (!isAuthenticated(req)) {
  res.writeHead(401, { 'Content-Type': 'application/json' });
