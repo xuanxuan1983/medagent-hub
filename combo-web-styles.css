@@ -842,3 +842,13 @@
 .web-send-custom-input:focus {
   border-color: var(--primary, #2563eb);
 }
+
+
+/* ===== FILE SEARCH BOX ===== */
+.resource-search-box {
+  position: relative;
+  padding: 4px 8px 6px;
+}
+.resource-search-box input:focus {
+  border-color: var(--coral, #E8715A) !important;
+}

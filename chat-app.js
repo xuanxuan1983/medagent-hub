@@ -5854,3 +5854,93 @@ async function savePreviewAsFile() {
     setTimeout(initFileManagement, 600);
   }
 })();
+
+
+// ===== FILE SEARCH / FILTER v1.0 =====
+(function() {
+  var _searchTimeout = null;
+  window.filterFiles = function(query) {
+    clearTimeout(_searchTimeout);
+    _searchTimeout = setTimeout(function() {
+      _doFilterFiles(query);
+    }, 200);
+  };
+
+  function _doFilterFiles(query) {
+    var container = document.getElementById('resourceFileList');
+    if (!container) return;
+    var q = (query || '').trim().toLowerCase();
+
+    if (!q) {
+      // Show all items
+      var items = container.querySelectorAll('.file-item, .folder-item, .folder-children, .file-group-label');
+      items.forEach(function(el) { el.style.display = ''; });
+      return;
+    }
+
+    // Hide/show file items based on name match
+    var fileItems = container.querySelectorAll('.file-item');
+    var matchedFolderIds = new Set();
+
+    fileItems.forEach(function(el) {
+      var nameEl = el.querySelector('.file-name');
+      var name = nameEl ? nameEl.textContent.toLowerCase() : '';
+      if (name.indexOf(q) !== -1) {
+        el.style.display = '';
+        // If inside a folder, mark folder as having matches
+        var parent = el.parentElement;
+        if (parent && parent.id && parent.id.startsWith('folderChildren_')) {
+          var fid = parseInt(parent.id.replace('folderChildren_', ''));
+          if (fid) matchedFolderIds.add(fid);
+        }
+      } else {
+        el.style.display = 'none';
+      }
+    });
+
+    // Show/hide folders based on whether they have matching files or their name matches
+    var folderItems = container.querySelectorAll('.folder-item');
+    folderItems.forEach(function(el) {
+      var fid = parseInt(el.getAttribute('data-folder-id'));
+      var folderName = el.querySelector('.folder-name');
+      var nameMatch = folderName && folderName.textContent.toLowerCase().indexOf(q) !== -1;
+
+      if (nameMatch || matchedFolderIds.has(fid)) {
+        el.style.display = '';
+        // Expand folder if it has matching files
+        var children = document.getElementById('folderChildren_' + fid);
+        if (children) {
+          children.style.display = '';
+          if (matchedFolderIds.has(fid)) {
+            children.classList.add('open');
+            el.classList.add('open');
+          }
+          // If folder name matches, show all its files
+          if (nameMatch) {
+            var childFiles = children.querySelectorAll('.file-item');
+            childFiles.forEach(function(cf) { cf.style.display = ''; });
+          }
+        }
+      } else {
+        el.style.display = 'none';
+        var children2 = document.getElementById('folderChildren_' + fid);
+        if (children2) children2.style.display = 'none';
+      }
+    });
+
+    // Show/hide group labels
+    var labels = container.querySelectorAll('.file-group-label');
+    labels.forEach(function(el) {
+      var next = el.nextElementSibling;
+      var hasVisible = false;
+      while (next && !next.classList.contains('file-group-label') && !next.classList.contains('folder-item')) {
+        if (next.classList.contains('file-item') && next.style.display !== 'none') {
+          hasVisible = true;
+          break;
+        }
+        next = next.nextElementSibling;
+      }
+      el.style.display = hasVisible ? '' : 'none';
+    });
+  }
+})();
