@@ -1,0 +1,777 @@
+/* ===== COMBO SKILLS BUILDER STYLES ===== */
+
+/* --- User Combos List in Skills Tab --- */
+.combo-user-card {
+  background: var(--bg-2, #f8f9fa);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.combo-user-card:hover {
+  border-color: var(--primary, #2563eb);
+  background: var(--bg-1, #fff);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.combo-user-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.combo-user-card-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-1, #1a1a1a);
+}
+.combo-user-card-count {
+  font-size: 0.68rem;
+  color: var(--primary, #2563eb);
+  background: var(--primary-bg, #eff6ff);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.combo-user-card-desc {
+  font-size: 0.72rem;
+  color: var(--text-3, #9ca3af);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.combo-user-card-steps {
+  font-size: 0.7rem;
+  color: var(--text-2, #6b7280);
+  background: var(--bg-3, #f3f4f6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.combo-user-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.combo-user-card-date {
+  font-size: 0.66rem;
+  color: var(--text-3, #9ca3af);
+}
+.combo-user-card-actions {
+  display: flex;
+  gap: 4px;
+}
+.combo-action-btn {
+  background: none;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  padding: 3px 6px;
+  cursor: pointer;
+  color: var(--text-2, #6b7280);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+}
+.combo-action-btn:hover {
+  background: var(--bg-2, #f8f9fa);
+  color: var(--primary, #2563eb);
+  border-color: var(--primary, #2563eb);
+}
+.combo-action-danger:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+/* --- Combo Builder Modal --- */
+.combo-builder-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.combo-builder-overlay.active {
+  display: flex;
+}
+.combo-builder-modal {
+  background: var(--bg-1, #fff);
+  border-radius: 12px;
+  width: 520px;
+  max-width: 92vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  animation: comboModalIn 0.2s ease;
+}
+@keyframes comboModalIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.combo-builder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+.combo-builder-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-1, #1a1a1a);
+}
+.combo-builder-badge {
+  font-size: 0.6rem;
+  background: var(--primary, #2563eb);
+  color: white;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 500;
+  vertical-align: super;
+}
+.combo-builder-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3, #9ca3af);
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.combo-builder-close:hover {
+  background: var(--bg-2, #f8f9fa);
+  color: var(--text-1, #1a1a1a);
+}
+.combo-builder-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+.combo-builder-field {
+  margin-bottom: 14px;
+}
+.combo-builder-field label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-2, #6b7280);
+  margin-bottom: 5px;
+}
+.combo-builder-field input,
+.combo-builder-field select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text-1, #1a1a1a);
+  background: var(--bg-1, #fff);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.combo-builder-field input:focus,
+.combo-builder-field select:focus {
+  border-color: var(--primary, #2563eb);
+}
+.combo-builder-steps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.combo-builder-steps-header label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-2, #6b7280);
+}
+.combo-builder-add-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px dashed var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.combo-builder-add-step:hover {
+  background: var(--primary-bg, #eff6ff);
+}
+.combo-builder-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 60px;
+}
+
+/* --- Step Item --- */
+.combo-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--bg-2, #f8f9fa);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 10px;
+  transition: all 0.15s;
+}
+.combo-step-item.dragging {
+  opacity: 0.5;
+  border-color: var(--primary, #2563eb);
+}
+.combo-step-drag-handle {
+  cursor: grab;
+  padding: 4px 2px;
+  color: var(--text-3, #9ca3af);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.combo-step-drag-handle:active { cursor: grabbing; }
+.combo-step-content {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.combo-step-number {
+  width: 22px;
+  height: 22px;
+  background: var(--primary, #2563eb);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.combo-step-fields {
+  flex: 1;
+  min-width: 0;
+}
+.combo-step-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.combo-step-agent,
+.combo-step-skill {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  color: var(--text-1, #1a1a1a);
+  background: var(--bg-1, #fff);
+  outline: none;
+  min-width: 0;
+}
+.combo-step-prompt {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  font-size: 0.76rem;
+  color: var(--text-1, #1a1a1a);
+  background: var(--bg-1, #fff);
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+  min-height: 36px;
+  box-sizing: border-box;
+}
+.combo-step-prompt:focus {
+  border-color: var(--primary, #2563eb);
+}
+.combo-step-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3, #9ca3af);
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.combo-step-remove:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+/* --- Builder Footer --- */
+.combo-builder-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+.combo-builder-cancel {
+  padding: 7px 16px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-1, #fff);
+  color: var(--text-2, #6b7280);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.combo-builder-cancel:hover {
+  background: var(--bg-2, #f8f9fa);
+}
+.combo-builder-save {
+  padding: 7px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary, #2563eb);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.combo-builder-save:hover {
+  background: var(--primary-hover, #1d4ed8);
+}
+
+/* --- Combo Progress Bar --- */
+.combo-progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--primary-bg, #eff6ff);
+  border: 1px solid var(--primary, #2563eb);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0 12px 8px;
+  animation: comboProgressIn 0.2s ease;
+}
+@keyframes comboProgressIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.combo-progress-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--primary, #2563eb);
+  font-weight: 500;
+}
+.combo-progress-step {
+  background: var(--primary, #2563eb);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.66rem;
+}
+.combo-progress-actions {
+  display: flex;
+  gap: 6px;
+}
+.combo-progress-next {
+  padding: 3px 10px;
+  background: var(--primary, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.combo-progress-next:hover {
+  background: var(--primary-hover, #1d4ed8);
+}
+.combo-progress-cancel {
+  padding: 3px 10px;
+  background: none;
+  color: var(--text-3, #9ca3af);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.combo-progress-cancel:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* ===== WEB VIEWER STYLES ===== */
+
+/* --- URL Input Dialog --- */
+.web-url-dialog-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.web-url-dialog-overlay.active {
+  display: flex;
+}
+.web-url-dialog {
+  background: var(--bg-1, #fff);
+  border-radius: 10px;
+  width: 440px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  animation: comboModalIn 0.2s ease;
+}
+.web-url-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+.web-url-dialog-header h4 {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-1, #1a1a1a);
+}
+.web-url-dialog-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3, #9ca3af);
+  padding: 4px;
+  border-radius: 4px;
+}
+.web-url-dialog-close:hover {
+  background: var(--bg-2, #f8f9fa);
+}
+.web-url-dialog-body {
+  padding: 16px 18px;
+}
+.web-url-dialog-body input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--text-1, #1a1a1a);
+  outline: none;
+  box-sizing: border-box;
+}
+.web-url-dialog-body input:focus {
+  border-color: var(--primary, #2563eb);
+}
+.web-url-dialog-hint {
+  font-size: 0.68rem;
+  color: var(--text-3, #9ca3af);
+  margin-top: 6px;
+}
+.web-url-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+.web-url-dialog-cancel {
+  padding: 6px 14px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-1, #fff);
+  color: var(--text-2, #6b7280);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.web-url-dialog-open {
+  padding: 6px 18px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary, #2563eb);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.web-url-dialog-open:hover {
+  background: var(--primary-hover, #1d4ed8);
+}
+
+/* --- Web Viewer Container --- */
+.web-viewer-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.web-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-2, #f8f9fa);
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.web-viewer-url-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-1, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 16px;
+  padding: 4px 10px;
+  flex: 1;
+  min-width: 0;
+  max-width: 400px;
+}
+.web-viewer-url-bar svg {
+  color: var(--text-3, #9ca3af);
+  flex-shrink: 0;
+}
+.web-viewer-url-text {
+  font-size: 0.72rem;
+  color: var(--text-2, #6b7280);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.web-viewer-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.web-viewer-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-1, #fff);
+  color: var(--text-2, #6b7280);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.web-viewer-btn:hover {
+  border-color: var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
+  background: var(--primary-bg, #eff6ff);
+}
+.web-viewer-btn-primary {
+  background: var(--primary, #2563eb);
+  color: white;
+  border-color: var(--primary, #2563eb);
+}
+.web-viewer-btn-primary:hover {
+  background: var(--primary-hover, #1d4ed8);
+  color: white;
+}
+.web-viewer-iframe-container {
+  flex: 1;
+  position: relative;
+  min-height: 200px;
+}
+.web-viewer-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  position: absolute;
+  top: 0; left: 0;
+}
+.web-viewer-loading {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--bg-1, #fff);
+  color: var(--text-3, #9ca3af);
+  font-size: 0.78rem;
+}
+.web-viewer-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border, #e5e7eb);
+  border-top-color: var(--primary, #2563eb);
+  border-radius: 50%;
+  animation: webSpinner 0.7s linear infinite;
+}
+@keyframes webSpinner {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Extracted Content View --- */
+.web-extracted-content {
+  padding: 16px;
+  overflow-y: auto;
+  height: 100%;
+}
+.web-extracted-header {
+  margin-bottom: 14px;
+}
+.web-extracted-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-1, #1a1a1a);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.web-extracted-url {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--text-3, #9ca3af);
+  margin-bottom: 4px;
+}
+.web-extracted-url a {
+  color: var(--primary, #2563eb);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.web-extracted-url a:hover {
+  text-decoration: underline;
+}
+.web-extracted-desc {
+  font-size: 0.76rem;
+  color: var(--text-2, #6b7280);
+  line-height: 1.4;
+  background: var(--bg-2, #f8f9fa);
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+.web-extracted-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.web-extracted-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary, #2563eb);
+  color: white;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.web-extracted-btn:hover {
+  background: var(--primary-hover, #1d4ed8);
+}
+.web-extracted-btn-secondary {
+  background: var(--bg-2, #f8f9fa);
+  color: var(--text-2, #6b7280);
+  border: 1px solid var(--border, #e5e7eb);
+}
+.web-extracted-btn-secondary:hover {
+  background: var(--bg-3, #f3f4f6);
+  color: var(--text-1, #1a1a1a);
+}
+.web-extracted-body {
+  border-top: 1px solid var(--border, #e5e7eb);
+  padding-top: 12px;
+}
+.web-extracted-text {
+  font-size: 0.8rem;
+  color: var(--text-1, #1a1a1a);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  margin: 0;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* --- Web Toolbar Group in Preview Header --- */
+.web-toolbar-group {
+  display: flex;
+  gap: 2px;
+}
+.web-toolbar-btn {
+  color: var(--text-3, #9ca3af);
+}
+.web-toolbar-btn:hover {
+  color: var(--primary, #2563eb);
+}
+
+/* --- Combo Skills Section Header in Skills Tab --- */
+.combo-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 6px;
+  margin-top: 12px;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+.combo-section-title {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-2, #6b7280);
+}
+.combo-section-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: 1px solid var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.combo-section-new-btn:hover {
+  background: var(--primary-bg, #eff6ff);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .combo-builder-modal {
+    width: 95vw;
+    max-height: 90vh;
+  }
+  .combo-step-row {
+    flex-direction: column;
+  }
+  .web-viewer-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .web-viewer-url-bar {
+    max-width: none;
+  }
+  .web-viewer-actions {
+    justify-content: flex-end;
+  }
+  .web-extracted-actions {
+    flex-direction: column;
+  }
+}

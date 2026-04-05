@@ -17,6 +17,8 @@
  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
  <link rel="stylesheet" id="dynamicCSS">
  <script>document.getElementById('dynamicCSS').href='/chat-styles.css?v='+Date.now();</script>
+<link rel="stylesheet" id="comboWebCSS">
+<script>document.getElementById('comboWebCSS').href='/combo-web-styles.css?v='+Date.now();</script>
 </head>
 <body>
 
@@ -240,9 +242,25 @@
      <div class="resource-tab" onclick="switchResourceTab('skills')">技能包</div>
  </div>
  <div class="resource-tab-content active" id="resourceTabFiles">
- <div class="resource-section-label">已上传文件</div>
+ <div class="resource-file-toolbar">
+ <button class="res-toolbar-btn" onclick="createNewFolder()" title="新建文件夹">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+ </button>
+ <button class="res-toolbar-btn" onclick="toggleBatchSelect()" id="batchSelectBtn" title="批量选择">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+ </button>
+ <button class="res-toolbar-btn" onclick="refreshFileList()" title="刷新">
+ <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+ </button>
+ </div>
+ <div id="batchActions" class="batch-actions" style="display:none">
+ <span id="batchCount">0 项已选</span>
+ <button class="batch-action-btn" onclick="batchMoveFiles()">移动</button>
+ <button class="batch-action-btn batch-danger" onclick="batchDeleteFiles()">删除</button>
+ <button class="batch-action-btn" onclick="toggleBatchSelect()">取消</button>
+ </div>
  <div id="resourceFileList">
- <div class="resource-empty">暂无上传文件<br><span style="font-size:0.7rem">上传文件后可在此快速引用</span></div>
+ <div class="resource-empty"><div class="resource-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="resource-empty-title">暂无上传文件</div><div class="resource-empty-desc">上传文件后可在此快速引用</div></div>
  </div>
  <div class="resource-section-label" style="margin-top:0.5rem">快捷提问</div>
  <div id="resourceQuickList">
@@ -276,10 +294,18 @@
  <div class="resource-section-label" style="display:flex;align-items:center;gap:0.3rem">推荐技能 <span style="font-size:0.6rem;color:var(--text-3);font-weight:400">内置</span></div>
  <div id="builtinSkillsList"></div>
  <div class="resource-section-label" style="display:flex;align-items:center;gap:0.3rem">我的技能包 <span style="font-size:0.6rem;color:var(--text-3);font-weight:400">对话提炼</span></div>
- <div id="skillsList">
- <div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击"快照"按钮提炼技能包</span></div>
- </div>
- </div>
+<div id="skillsList">
+<div class="resource-empty">暂无技能包<br><span style="font-size:0.7rem">对话超过 4 条消息后，点击“快照”按钮提炼技能包</span></div>
+</div>
+<div class="combo-section-header">
+<span class="combo-section-title">我的工作流 <span style="font-size:0.58rem;color:var(--primary);font-weight:400">beta</span></span>
+<button class="combo-section-new-btn" onclick="openComboBuilder()">
+<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+新建工作流
+</button>
+</div>
+<div id="userCombosList"></div>
+</div>
  </div>
  </div>
  <!-- RESIZE HANDLE: resource ↔ preview/chat -->
@@ -302,7 +328,10 @@
  <button class="preview-action-btn" onclick="askAboutPreview()" title="基于当前文档向 Agent 提问">
  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
  </button>
- <button class="preview-action-btn" onclick="citePreviewInInput()" title="引用到对话">
+ <button class="preview-action-btn" onclick="openWebUrlInput()" title="打开网页">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+</button>
+<button class="preview-action-btn" onclick="citePreviewInInput()" title="引用到对话">
  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
  </button>
  <button class="preview-close-btn" onclick="closePreviewPanel()" title="关闭预览">
@@ -722,5 +751,7 @@
 </div>
 
 <script>document.write('<scr'+'ipt src="/chat-app.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/combo-builder.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/web-viewer.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 </body>
 </html>

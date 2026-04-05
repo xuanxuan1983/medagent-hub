@@ -35,6 +35,8 @@ if (require('fs').existsSync(dotenvPath)) {
 const { handleUnifiedChatStream } = require("./routes/unified-chat-stream");
 const { createSnapshot, listSnapshots, getSnapshotContent, loadSkillForChat, deleteSnapshot } = require('./routes/snapshot');
 const { handleAdminRoutes } = require('./routes/admin');
+const { handleComboRoutes } = require('./routes/combo-skills');
+const { handleWebExtractRoutes } = require('./routes/web-extract');
 
 const http = require('http');
 const https = require('https');
@@ -2461,7 +2463,7 @@ function handleFileUpload(req, res) {
 const server = http.createServer(async (req, res) => {
  // Enable CORS
  res.setHeader('Access-Control-Allow-Origin', '*');
- res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+ res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
  if (req.method === 'OPTIONS') {
@@ -4191,6 +4193,259 @@ const server = http.createServer(async (req, res) => {
  }
 
  // ===== 团队计划 API 结束 =====
+
+ // ===== 文件管理 API =====
+
+ // 初始化文件管理表
+ try {
+ db.prepare(`CREATE TABLE IF NOT EXISTS user_folders (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ user_code TEXT NOT NULL,
+ name TEXT NOT NULL,
+ parent_id INTEGER DEFAULT 0,
+ sort_order INTEGER DEFAULT 0,
+ created_at TEXT DEFAULT (datetime('now'))
+ )`).run();
+ db.prepare(`ALTER TABLE uploaded_files ADD COLUMN folder_id INTEGER DEFAULT 0`).run();
+ } catch(e) { /* 列可能已存在 */ }
+
+ // GET /api/files - 获取用户文件列表（持久化）
+ if (url.pathname === '/api/files' && req.method === 'GET') {
+ if (!isAuthenticated(req)) {
+ res.writeHead(401, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: 'Unauthorized' }));
+ return;
+ }
+ const userCode = getUserCode(req);
+ try {
+ const files = db.prepare(
+ 'SELECT id, session_id, original_name, stored_name, mime_type, size, content_type, extracted_content, folder_id, created_at FROM uploaded_files WHERE user_code = ? ORDER BY created_at DESC'
+ ).all(userCode);
+ const folders = db.prepare(
+ 'SELECT id, name, parent_id, sort_order, created_at FROM user_folders WHERE user_code = ? ORDER BY sort_order ASC, created_at ASC'
+ ).all(userCode);
+ res.writeHead(200, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ files, folders }));
+ } catch (e) {
+ console.error('GET /api/files error:', e.message);
+ res.writeHead(500, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '获取文件列表失败' }));
+ }
+ return;
+ }
+
+ // POST /api/files/folder - 创建文件夹
+ if (url.pathname === '/api/files/folder' && req.method === 'POST') {
+ if (!isAuthenticated(req)) {
+ res.writeHead(401, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: 'Unauthorized' }));
+ return;
+ }
+ const userCode = getUserCode(req);
+ const body = await parseRequestBody(req);
+ const { name, parentId } = body;
+ if (!name) {
+ res.writeHead(400, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '文件夹名称不能为空' }));
+ return;
+ }
+ try {
+ const result = db.prepare(
+ 'INSERT INTO user_folders (user_code, name, parent_id) VALUES (?, ?, ?)'
+ ).run(userCode, name, parentId || 0);
+ res.writeHead(200, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ success: true, folderId: result.lastInsertRowid }));
+ } catch (e) {
+ console.error('POST /api/files/folder error:', e.message);
+ res.writeHead(500, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '创建文件夹失败' }));
+ }
+ return;
+ }
+
+ // POST /api/files/rename - 重命名文件或文件夹
+ if (url.pathname === '/api/files/rename' && req.method === 'POST') {
+ if (!isAuthenticated(req)) {
+ res.writeHead(401, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: 'Unauthorized' }));
+ return;
+ }
+ const userCode = getUserCode(req);
+ const body = await parseRequestBody(req);
+ const { id, name, type } = body; // type: 'file' or 'folder'
+ if (!id || !name) {
+ res.writeHead(400, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '参数不完整' }));
+ return;
+ }
+ try {
+ if (type === 'folder') {
+ db.prepare('UPDATE user_folders SET name = ? WHERE id = ? AND user_code = ?').run(name, id, userCode);
+ } else {
+ db.prepare('UPDATE uploaded_files SET original_name = ? WHERE id = ? AND user_code = ?').run(name, id, userCode);
+ }
+ res.writeHead(200, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ success: true }));
+ } catch (e) {
+ console.error('POST /api/files/rename error:', e.message);
+ res.writeHead(500, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '重命名失败' }));
+ }
+ return;
+ }
+
+ // POST /api/files/move - 移动文件到文件夹
+ if (url.pathname === '/api/files/move' && req.method === 'POST') {
+ if (!isAuthenticated(req)) {
+ res.writeHead(401, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: 'Unauthorized' }));
+ return;
+ }
+ const userCode = getUserCode(req);
+ const body = await parseRequestBody(req);
+ const { fileIds, folderId } = body;
+ if (!fileIds || !Array.isArray(fileIds)) {
+ res.writeHead(400, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '参数不完整' }));
+ return;
+ }
+ try {
+ const stmt = db.prepare('UPDATE uploaded_files SET folder_id = ? WHERE id = ? AND user_code = ?');
+ const moveMany = db.transaction((ids) => {
+ for (const fid of ids) stmt.run(folderId || 0, fid, userCode);
+ });
+ moveMany(fileIds);
+ res.writeHead(200, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ success: true }));
+ } catch (e) {
+ console.error('POST /api/files/move error:', e.message);
+ res.writeHead(500, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '移动失败' }));
+ }
+ return;
+ }
+
+ // POST /api/files/delete - 删除文件（支持批量）
+ if (url.pathname === '/api/files/delete' && req.method === 'POST') {
+ if (!isAuthenticated(req)) {
+ res.writeHead(401, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: 'Unauthorized' }));
+ return;
+ }
+ const userCode = getUserCode(req);
+ const body = await parseRequestBody(req);
+ const { ids, type } = body; // type: 'file' or 'folder'
+ if (!ids || !Array.isArray(ids)) {
+ res.writeHead(400, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '参数不完整' }));
+ return;
+ }
+ try {
+ if (type === 'folder') {
+ const stmtFolder = db.prepare('DELETE FROM user_folders WHERE id = ? AND user_code = ?');
+ const stmtMoveFiles = db.prepare('UPDATE uploaded_files SET folder_id = 0 WHERE folder_id = ? AND user_code = ?');
+ const deleteMany = db.transaction((fids) => {
+ for (const fid of fids) {
+ stmtMoveFiles.run(fid, userCode); // 文件夹内文件移到根目录
+ stmtFolder.run(fid, userCode);
+ }
+ });
+ deleteMany(ids);
+ } else {
+ // 删除文件记录和磁盘文件
+ const stmtGet = db.prepare('SELECT stored_name FROM uploaded_files WHERE id = ? AND user_code = ?');
+ const stmtDel = db.prepare('DELETE FROM uploaded_files WHERE id = ? AND user_code = ?');
+ const deleteMany = db.transaction((fids) => {
+ for (const fid of fids) {
+ const row = stmtGet.get(fid, userCode);
+ if (row && row.stored_name) {
+ const fp = path.join(UPLOADS_DIR, row.stored_name);
+ try { fs.unlinkSync(fp); } catch(e) {}
+ }
+ stmtDel.run(fid, userCode);
+ }
+ });
+ deleteMany(ids);
+ }
+ res.writeHead(200, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ success: true }));
+ } catch (e) {
+ console.error('POST /api/files/delete error:', e.message);
+ res.writeHead(500, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '删除失败' }));
+ }
+ return;
+ }
+
+ // POST /api/files/save - 从预览面板另存为新文件
+ if (url.pathname === '/api/files/save' && req.method === 'POST') {
+ if (!isAuthenticated(req)) {
+ res.writeHead(401, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: 'Unauthorized' }));
+ return;
+ }
+ const userCode = getUserCode(req);
+ const body = await parseRequestBody(req);
+ const { fileName, content, folderId } = body;
+ if (!fileName || !content) {
+ res.writeHead(400, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '文件名和内容不能为空' }));
+ return;
+ }
+ try {
+ const storedName = Date.now() + '-' + Math.random().toString(36).substr(2, 8) + '-' + fileName;
+ const filePath = path.join(UPLOADS_DIR, storedName);
+ fs.writeFileSync(filePath, content, 'utf-8');
+ const size = Buffer.byteLength(content, 'utf-8');
+ const ext = path.extname(fileName).toLowerCase();
+ const contentType = ext === '.md' ? 'markdown' : ext === '.txt' ? 'text' : 'text';
+ db.prepare(`CREATE TABLE IF NOT EXISTS uploaded_files (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ session_id TEXT,
+ user_code TEXT,
+ original_name TEXT,
+ stored_name TEXT,
+ mime_type TEXT,
+ size INTEGER,
+ content_type TEXT,
+ extracted_content TEXT,
+ folder_id INTEGER DEFAULT 0,
+ created_at TEXT DEFAULT (datetime('now'))
+ )`).run();
+ const result = db.prepare(
+ 'INSERT INTO uploaded_files (user_code, original_name, stored_name, mime_type, size, content_type, extracted_content, folder_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+ ).run(userCode, fileName, storedName, 'text/plain', size, contentType, content, folderId || 0);
+ res.writeHead(200, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ success: true, fileId: result.lastInsertRowid, fileName, size }));
+ } catch (e) {
+ console.error('POST /api/files/save error:', e.message);
+ res.writeHead(500, { 'Content-Type': 'application/json' });
+ res.end(JSON.stringify({ error: '保存文件失败' }));
+ }
+ return;
+ }
+
+ // ===== 文件管理 API 结束 =====
+
+ // ===== Combo Skills (自定义工作流) API =====
+ if (url.pathname.startsWith('/api/combos')) {
+   let comboBody = {};
+   if (req.method === 'POST') {
+     try { comboBody = await parseRequestBody(req); } catch(e) {}
+   }
+   const handled = handleComboRoutes(req, res, url, comboBody, getUserCode, isAuthenticated);
+   if (handled) return;
+ }
+ // ===== Combo Skills API 结束 =====
+
+ // ===== 网页内容拓取 API =====
+ if (url.pathname === '/api/web/extract' && req.method === 'POST') {
+   let webBody = {};
+   try { webBody = await parseRequestBody(req); } catch(e) {}
+   const handled = handleWebExtractRoutes(req, res, url, webBody, getUserCode, isAuthenticated);
+   if (handled) return;
+ }
+ // ===== 网页拓取 API 结束 =====
 
  // ===== 安全防护：屏蔽敏感目录的直接 HTTP 访问 =====
  const blockedPaths = ['/skills/', '/skills', '/assistants/', '/assistants', '/data/', '/data'];
