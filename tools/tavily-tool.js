@@ -79,7 +79,7 @@ async function executeTavilySearch(args, apiKey) {
         });
       });
       req.on('error', reject);
-      req.setTimeout(8000, () => { 
+      req.setTimeout(isDeep ? 25000 : 10000, () => { 
         req.destroy(); 
         reject(new Error("Tavily 搜索超时")); 
       });
