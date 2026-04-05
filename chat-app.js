@@ -520,7 +520,7 @@
  const card = document.createElement('div');
  card.className = 'store-card' + (isLocked ? ' store-card-locked' : '');
  card.innerHTML = `
- <span class="store-card-icon"><img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.name.charAt(0)}'"></span>
+ <span class="store-card-icon"><img src="${getAgentDefaultImg(agent.id) || IP_IMAGES.douzai.default}" alt="${agent.name}" style="object-fit:contain"></span>
  <div class="store-card-name">${agent.name}${isLocked ? ` <span class="pro-badge" style="background:#f59e0b;color:white">反馈解锁</span>` : ''}</div>
  <div class="store-card-desc">${agent.desc}</div>
  <span class="store-card-tag">${agent.category}</span>
@@ -675,7 +675,7 @@
  // Reset chat
  document.getElementById('chatMessages').innerHTML = `
  <div class="welcome-wrap" id="welcomeWrap">
- <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || '/mascot-default.png'}" alt="${agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽'}" id="welcomeMascotImg"></div>
+ <div class="welcome-mascot"><img src="${getAgentDefaultImg(agentId) || IP_IMAGES.douzai.default}" alt="${agent.name}" id="welcomeMascotImg" style="object-fit:contain"></div>
  <div class="welcome-title" id="welcomeTitle">${agent.name}</div>
  <div class="welcome-sub" id="welcomeSub">${agent.desc}</div>
  </div>`;
@@ -685,14 +685,9 @@
 
  document.title = agent.name + ' - MedAgent Hub';
  const topbarAvatarEl = document.getElementById('topbarAvatar');
- // 豆豆使用专属表情图而非 SVG
- if (agentId === 'doudou' || agentId === 'douding' || agentId === 'douya') {
- const _dailyImg = getAgentDefaultImg(agentId) || '/mascot-default.png';
- const _altName = agentId === 'doudou' ? '豆子' : agentId === 'douding' ? '豆丁' : '豆芽';
- topbarAvatarEl.innerHTML = `<img src="${_dailyImg}" alt="${_altName}">`;
- } else {
- topbarAvatarEl.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.name.charAt(0)}'">`;
- }
+ // 统一品牌 IP：所有 Agent 使用豆子头像
+ const _dailyImg = getAgentDefaultImg(agentId) || IP_IMAGES.douzai.default;
+ topbarAvatarEl.innerHTML = `<img src="${_dailyImg}" alt="${agent.name}" style="object-fit:contain">`;
  document.getElementById('topbarName').textContent = agent.name;
  document.getElementById('topbarDesc').textContent = agent.desc;
  document.getElementById('chatStatus').style.display = 'none';
@@ -2029,7 +2024,7 @@
  const avatar = document.createElement('div');
  avatar.className = 'msg-avatar';
  if (agent) {
- avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.name.charAt(0)}'">`;
+ avatar.innerHTML = `<img src="${getAgentDefaultImg(agent.id) || IP_IMAGES.douzai.default}" alt="${agent.name}" style="object-fit:contain">`;
  } else { avatar.textContent = ''; }
  const bubble = document.createElement('div');
  bubble.className = 'msg-bubble';
@@ -2309,7 +2304,7 @@
  if (role === 'user') {
  avatar.textContent = currentUserName ? currentUserName.charAt(0).toUpperCase() : '我';
  } else if (agent) {
- avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.name.charAt(0)}'">`;
+ avatar.innerHTML = `<img src="${getAgentDefaultImg(agent.id) || IP_IMAGES.douzai.default}" alt="${agent.name}" style="object-fit:contain">`;
  } else {
  avatar.textContent = '';
  }
@@ -2538,10 +2533,8 @@
 
  // 获取当前 agent 对应的 IP 名称
  function getIPName(agentId) {
- if (agentId === 'doudou') return 'douzai';
- if (agentId === 'douding') return 'douding';
- if (agentId === 'douya') return 'douya';
- return null;
+ // 统一品牌 IP：所有 Agent 都使用豆子（Douzai）形象
+ return 'douzai';
  }
 
  // 获取当前 agent 的默认（每日随机）图片
@@ -2593,7 +2586,7 @@
  const avatar = document.createElement('div');
  avatar.className = 'msg-avatar';
  if (agent) {
- avatar.innerHTML = (agent.id === 'doudou' || agent.id === 'douding' || agent.id === 'douya') ? `<img src="${getAgentDefaultImg(agent.id) || '/mascot-default.png'}" alt="${agent.id === 'doudou' ? '豆子' : agent.id === 'douding' ? '豆丁' : '豆芽'}" style="object-fit:contain">` : `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.name.charAt(0)}'">`;
+ avatar.innerHTML = `<img src="${getAgentDefaultImg(agent.id) || IP_IMAGES.douzai.default}" alt="${agent.name}" style="object-fit:contain">`;
  } else { avatar.textContent = ''; }
  const dots = document.createElement('div');
  dots.className = 'typing-dots';
@@ -2984,7 +2977,7 @@
  // Update topbar
  document.title = agent.name + ' - MedAgent Hub (历史记录)';
  const histTopbarAvatar = document.getElementById('topbarAvatar');
- histTopbarAvatar.innerHTML = `<img src="/avatars/${agent.id}.svg" alt="${agent.name}" onerror="this.parentNode.textContent='${agent.name.charAt(0)}'">`;
+ histTopbarAvatar.innerHTML = `<img src="${getAgentDefaultImg(agent.id) || IP_IMAGES.douzai.default}" alt="${agent.name}" style="object-fit:contain">`;
  document.getElementById('topbarName').textContent = agent.name;
  document.getElementById('topbarDesc').textContent = '历史对话记录';
 
