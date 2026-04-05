@@ -3692,3 +3692,156 @@ document.addEventListener('keydown', function(e) {
     newSession();
   }
 });
+
+
+// ===== WORKSPACE LAYOUT MANAGEMENT =====
+let currentLayout = 'chat-only';
+
+function switchLayout(layout) {
+  currentLayout = layout;
+  const resourcePanel = document.getElementById('resourcePanel');
+  const previewPanel = document.getElementById('previewPanel');
+  const layoutBtns = document.querySelectorAll('.layout-btn');
+
+  // Update active button
+  layoutBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.layout === layout);
+  });
+
+  switch (layout) {
+    case 'chat-only':
+      resourcePanel.classList.add('collapsed');
+      previewPanel.style.display = 'none';
+      resourcePanelOpen = false;
+      break;
+    case 'resource-chat':
+      resourcePanel.classList.remove('collapsed');
+      previewPanel.style.display = 'none';
+      resourcePanelOpen = true;
+      break;
+    case 'three-panel':
+      resourcePanel.classList.remove('collapsed');
+      previewPanel.style.display = '';
+      resourcePanelOpen = true;
+      break;
+    case 'preview-chat':
+      resourcePanel.classList.add('collapsed');
+      previewPanel.style.display = '';
+      resourcePanelOpen = false;
+      break;
+  }
+
+  // Update resource panel button state
+  const btn = document.getElementById('resourcePanelBtn');
+  if (btn) btn.classList.toggle('active', resourcePanelOpen);
+
+  // Save layout preference
+  try { localStorage.setItem('medagent_layout', layout); } catch(e) {}
+}
+
+// Override toggleResourcePanel to integrate with layout system
+(function() {
+  const originalToggle = toggleResourcePanel;
+  toggleResourcePanel = function() {
+    resourcePanelOpen = !resourcePanelOpen;
+    const panel = document.getElementById('resourcePanel');
+    const btn = document.getElementById('resourcePanelBtn');
+    if (resourcePanelOpen) {
+      panel.classList.remove('collapsed');
+      if (btn) btn.classList.add('active');
+      // Update layout state
+      const previewVisible = document.getElementById('previewPanel').style.display !== 'none';
+      currentLayout = previewVisible ? 'three-panel' : 'resource-chat';
+    } else {
+      panel.classList.add('collapsed');
+      if (btn) btn.classList.remove('active');
+      const previewVisible = document.getElementById('previewPanel').style.display !== 'none';
+      currentLayout = previewVisible ? 'preview-chat' : 'chat-only';
+    }
+    // Update layout buttons
+    document.querySelectorAll('.layout-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.layout === currentLayout);
+    });
+  };
+})();
+
+// ===== PREVIEW PANEL =====
+let currentPreviewFile = null;
+
+function openPreviewPanel(fileId, fileName, content, meta) {
+  const previewPanel = document.getElementById('previewPanel');
+  const previewTitle = document.getElementById('previewTitle');
+  const previewMeta = document.getElementById('previewMeta');
+  const previewBody = document.getElementById('previewBody');
+
+  currentPreviewFile = { fileId, fileName, content };
+
+  previewTitle.textContent = fileName || '文档预览';
+  previewMeta.textContent = meta || '';
+
+  // Render content (reuse existing markdown rendering if available)
+  if (typeof marked !== 'undefined') {
+    previewBody.innerHTML = '<div class="kb-preview-markdown">' + marked.parse(content || '') + '</div>';
+  } else {
+    previewBody.innerHTML = '<div class="kb-preview-text">' + (content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+  }
+
+  // Show preview panel
+  previewPanel.style.display = '';
+
+  // Update layout state
+  const resourceVisible = !document.getElementById('resourcePanel').classList.contains('collapsed');
+  currentLayout = resourceVisible ? 'three-panel' : 'preview-chat';
+  document.querySelectorAll('.layout-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.layout === currentLayout);
+  });
+}
+
+function closePreviewPanel() {
+  const previewPanel = document.getElementById('previewPanel');
+  previewPanel.style.display = 'none';
+  currentPreviewFile = null;
+
+  // Update layout state
+  const resourceVisible = !document.getElementById('resourcePanel').classList.contains('collapsed');
+  currentLayout = resourceVisible ? 'resource-chat' : 'chat-only';
+  document.querySelectorAll('.layout-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.layout === currentLayout);
+  });
+}
+
+// Hook into existing KB preview to open in panel instead of modal
+(function() {
+  const originalOpenKBPreview = typeof openKBPreview === 'function' ? openKBPreview : null;
+  if (originalOpenKBPreview) {
+    window._originalOpenKBPreview = originalOpenKBPreview;
+  }
+  window.openKBPreview = function(fileId, fileName) {
+    // Fetch file content and open in preview panel instead of modal
+    fetch('/api/knowledge/file/' + encodeURIComponent(fileId))
+      .then(r => r.json())
+      .then(data => {
+        if (data.content) {
+          openPreviewPanel(fileId, fileName, data.content, data.meta || '');
+        } else if (window._originalOpenKBPreview) {
+          window._originalOpenKBPreview(fileId, fileName);
+        }
+      })
+      .catch(() => {
+        if (window._originalOpenKBPreview) {
+          window._originalOpenKBPreview(fileId, fileName);
+        }
+      });
+  };
+})();
+
+// Restore saved layout on init
+(function() {
+  try {
+    const saved = localStorage.getItem('medagent_layout');
+    if (saved && ['chat-only', 'resource-chat', 'three-panel', 'preview-chat'].includes(saved)) {
+      // Delay to ensure DOM is ready
+      setTimeout(() => switchLayout(saved), 500);
+    }
+  } catch(e) {}
+})();
