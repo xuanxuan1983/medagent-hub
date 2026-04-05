@@ -4874,3 +4874,146 @@ function showTourWelcome() {
     setTimeout(addHelpButton, 1000);
   }
 })();
+
+// ===== BUILTIN SKILLS =====
+var builtinSkills = [
+  {
+    id: 'create-skill',
+    name: '创建 Agent 技能',
+    desc: '引导用户创建有效的 Agent 技能。包括 SKILL.md 格式规范、最佳实践、参数定义和工具权限配置。',
+    icon: 'tool',
+    iconText: 'SK',
+    categories: ['系统', '技能创建'],
+    prompt: [
+      '你现在是一个 Agent 技能创建助手。请引导用户创建一个有效的 SKILL.md 技能文件。',
+      '',
+      '## SKILL.md 格式规范',
+      '',
+      '每个技能文件由两部分组成：',
+      '',
+      '### 1. Front Matter（YAML 头部）',
+      '```yaml',
+      '---',
+      'name: skill-name          # 技能标识符，小写+连字符',
+      'description: 技能的简短描述   # 一句话说明用途',
+      'categories: ["分类1", "分类2"]',
+      'when_to_use: |             # 何时触发此技能',
+      '  描述触发场景和触发词',
+      'argument-hint: "[参数1] [参数2]"',
+      'arguments:                 # 输入参数列表',
+      '  - param1',
+      '  - param2',
+      'allowed-tools:             # 允许使用的工具',
+      '  - Read',
+      '  - Write',
+      '---',
+      '```',
+      '',
+      '### 2. 技能正文（Markdown）',
+      '- **Goal**：明确技能目标和成功标准',
+      '- **Inputs**：定义输入参数及格式',
+      '- **Steps**：分步骤的执行流程',
+      '- **Output**：期望的输出格式',
+      '',
+      '## 最佳实践',
+      '1. 技能名称要简洁明确，用小写+连字符',
+      '2. 描述要一句话说清用途',
+      '3. 触发词要覆盖用户常见表达',
+      '4. 步骤要具体可执行，避免模糊指令',
+      '5. 包含话术模板和示例',
+      '6. 关联相关技能形成技能网络',
+      '',
+      '请告诉我你想创建什么类型的技能，我来帮你一步步完成 SKILL.md 的编写。'
+    ].join('\n')
+  }
+];
+
+function renderBuiltinSkills() {
+  var container = document.getElementById('builtinSkillsList');
+  if (!container) return;
+
+  container.innerHTML = builtinSkills.map(function(skill) {
+    var isLoaded = loadedSkillContext && loadedSkillContext.skillId === 'builtin_' + skill.id;
+    return '<div class="builtin-skill-card" onclick="previewBuiltinSkill(\'' + skill.id + '\')">' +
+      '<div class="builtin-skill-icon ' + skill.icon + '">' + skill.iconText + '</div>' +
+      '<div class="builtin-skill-info">' +
+        '<div class="builtin-skill-name">' + skill.name + ' <span class="builtin-tag">内置</span></div>' +
+        '<div class="builtin-skill-desc">' + skill.desc + '</div>' +
+      '</div>' +
+      '<div class="builtin-skill-actions">' +
+        '<button class="builtin-skill-load-btn' + (isLoaded ? ' loaded' : '') + '" ' +
+          'onclick="event.stopPropagation();loadBuiltinSkill(\'' + skill.id + '\')">' +
+          (isLoaded ? '已加载' : '加载') +
+        '</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function loadBuiltinSkill(skillId) {
+  var skill = builtinSkills.find(function(s) { return s.id === skillId; });
+  if (!skill) return;
+
+  // Set as loaded skill context (same structure as server-loaded skills)
+  loadedSkillContext = {
+    skillId: 'builtin_' + skill.id,
+    skillName: skill.name,
+    content: skill.prompt,
+    success: true
+  };
+
+  // Show loaded badge
+  showLoadedSkillBadge(skill.name);
+
+  // Update input placeholder
+  var input = document.getElementById('messageInput');
+  if (input && !input.value.trim()) {
+    input.placeholder = '已加载技能「' + skill.name + '」，请输入问题...';
+  }
+
+  // Re-render to update button state
+  renderBuiltinSkills();
+
+  showPreviewToast('已加载技能「' + skill.name + '」');
+}
+
+function previewBuiltinSkill(skillId) {
+  var skill = builtinSkills.find(function(s) { return s.id === skillId; });
+  if (!skill) return;
+
+  // Open in preview panel
+  if (typeof openPreviewPanel === 'function') {
+    openPreviewPanel('builtin_' + skill.id, skill.name + '.md', skill.prompt, '内置技能 · ' + skill.categories.join(' / '), {
+      fileType: 'md',
+      isAgent: false
+    });
+  }
+}
+
+// Hook into switchResourceTab to render builtin skills
+(function() {
+  var _origSwitchTab = window.switchResourceTab;
+  window.switchResourceTab = function(tab) {
+    if (typeof _origSwitchTab === 'function') {
+      _origSwitchTab(tab);
+    }
+    if (tab === 'skills') {
+      renderBuiltinSkills();
+    }
+  };
+})();
+
+// Also render on initial load if skills tab is active
+(function() {
+  function initBuiltinSkills() {
+    var skillsTab = document.getElementById('resourceTabSkills');
+    if (skillsTab && skillsTab.classList.contains('active')) {
+      renderBuiltinSkills();
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBuiltinSkills);
+  } else {
+    setTimeout(initBuiltinSkills, 500);
+  }
+})();
