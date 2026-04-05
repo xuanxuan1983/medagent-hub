@@ -3352,11 +3352,15 @@
  }
  container.innerHTML = snapshots.map(s => {
  const date = new Date(s.createdAt).toLocaleDateString('zh-CN');
+ const isV2 = s.skillFormat === 'v2';
+ const goalText = s.goal ? `<div class="skill-card-goal">${s.goal.substring(0, 80)}</div>` : '';
+ const formatBadge = isV2 ? '<span class="skill-card-format-badge">SKILL</span>' : '';
  return `<div class="skill-card" onclick="previewSkill('${s.id}')">
  <div class="skill-card-header">
- <span class="skill-card-name">${s.skillName || s.id}</span>
+ <span class="skill-card-name">${formatBadge}${s.skillName || s.id}</span>
  <span class="skill-card-badge">${s.messageCount}条对话</span>
  </div>
+ ${goalText}
  <div class="skill-card-meta">来源: ${s.agentName || '未知'} | ${date}</div>
  <div class="skill-card-actions">
  <button class="skill-action-btn" onclick="event.stopPropagation();loadSkillToCurrentChat('${s.id}')">加载</button>

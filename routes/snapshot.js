@@ -50,16 +50,39 @@ async function createSnapshot(options) {
     ? '\n\n关联文件：\n' + uploadedFiles.map(f => `- ${f.original_name}（${f.content_type}）`).join('\n')
     : '';
 
-  // 3. 调用 LLM 提取关键逻辑
-  const extractPrompt = `你是一个医美行业知识萃取专家。请根据以下对话记录，提取其中的核心业务逻辑、话术模板、判断标准和工作流程，生成一份结构化的技能文档。
+  // 3. 调用 LLM 提取关键逻辑，输出 SKILL.md 格式
+  const extractPrompt = `你是一个 Agent 技能萃取专家。请根据以下对话记录，提取其中的核心业务逻辑，生成一份符合 SKILL.md 规范的可复用技能文档。
 
-要求：
-1. 提取对话中展现的专业方法论（如 SPIN 提问法、三明治报价等）
-2. 提取可复用的话术模板（保留原始表述，用 {{变量}} 标记可替换部分）
-3. 提取关键的判断标准和决策逻辑
-4. 总结适用场景和注意事项
-5. 输出格式为纯 Markdown，使用 ## 作为章节标题
-6. 在文档开头用一段话概括这份技能的核心价值
+输出必须严格按以下结构：
+
+## Goal
+用 1-2 句话概括这个技能的核心目标和价值。
+
+## 触发场景
+列出此技能应该在什么情况下被触发使用，包括关键词和场景描述。
+
+## Steps
+分步骤写出执行流程，每个步骤要具体可执行。
+
+## 话术模板
+提取对话中的可复用话术，保留原始表述，用 {{变量}} 标记可替换部分。每条话术用引用块 > 包裹。
+
+## 判断标准
+提取关键的判断标准和决策逻辑，用表格或列表呈现。
+
+## 注意事项
+列出使用此技能时的注意事项和常见错误。
+
+## Output
+描述期望的输出格式和内容。
+
+创作原则：
+1. 简洁优先，控制在 500 行以内
+2. 第三人称描述，如"处理客户咨询"而非"我可以帮你"
+3. 步骤要具体可执行，避免模糊指令
+4. 话术模板保留原始表述，用 {{变量}} 标记可替换部分
+5. 只用 ## 作为章节标题，不用 ### 或更深层级
+6. 不使用代码块、emoji、装饰符号
 
 对话记录：
 ${conversationText}
@@ -93,6 +116,15 @@ ${fileContext}
   fs.writeFileSync(skillPath, skillContent, 'utf8');
 
   // 6. 保存快照元数据
+  // 从提取内容中解析触发场景和目标
+  let metaWhenToUse = '';
+  const metaTrigger = extractedContent.match(/##\s*触发场景\s*\n([\s\S]*?)(?=\n##|$)/);
+  if (metaTrigger) metaWhenToUse = metaTrigger[1].trim().replace(/\n/g, ' ').substring(0, 200);
+
+  let metaGoal = '';
+  const goalMatch = extractedContent.match(/##\s*Goal\s*\n([\s\S]*?)(?=\n##|$)/);
+  if (goalMatch) metaGoal = goalMatch[1].trim().replace(/\n/g, ' ').substring(0, 200);
+
   const snapshotMeta = {
     id: skillId,
     sessionId,
@@ -106,7 +138,11 @@ ${fileContext}
     fileCount: uploadedFiles.length,
     attachedFiles: uploadedFiles.map(f => ({ name: f.original_name, type: f.content_type })),
     createdAt: now.toISOString(),
-    summary: extractedContent.substring(0, 300)
+    summary: extractedContent.substring(0, 300),
+    goal: metaGoal,
+    whenToUse: metaWhenToUse,
+    categories: ['自定义', agentName, '经验沉淀'],
+    skillFormat: 'v2'
   };
   fs.writeFileSync(
     path.join(SNAPSHOTS_DIR, `${skillId}.json`),
@@ -135,14 +171,19 @@ function buildSkillMarkdown(opts) {
     sessionId, messages, uploadedFiles, extractedContent, now
   } = opts;
 
+  // 从提取内容中解析触发场景
+  let whenToUse = '';
+  const triggerMatch = extractedContent.match(/##\s*触发场景\s*\n([\s\S]*?)(?=\n##|$)/);
+  if (triggerMatch) {
+    whenToUse = triggerMatch[1].trim().replace(/\n/g, ' ').substring(0, 200);
+  }
+
   return `---
 name: ${skillId}
 display_name: ${safeSkillName}
 description: ${safeSkillName} - 由 ${userName || userCode} 从与「${agentName}」的对话中提炼
-version: 1.0.0
-author: ${userName || userCode}
-category: custom
-tags: [自定义, ${agentName}, 经验沉淀]
+when_to_use: ${whenToUse}
+categories: [自定义, ${agentName}, 经验沉淀]
 usage_count: 0
 last_updated: ${now.toISOString().split('T')[0]}
 source_agent: ${agentId}
