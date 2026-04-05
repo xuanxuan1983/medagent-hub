@@ -5,7 +5,8 @@
  * 1. 接收 URL，使用 Node.js 内置 http/https 模块抓取网页
  * 2. 使用简单的 HTML 解析提取正文内容（不依赖 cheerio）
  * 3. 返回标题、正文文本、摘要
- * 4. 安全限制：超时 15s、大小 2MB、基本 URL 校验
+ * 4. 流式读取：对大页面（如微信公众号），读到正文结束标记后立即停止
+ * 5. 安全限制：超时 20s、大小 5MB、基本 URL 校验
  */
 
 const http = require('http');
@@ -27,6 +28,12 @@ function extractTextFromHTML(html) {
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   if (titleMatch) title = titleMatch[1].trim();
 
+  // 提取 og:title（微信等平台常用）
+  if (!title) {
+    const ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([\s\S]*?)["']/i);
+    if (ogTitle) title = ogTitle[1].trim();
+  }
+
   // 提取 meta description
   let description = '';
   const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([\s\S]*?)["']/i);
@@ -40,14 +47,26 @@ function extractTextFromHTML(html) {
   let mainContent = '';
 
   // 微信公众号文章特殊处理：提取 js_content div
-  const wechatMatch = html.match(/<div[^>]*id=["']js_content["'][^>]*>([\s\S]*?)<\/div>\s*<\/div>/i);
-  if (wechatMatch) {
-    mainContent = wechatMatch[1];
-    // 微信文章标题可能在 og:title 中
-    if (!title) {
-      const ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([\s\S]*?)["']/i);
-      if (ogTitle) title = ogTitle[1].trim();
+  // 使用更宽松的匹配，因为微信的 js_content 内部可能有很多嵌套 div
+  var jsContentStart = html.indexOf('id="js_content"');
+  if (jsContentStart === -1) jsContentStart = html.indexOf("id='js_content'");
+  
+  if (jsContentStart > -1) {
+    // 从 js_content 开始，找到它的结束位置
+    // 微信文章正文区域通常在 js_content 和 content_bottom_area 之间
+    var contentStart = html.indexOf('>', jsContentStart) + 1;
+    var contentEnd = html.length;
+    
+    // 尝试多个结束标记
+    var endMarkers = ['id="content_bottom_area"', 'id="js_pc_qr_code"', 'class="rich_media_tool"', 'id="js_tags_preview_toast"', 'class="qr_code_pc_outer"'];
+    for (var i = 0; i < endMarkers.length; i++) {
+      var pos = html.indexOf(endMarkers[i], contentStart);
+      if (pos > 0 && pos < contentEnd) {
+        contentEnd = pos;
+      }
     }
+    
+    mainContent = html.substring(contentStart, contentEnd);
   } else {
     const articleMatch = html.match(/<article[\s\S]*?>([\s\S]*?)<\/article>/i);
     if (articleMatch) {
@@ -57,7 +76,7 @@ function extractTextFromHTML(html) {
       if (mainMatch) {
         mainContent = mainMatch[1];
       } else {
-        // 尝试提取 body 中最大的 div
+        // 尝试提取 body
         const bodyMatch = html.match(/<body[\s\S]*?>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
           mainContent = bodyMatch[1];
@@ -67,6 +86,10 @@ function extractTextFromHTML(html) {
       }
     }
   }
+
+  // 移除 mainContent 中的 script 和 style
+  mainContent = mainContent.replace(/<script[\s\S]*?<\/script>/gi, '');
+  mainContent = mainContent.replace(/<style[\s\S]*?<\/style>/gi, '');
 
   // 将 <br>, <p>, <div>, <li>, <h1-6> 转为换行
   mainContent = mainContent.replace(/<br\s*\/?>/gi, '\n');
@@ -79,6 +102,10 @@ function extractTextFromHTML(html) {
   // 提取链接文本
   mainContent = mainContent.replace(/<a[^>]*>([\s\S]*?)<\/a>/gi, '$1');
 
+  // 提取图片 alt 文本
+  mainContent = mainContent.replace(/<img[^>]*alt=["']([^"']+)["'][^>]*>/gi, '[图片: $1]');
+  mainContent = mainContent.replace(/<img[^>]*>/gi, '');
+
   // 移除所有剩余 HTML 标签
   mainContent = mainContent.replace(/<[^>]+>/g, '');
 
@@ -90,6 +117,7 @@ function extractTextFromHTML(html) {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, function(_, hex) { return String.fromCharCode(parseInt(hex, 16)); })
     .replace(/&#(\d+);/g, function(_, num) { return String.fromCharCode(parseInt(num)); });
 
   // 清理多余空白
@@ -106,7 +134,7 @@ function extractTextFromHTML(html) {
   };
 }
 
-// 抓取网页内容
+// 抓取网页内容 — 流式读取，支持提前停止
 function fetchWebPage(targetUrl, timeout) {
   return new Promise(function(resolve, reject) {
     var parsedUrl;
@@ -140,7 +168,7 @@ function fetchWebPage(targetUrl, timeout) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'identity', // 不压缩，简化处理
+        'Accept-Encoding': 'identity',
         'Referer': parsedUrl.protocol + '//' + parsedUrl.hostname + '/',
         'Sec-Fetch-Dest': 'document',
         'Sec-Fetch-Mode': 'navigate',
@@ -148,8 +176,13 @@ function fetchWebPage(targetUrl, timeout) {
         'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1'
       },
-      timeout: timeout || 15000
+      timeout: timeout || 20000
     };
+
+    // 判断是否是微信等大页面域名
+    var isLargeSite = ['mp.weixin.qq.com', 'weixin.qq.com'].some(function(d) {
+      return hostname === d || hostname.endsWith('.' + d);
+    });
 
     var req = client.request(options, function(res) {
       // 处理重定向
@@ -169,19 +202,64 @@ function fetchWebPage(targetUrl, timeout) {
 
       var chunks = [];
       var totalSize = 0;
-      var maxSize = 2 * 1024 * 1024; // 2MB
+      var maxSize = 5 * 1024 * 1024; // 5MB 硬限制
+      var resolved = false;
+      var accumulatedHtml = '';
 
       res.on('data', function(chunk) {
+        if (resolved) return;
+        
         totalSize += chunk.length;
+        chunks.push(chunk);
+        
+        // 对大页面站点，流式检测是否已获取到足够内容
+        if (isLargeSite && totalSize > 200 * 1024) {
+          // 每收到一批数据就检查是否已经有完整正文
+          accumulatedHtml = Buffer.concat(chunks).toString('utf-8');
+          
+          // 检查是否已经读到正文结束标记
+          var hasContent = accumulatedHtml.indexOf('id="js_content"') > -1;
+          var hasEnd = false;
+          var endMarkers = ['id="content_bottom_area"', 'id="js_pc_qr_code"', 'class="rich_media_tool"', 'class="qr_code_pc_outer"'];
+          for (var i = 0; i < endMarkers.length; i++) {
+            if (accumulatedHtml.indexOf(endMarkers[i]) > -1) {
+              hasEnd = true;
+              break;
+            }
+          }
+          
+          if (hasContent && hasEnd) {
+            // 已经获取到完整正文，提前停止
+            resolved = true;
+            res.destroy(); // 停止接收更多数据
+            resolve({
+              html: accumulatedHtml,
+              url: targetUrl,
+              contentType: res.headers['content-type'] || '',
+              size: totalSize
+            });
+            return;
+          }
+        }
+        
+        // 硬限制：超过 5MB 直接停止（但不报错，用已有内容）
         if (totalSize > maxSize) {
-          req.destroy();
-          reject(new Error('页面内容超过 2MB 限制'));
+          resolved = true;
+          res.destroy();
+          var partialHtml = Buffer.concat(chunks).toString('utf-8');
+          resolve({
+            html: partialHtml,
+            url: targetUrl,
+            contentType: res.headers['content-type'] || '',
+            size: totalSize
+          });
           return;
         }
-        chunks.push(chunk);
       });
 
       res.on('end', function() {
+        if (resolved) return;
+        
         var charset = 'utf-8';
         var contentType = res.headers['content-type'] || '';
         var charsetMatch = contentType.match(/charset=([^\s;]+)/i);
@@ -224,13 +302,17 @@ function fetchWebPage(targetUrl, timeout) {
         });
       });
 
-      res.on('error', reject);
+      res.on('error', function(err) {
+        if (!resolved) reject(err);
+      });
     });
 
-    req.on('error', reject);
+    req.on('error', function(err) {
+      if (!resolved) reject(err);
+    });
     req.on('timeout', function() {
       req.destroy();
-      reject(new Error('请求超时（10秒）'));
+      if (!resolved) reject(new Error('请求超时（20秒）'));
     });
 
     req.end();
@@ -261,7 +343,7 @@ function handleWebExtractRoutes(req, res, url, body, getUserCode, isAuthenticate
       targetUrl = 'https://' + targetUrl;
     }
 
-    fetchWebPage(targetUrl, 10000)
+    fetchWebPage(targetUrl, 20000)
       .then(function(result) {
         var extracted = extractTextFromHTML(result.html);
         res.writeHead(200, { 'Content-Type': 'application/json' });
