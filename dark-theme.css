@@ -247,6 +247,31 @@
 [data-theme="dark"] .store-view {
   background: var(--bg);
 }
+[data-theme="dark"] .store-banner {
+  background: linear-gradient(135deg, #1a1f2e 0%, #2a1f1e 50%, #1f1a2e 100%);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .store-toolbar {
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .store-search {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text-3);
+}
+[data-theme="dark"] .store-search input {
+  color: var(--text);
+}
+[data-theme="dark"] .store-filter-btn {
+  background: var(--bg-warm);
+  border-color: var(--border);
+  color: var(--text-2);
+}
+[data-theme="dark"] .store-filter-btn.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
 [data-theme="dark"] .store-card {
   background: var(--bg-warm);
   border-color: var(--border);

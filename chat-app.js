@@ -247,6 +247,7 @@
  }
  })();
  buildStore();
+ updateStoreSubtitle();
  loadUserInfo();
  loadSidebarHistory();
 
@@ -447,21 +448,40 @@
  });
  }
 
- // Render history (latest 8)
- const recent = sidebarSessions.slice(0, 8);
+ // Render history with date grouping
+ const recent = sidebarSessions.slice(0, 20);
  if (recent.length === 0) {
- histList.innerHTML = '<div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">暂无历史对话</div>';
+ histList.innerHTML = '<div style="padding:0.25rem 0.625rem 0.5rem;font-size:0.75rem;color:var(--text-3)">\u6682\u65e0\u5386\u53f2\u5bf9\u8bdd</div>';
  } else {
  histList.innerHTML = '';
+ const now = new Date();
+ const todayStr = now.toDateString();
+ const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+ const yesterdayStr = yesterday.toDateString();
+ let currentGroup = '';
  recent.forEach(s => {
  const isFav = favorites.includes(s.id);
+ // Date grouping
+ let group = '\u66f4\u65e9';
+ if (s.updatedAt || s.createdAt) {
+ const d = new Date(s.updatedAt || s.createdAt);
+ if (d.toDateString() === todayStr) group = '\u4eca\u5929';
+ else if (d.toDateString() === yesterdayStr) group = '\u6628\u5929';
+ }
+ if (group !== currentGroup) {
+ currentGroup = group;
+ const label = document.createElement('div');
+ label.className = 'sidebar-date-group';
+ label.textContent = group;
+ histList.appendChild(label);
+ }
  const btn = document.createElement('button');
  btn.className = 'sidebar-history-item';
  btn.dataset.sessionId = s.id;
  btn.innerHTML = `
  <span class="sidebar-history-item-icon">${getAgentIcon(s.agentId)}</span>
  <span class="sidebar-history-item-text">${s.preview || s.agentName || s.agentId}</span>
- <span class="sidebar-history-item-star" style="opacity:${isFav?1:0.25};cursor:pointer" title="${isFav?'取消收藏':'添加收藏'}" onclick="event.stopPropagation();toggleFavorite('${s.id}')">${isFav?'★':'☆'}</span>`;
+ <span class="sidebar-history-item-star" style="opacity:${isFav?1:0.25};cursor:pointer" title="${isFav?'\u53d6\u6d88\u6536\u85cf':'\u6dfb\u52a0\u6536\u85cf'}" onclick="event.stopPropagation();toggleFavorite('${s.id}')">${isFav?'\u2605':'\u2606'}</span>`;
  btn.onclick = () => loadHistorySession(s.id, s.agentId);
  histList.appendChild(btn);
  });
@@ -607,7 +627,66 @@
  function filterStore(btn, cat) {
  document.querySelectorAll('.store-filter-btn').forEach(b => b.classList.remove('active'));
  btn.classList.add('active');
+ // 清除搜索框
+ const searchInput = document.getElementById('storeSearchInput');
+ if (searchInput) searchInput.value = '';
  buildStore(cat === 'all' ? null : cat);
+ }
+
+ function searchStore(keyword) {
+ keyword = keyword.trim().toLowerCase();
+ // 取消分类按钮高亮
+ document.querySelectorAll('.store-filter-btn').forEach(b => b.classList.remove('active'));
+ if (!keyword) {
+ document.querySelector('.store-filter-btn').classList.add('active');
+ buildStore();
+ return;
+ }
+ const grid = document.getElementById('storeGrid');
+ grid.innerHTML = '';
+ AGENT_GROUPS.forEach(group => {
+ if (group.hidden) return;
+ group.agents.forEach(agent => {
+ if (agent.hidden && !currentIsAdmin) return;
+ if (ADMIN_ONLY_AGENTS.has(agent.id) && !currentIsAdmin) return;
+ if (agent.hidden) return;
+ const match = agent.name.toLowerCase().includes(keyword) ||
+ agent.desc.toLowerCase().includes(keyword) ||
+ agent.category.toLowerCase().includes(keyword);
+ if (!match) return;
+ const isMedAgent = TRIAL_AGENTS.has(agent.id);
+ const isContentAgent = CONTENT_AGENTS.has(agent.id);
+ let isLocked = false;
+ if (isContentAgent) {
+ isLocked = !currentIsPro && !currentBetaUnlock;
+ }
+ const card = document.createElement('div');
+ card.className = 'store-card' + (isLocked ? ' store-card-locked' : '');
+ card.innerHTML = `
+ <span class="store-card-icon"><img src="${getAgentDefaultImg(agent.id) || IP_IMAGES.douzai.default}" alt="${agent.name}" style="object-fit:contain"></span>
+ <div class="store-card-name">${agent.name}${isLocked ? ` <span class="pro-badge" style="background:#f59e0b;color:white">\u53cd\u9988\u89e3\u9501</span>` : ''}</div>
+ <div class="store-card-desc">${agent.desc}</div>
+ <span class="store-card-tag">${agent.category}</span>
+ ${isLocked
+ ? `<button class="store-card-use store-card-locked-btn" onclick="showFeedbackHint()">\u53cd\u9988\u89e3\u9501</button>`
+ : `<button class="store-card-use" onclick="startChat('${agent.id}')">使用</button>`
+ }`;
+ grid.appendChild(card);
+ });
+ });
+ if (!grid.children.length) {
+ grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-3);padding:3rem;">\u672a\u627e\u5230\u5339\u914d\u7684 Agent</div>';
+ }
+ }
+
+ function updateStoreSubtitle() {
+ let count = 0;
+ AGENT_GROUPS.forEach(g => {
+ if (g.hidden) return;
+ g.agents.forEach(a => { if (!a.hidden) count++; });
+ });
+ const el = document.getElementById('storeSubtitle');
+ if (el) el.textContent = count + ' \u4e2a\u4e13\u4e3a\u533b\u7f8e\u884c\u4e1a\u6253\u9020\u7684 AI \u642d\u6863\uff0c\u627e\u5230\u6700\u9002\u5408\u4f60\u7684\u90a3\u4e00\u4e2a';
  }
 
  // ===== VIEW SWITCHING =====

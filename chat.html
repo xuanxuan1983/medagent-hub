@@ -229,13 +229,25 @@
  <!-- AGENT STORE VIEW -->
  <div class="store-view" id="storeView">
  <div class="store-header">
+ <div class="store-banner">
+ <div class="store-banner-text">
  <h2>Agent 商店</h2>
- <p>21 个专为医美行业打造的 AI 搭档，找到最适合你的那一个</p>
+ <p id="storeSubtitle">专为医美行业打造的 AI 搭档，找到最适合你的那一个</p>
+ </div>
+ </div>
+ <div class="store-toolbar">
  <div class="store-filters">
  <button class="store-filter-btn active" onclick="filterStore(this,'all')">全部</button>
  <button class="store-filter-btn" onclick="filterStore(this,'上游厂商')">上游厂商</button>
  <button class="store-filter-btn" onclick="filterStore(this,'下游机构')">下游机构</button>
+ <button class="store-filter-btn" onclick="filterStore(this,'内容创作')">内容创作</button>
+ <button class="store-filter-btn" onclick="filterStore(this,'其他')">其他</button>
  <button class="store-filter-btn" id="btnFilterHidden" onclick="filterStore(this,'hidden')" style="display:none;border-color:#f59e0b;color:#92400e">隐藏</button>
+ </div>
+ <div class="store-search">
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+ <input type="text" id="storeSearchInput" placeholder="搜索 Agent..." oninput="searchStore(this.value)">
+ </div>
  </div>
  </div>
  <div class="store-grid" id="storeGrid"></div>
