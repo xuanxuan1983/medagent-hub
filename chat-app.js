@@ -1574,7 +1574,7 @@
  // 搜索活动动态展示：在对应的 step 卡片下方显示搜索动态
  var stepsContainer2 = bubble.querySelector('.expert-steps-container');
  if (stepsContainer2) {
-   var stepEl2 = stepsContainer2.querySelector('[data-step-id="' + evt.stepId + '"']');
+   var stepEl2 = stepsContainer2.querySelector('[data-step-id="' + evt.stepId + '"]');
    if (stepEl2) {
      // 获取或创建该步骤的搜索活动容器
      var activityBox = stepEl2.querySelector('.search-activity-box');
@@ -1592,7 +1592,7 @@
      var getIcon = function(tool) { return svgIcons[tool] || svgIcons.web_search; };
      
      if (evt.status === 'searching') {
-       var searchingEl = activityBox.querySelector('[data-tool="' + evt.tool + '"']');
+       var searchingEl = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
        if (!searchingEl) {
          searchingEl = document.createElement('div');
          searchingEl.className = 'search-activity-item searching';
@@ -1603,7 +1603,7 @@
          activityBox.appendChild(searchingEl);
        }
      } else if (evt.status === 'found' && evt.sites) {
-       var searchingEl2 = activityBox.querySelector('[data-tool="' + evt.tool + '"']');
+       var searchingEl2 = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
        if (searchingEl2) {
          searchingEl2.classList.remove('searching');
          searchingEl2.classList.add('found');
@@ -1627,7 +1627,7 @@
        }
      } else if (evt.status === 'empty' || evt.status === 'error') {
        // 空结果：静默隐藏，不显示冗余信息
-       var searchingEl3 = activityBox.querySelector('[data-tool="' + evt.tool + '"']');
+       var searchingEl3 = activityBox.querySelector('[data-tool="' + evt.tool + '"]');
        if (searchingEl3) {
          searchingEl3.classList.remove('searching');
          searchingEl3.classList.add('empty-hidden');
