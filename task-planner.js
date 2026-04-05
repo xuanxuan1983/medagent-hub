@@ -101,9 +101,15 @@ function predictTools(message, webSearchEnabled) {
     tools.push('nmpa_search');
   }
   
-  // 联网搜索：涉及市场、趋势、最新、价格、竞品
-  if (webSearchEnabled || /市场|趋势|最新|价格|竞品|行业|新闻|动态|政策/.test(message)) {
+  // 联网搜索：专家模式下默认开启，或涉及市场/趋势/竞品等主题
+  if (webSearchEnabled || /市场|趋势|最新|价格|竞品|行业|新闻|动态|政策|推广|营销|运营|品牌|公司|产品|策略|打法|布局|进入|开拓|渠道|对比|比较|格局|分析|调研/.test(message)) {
     tools.push('web_search');
+  }
+  
+  // 专家模式下，如果没有预测到任何工具，默认添加联网搜索和知识库
+  if (webSearchEnabled && tools.length === 0) {
+    tools.push('web_search');
+    tools.push('knowledge_search');
   }
   
   return tools;
@@ -126,22 +132,28 @@ async function generatePlan(message, agentName, apiKey, model, webSearchEnabled)
   const steps = [];
   let stepId = 1;
   
-  // 第一步：分析意图
+  // 第一步：理解背景
   steps.push({
     id: stepId++,
-    title: '分析问题',
-    description: '理解需求，制定研究策略',
+    title: '理解背景',
+    description: '解析用户意图，拆解研究方向',
     status: 'pending',
     phase: 'analyze'
   });
   
-  // 中间步骤：基于预测的工具生成
+  // 中间步骤：基于预测的工具生成，描述更具体
+  const toolDescriptions = {
+    'web_search': { title: '联网搜索信息', desc: '从网络抓取最新资料和数据' },
+    'knowledge_search': { title: '检索内部知识库', desc: '查找内部专业文档和资料' },
+    'nmpa_search': { title: '查询药监局数据', desc: '检索产品注册和合规信息' },
+    'query_med_db': { title: '查询价格数据库', desc: '获取医美项目价格行情' },
+  };
   for (const toolId of predictedTools) {
-    const meta = TOOL_META[toolId] || { label: toolId, icon: '🔧' };
+    const desc = toolDescriptions[toolId] || { title: toolId, desc: '正在准备...' };
     steps.push({
       id: stepId++,
-      title: meta.label,
-      description: `${meta.icon} 正在准备...`,
+      title: desc.title,
+      description: desc.desc,
       status: 'pending',
       phase: 'tool',
       toolId: toolId
@@ -159,20 +171,20 @@ async function generatePlan(message, agentName, apiKey, model, webSearchEnabled)
     });
   }
   
-  // 倒数第二步：深度分析
+  // 倒数第二步：整合分析
   steps.push({
     id: stepId++,
-    title: '深度分析',
-    description: '整合信息，提炼关键洞察',
+    title: '整合分析',
+    description: '交叉比对多源信息，提炼洞察',
     status: 'pending',
     phase: 'analyze_deep'
   });
   
-  // 最后一步：生成输出
+  // 最后一步：生成报告
   steps.push({
     id: stepId++,
-    title: '生成回答',
-    description: '输出结构化的专业分析',
+    title: '撰写报告',
+    description: '输出结构化的专业分析报告',
     status: 'pending',
     phase: 'output'
   });

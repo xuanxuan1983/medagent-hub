@@ -21,16 +21,35 @@ const https = require('https');
  * @returns {boolean}
  */
 function needsDeepResearch(message) {
-  if (!message || message.length < 30) return false;
-  const triggers = [
+  if (!message || message.length < 10) return false;
+  
+  // 强触发词（明确要求深度研究）
+  const strongTriggers = [
     /深度(研究|分析|调研|报告)/,
     /详细(调研|分析|报告|对比)/,
     /全面(分析|调研|评估|对比)/,
     /系统(分析|梳理|整理|研究)/,
-    /(竞品|市场|行业).*(全面|深度|详细|系统).*(分析|调研|报告)/,
     /(帮我|请).*(深入|全面|系统|详细).*(分析|研究|调研)/,
   ];
-  return triggers.some(t => t.test(message));
+  if (strongTriggers.some(t => t.test(message))) return true;
+  
+  // 普通触发词（涉及市场/品牌/竞品/策略等需要联网信息的主题）
+  const normalTriggers = [
+    /(竞品|竞争|市场|行业).*(分析|调研|报告|格局|趋势)/,
+    /(品牌|产品|公司).*(推广|营销|运营|策略|打法)/,
+    /(进入|打入|开拓|布局).*(中国|市场|渠道)/,
+    /(怎么做|如何做|怎样做).*(推广|营销|运营|品牌)/,
+    /(对比|比较|区别|优劣|评估).*(产品|品牌|方案)/,
+    /(想知道|想了解).*(怎么|如何|策略|方案|打法)/,
+    /(生成|制作|撰写|输出).*(报告|方案|分析)/,
+    /包括.*(和|与|以及)/,
+  ];
+  if (normalTriggers.some(t => t.test(message))) return true;
+  
+  // 40字以上的消息默认触发（专家模式下长消息大概率是复杂问题）
+  if (message.length >= 40) return true;
+  
+  return false;
 }
 
 /**
@@ -181,7 +200,7 @@ async function executeParallelSearch(options) {
     // 联网搜索
     if (toolContext.tavilyApiKey) {
       searchPromises.push(
-        toolRegistry.executeTool('web_search', { query }, toolContext)
+        toolRegistry.executeTool('web_search', { query, expert_mode: true }, toolContext)
           .then(r => {
             if (r.searchResults && r.searchResults.length > 0) {
               allResults.web.push(...r.searchResults);

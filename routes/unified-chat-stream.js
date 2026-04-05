@@ -155,7 +155,7 @@ async function handleUnifiedChatStream(req, res, deps) {
  // 专家模式专属指令增强 + 任务规划
  let taskPlanSteps = null;
  if (isExpertMode) {
- enrichedSystemPrompt += '\n\n【专家模式指令】请以专业医美顾问的身份，给出深度、结构化的分析。回答需包含：核心判断、关键数据/依据、具体建议（分步骤）、注意事项。使用 Markdown 格式，层次清晰。遇到不确定的信息，必须使用工具查询，不要编造。';
+ enrichedSystemPrompt += '\n\n【专家模式指令】请以专业医美顾问的身份，给出深度、结构化的分析。回答需包含：核心判断、关键数据/依据、具体建议（分步骤）、注意事项。使用 Markdown 格式，层次清晰。\n重要：必须优先使用 web_search 工具联网搜索获取最新信息，不要仅依赖内部知识。对于涉及品牌、市场、竞品、策略、推广等主题，必须先联网搜索再回答。遇到不确定的信息，必须使用工具查询，不要编造。请用中文回答。';
  
  // 任务拆解：生成与工具绑定的步骤计划
  try {
@@ -451,7 +451,13 @@ async function handleUnifiedChatStream(req, res, deps) {
  // skill_dispatch 特殊处理
  let stream2SystemPrompt = enrichedSystemPrompt;
  if (toolResult.skillPrompt) {
- stream2SystemPrompt = toolResult.skillPrompt;
+ // 如果有深度研究结果，将搜索结果注入到专家 prompt 中，确保专家基于实时信息回答
+ if (deepResearchContext) {
+   stream2SystemPrompt = toolResult.skillPrompt + `\n\n【实时搜索结果】以下是从网络和知识库检索到的实时信息，请基于这些信息进行分析和回答，确保内容真实可靠：${deepResearchContext}`;
+   console.log(`[SkillDispatch] 将深度研究结果 (${deepResearchContext.length}字符) 注入到专家 prompt`);
+ } else {
+   stream2SystemPrompt = toolResult.skillPrompt;
+ }
  console.log(`[SkillDispatch] 切换到专家: ${toolResult.skillDisplayName || toolCallName}`);
  if (toolResult.toolEvent) {
  streamer.sendDelta('');

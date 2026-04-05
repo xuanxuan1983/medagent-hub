@@ -32,7 +32,7 @@ const TAVILY_TOOL_DEFINITION = {
  * @returns {Promise<Object>} 查询结果
  */
 async function executeTavilySearch(args, apiKey) {
-  const { query, search_depth = "basic" } = args;
+  const { query, search_depth = "basic", expert_mode = false } = args;
   
   if (!apiKey) {
     return {
@@ -41,15 +41,17 @@ async function executeTavilySearch(args, apiKey) {
     };
   }
 
+  // 专家模式下使用更深度的搜索配置
+  const isDeep = expert_mode || search_depth === 'advanced';
   const https = require('https');
   const data = JSON.stringify({
     api_key: apiKey,
     query: query,
-    search_depth: search_depth,
-    include_answer: false,
+    search_depth: isDeep ? 'advanced' : search_depth,
+    include_answer: isDeep,
     include_images: false,
     include_raw_content: false,
-    max_results: 5
+    max_results: isDeep ? 8 : 5
   });
 
   const options = {
@@ -87,16 +89,24 @@ async function executeTavilySearch(args, apiKey) {
 
     if (tavilyData && tavilyData.results && tavilyData.results.length > 0) {
       const searchDate = new Date().toLocaleDateString('zh-CN', {timeZone:'Asia/Shanghai'});
-      const items = tavilyData.results.slice(0, 5);
+      const maxItems = isDeep ? 8 : 5;
+      const items = tavilyData.results.slice(0, maxItems);
       
       const resultsText = items.map((item, i) =>
         `[${i+1}] ${item.title}\n来源: ${item.url}\n摘要: ${item.content}`
       ).join('\n\n');
       
+      // 如果 Tavily 返回了 AI 摘要，附加到内容前面
+      let answerSection = '';
+      if (tavilyData.answer && isDeep) {
+        answerSection = `【AI 搜索摘要】\n${tavilyData.answer}\n\n`;
+      }
+      
       return {
         success: true,
-        content: `【实时搜索结果（${searchDate}）】\n\n${resultsText}`,
-        rawResults: items
+        content: `${answerSection}【实时搜索结果（${searchDate}）】\n\n${resultsText}`,
+        rawResults: items,
+        answer: tavilyData.answer || null
       };
     }
     
