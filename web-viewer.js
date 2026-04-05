@@ -75,7 +75,7 @@ function showWebInPreview(url) {
   previewPanel.style.display = 'flex';
 
   // Update preview header
-  var titleEl = previewPanel.querySelector('.preview-title');
+  var titleEl = document.getElementById('previewTitle') || previewPanel.querySelector('.preview-panel-title');
   if (titleEl) {
     var domain = '';
     try { domain = new URL(url).hostname; } catch(e) { domain = url; }
@@ -83,7 +83,7 @@ function showWebInPreview(url) {
   }
 
   // Update preview body with iframe
-  var body = previewPanel.querySelector('.preview-body');
+  var body = document.getElementById('previewBody') || previewPanel.querySelector('.preview-panel-body');
   if (!body) return;
 
   body.innerHTML =
@@ -139,7 +139,7 @@ function showWebInPreview(url) {
 
 // --- Update preview toolbar to show web-specific buttons ---
 function updatePreviewToolbarForWeb() {
-  var toolbar = document.querySelector('.preview-toolbar');
+  var toolbar = document.querySelector('.preview-panel-actions');
   if (!toolbar) return;
 
   // Check if web buttons already exist
@@ -201,11 +201,11 @@ async function extractWebContent() {
 
 // --- Show extracted content in preview panel ---
 function showExtractedContent(data) {
-  var body = document.querySelector('.preview-body');
+  var body = document.getElementById('previewBody') || document.querySelector('.preview-panel-body');
   if (!body) return;
 
   // Update title
-  var titleEl = document.querySelector('.preview-title');
+  var titleEl = document.getElementById('previewTitle') || document.querySelector('.preview-panel-title');
   if (titleEl) titleEl.textContent = data.title || '网页内容';
 
   var contentHtml =
