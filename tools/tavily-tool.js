@@ -34,6 +34,8 @@ const TAVILY_TOOL_DEFINITION = {
 async function executeTavilySearch(args, apiKey) {
   const { query, search_depth = "basic", expert_mode = false } = args;
   
+  console.log(`[Tavily Tool] 开始搜索: query="${query}", apiKey=${apiKey ? apiKey.substring(0, 12) + '...' : 'MISSING'}, expert_mode=${expert_mode}`);
+  
   if (!apiKey) {
     return {
       success: false,
@@ -74,6 +76,7 @@ async function executeTavilySearch(args, apiKey) {
           try { 
             resolve(JSON.parse(resData)); 
           } catch(e) { 
+            console.error(`[Tavily Tool] 解析失败，HTTP状态码: ${res.statusCode}, 响应前200字符: ${resData.substring(0, 200)}`);
             reject(new Error("解析 Tavily 响应失败")); 
           }
         });
