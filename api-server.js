@@ -37,6 +37,7 @@ const { createSnapshot, listSnapshots, getSnapshotContent, loadSkillForChat, del
 const { handleAdminRoutes } = require('./routes/admin');
 const { handleComboRoutes } = require('./routes/combo-skills');
 const { handleWebExtractRoutes } = require('./routes/web-extract');
+const { handleChatShareRoutes } = require('./routes/chat-share');
 
 const http = require('http');
 const https = require('https');
@@ -4446,6 +4447,17 @@ const server = http.createServer(async (req, res) => {
    if (handled) return;
  }
  // ===== 网页拓取 API 结束 =====
+
+ // ===== 对话分享 API =====
+ if (url.pathname.startsWith('/api/chat/share') || url.pathname === '/api/chat/shares' || url.pathname.match(/^\/share\/[a-f0-9]{32}$/)) {
+   let shareBody = {};
+   if (req.method === 'POST') {
+     try { shareBody = await parseRequestBody(req); } catch(e) {}
+   }
+   const handled = handleChatShareRoutes(req, res, url, shareBody, getUserCode, isAuthenticated);
+   if (handled) return;
+ }
+ // ===== 对话分享 API 结束 =====
 
  // ===== 安全防护：屏蔽敏感目录的直接 HTTP 访问 =====
  const blockedPaths = ['/skills/', '/skills', '/assistants/', '/assistants', '/data/', '/data'];
