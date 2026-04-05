@@ -1,0 +1,328 @@
+/* ========== P4: 跨 Agent 协同 ========== */
+
+/* @ 提及下拉菜单 */
+.agent-mention-dropdown {
+  position: fixed;
+  display: none;
+  background: white;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  z-index: 2000;
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 220px;
+}
+
+.mention-header {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  color: var(--text-3, #999);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.mention-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.mention-item:hover,
+.mention-item.active {
+  background: var(--bg-light, #f5f5f5);
+}
+
+.mention-icon {
+  font-size: 1.1rem;
+  width: 24px;
+  text-align: center;
+}
+
+.mention-name {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text, #1a1a1a);
+}
+
+.mention-desc {
+  font-size: 0.7rem;
+  color: var(--text-3, #999);
+  margin-left: auto;
+}
+
+/* 协同模态框 */
+.collab-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.collab-modal {
+  background: white;
+  border-radius: 16px;
+  width: 520px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.collab-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.collab-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text, #1a1a1a);
+}
+
+.collab-close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2, #666);
+}
+
+.collab-close-btn:hover {
+  background: var(--border-light, #f0f0f0);
+}
+
+.collab-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+}
+
+.collab-section {
+  margin-bottom: 1.25rem;
+}
+
+.collab-section-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text, #1a1a1a);
+  margin-bottom: 0.375rem;
+}
+
+.collab-section-hint {
+  font-size: 0.72rem;
+  color: var(--text-3, #999);
+  margin-bottom: 0.625rem;
+}
+
+/* Agent 选择网格 */
+.collab-agents-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.collab-agent-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.78rem;
+}
+
+.collab-agent-option:hover {
+  border-color: var(--coral, #e8715a);
+  background: #fff5f3;
+}
+
+.collab-agent-option.current {
+  border-color: var(--coral, #e8715a);
+  background: #fff5f3;
+}
+
+.collab-agent-option input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+.collab-agent-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.collab-agent-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.collab-agent-name {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--text, #1a1a1a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collab-agent-desc {
+  font-size: 0.68rem;
+  color: var(--text-3, #999);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 协同模式 */
+.collab-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.collab-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text-2, #666);
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+
+.collab-mode-option:hover {
+  border-color: var(--coral, #e8715a);
+}
+
+.collab-mode-option input[type="radio"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.collab-mode-option strong {
+  color: var(--text, #1a1a1a);
+}
+
+/* 任务输入 */
+.collab-task-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.625rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.collab-task-input:focus {
+  border-color: var(--coral, #e8715a);
+}
+
+/* 底部按钮 */
+.collab-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+
+.collab-cancel-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border, #e5e7eb);
+  background: white;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--text-2, #666);
+}
+
+.collab-start-btn {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  background: var(--coral, #e8715a);
+  color: white;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.collab-start-btn:hover {
+  opacity: 0.9;
+}
+
+/* 暗色主题 */
+[data-theme="dark"] .agent-mention-dropdown {
+  background: #1e1e1e;
+  border-color: #333;
+}
+
+[data-theme="dark"] .mention-item:hover,
+[data-theme="dark"] .mention-item.active {
+  background: #2a2a2a;
+}
+
+[data-theme="dark"] .collab-modal {
+  background: #1e1e1e;
+}
+
+[data-theme="dark"] .collab-agent-option:hover,
+[data-theme="dark"] .collab-agent-option.current {
+  background: #2a1a17;
+}
+
+[data-theme="dark"] .collab-task-input {
+  background: #252525;
+  border-color: #333;
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .collab-cancel-btn {
+  background: #252525;
+  border-color: #333;
+  color: #ccc;
+}
+
+/* 移动端 */
+@media (max-width: 768px) {
+  .collab-modal {
+    width: 95vw;
+    max-height: 80vh;
+  }
+
+  .collab-agents-grid {
+    grid-template-columns: 1fr;
+  }
+}

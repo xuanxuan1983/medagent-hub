@@ -23,6 +23,18 @@
 <script>document.getElementById('mobileCSS').href='/mobile-enhance.css?v='+Date.now();</script>
 <link rel="stylesheet" id="darkThemeCSS">
 <script>document.getElementById('darkThemeCSS').href='/dark-theme.css?v='+Date.now();</script>
+<link rel="stylesheet" id="docEditorCSS">
+<script>document.getElementById('docEditorCSS').href='/doc-editor.css?v='+Date.now();</script>
+<link rel="stylesheet" id="panelResizeCSS">
+<script>document.getElementById('panelResizeCSS').href='/panel-resize.css?v='+Date.now();</script>
+<link rel="stylesheet" id="copilotCSS">
+<script>document.getElementById('copilotCSS').href='/copilot-assist.css?v='+Date.now();</script>
+<link rel="stylesheet" id="knowledgeCSS">
+<script>document.getElementById('knowledgeCSS').href='/knowledge-tracker.css?v='+Date.now();</script>
+<link rel="stylesheet" id="collabCSS">
+<script>document.getElementById('collabCSS').href='/agent-collab.css?v='+Date.now();</script>
+<link rel="stylesheet" id="autoTaskCSS">
+<script>document.getElementById('autoTaskCSS').href='/auto-tasks.css?v='+Date.now();</script>
 </head>
 <body>
 
@@ -446,10 +458,14 @@
  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
  <span class="btn-label">快照</span>
  </button>
- <button class="template-btn" id="templateBtn" onclick="toggleTemplatePanel()" title="输出模板">
- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
- <span class="btn-label">模板</span>
- </button>
+<button class="template-btn" id="templateBtn" onclick="toggleTemplatePanel()" title="输出模板">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+<span class="btn-label">模板</span>
+</button>
+<button class="template-btn" id="autoTaskEntryBtn" onclick="if(typeof showAutoTaskPanel==='function')showAutoTaskPanel();else if(document.querySelector('.auto-task-btn'))document.querySelector('.auto-task-btn').click();" title="自动化任务">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+<span class="btn-label">自动</span>
+</button>
  <span class="chat-input-hint" id="chatInputHint">初始化中...</span>
  </div>
  <div class="chat-input-right">
@@ -773,6 +789,12 @@
 <script>document.write('<scr'+'ipt src="/chat-export.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>document.write('<scr'+'ipt src="/mobile-enhance.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>document.write('<scr'+'ipt src="/dark-theme.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/doc-editor.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/panel-resize.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/copilot-assist.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/knowledge-tracker.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/agent-collab.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
+<script>document.write('<scr'+'ipt src="/auto-tasks.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>document.write('<scr'+'ipt src="/chat-share.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 <script>document.write('<scr'+'ipt src="/token-usage.js?v='+Date.now()+'"><\/scr'+'ipt>');</script>
 </body>

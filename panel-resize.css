@@ -1,0 +1,96 @@
+/* ========== P1: 面板可拖拽调整宽度 ========== */
+
+/* 拖拽手柄 */
+.resize-handle {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  position: relative;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.resize-handle:hover {
+  background: rgba(232, 184, 75, 0.15);
+}
+
+.resize-handle.active {
+  background: rgba(232, 184, 75, 0.25);
+}
+
+/* 中间装饰线 */
+.resize-handle-line {
+  width: 2px;
+  height: 40px;
+  border-radius: 1px;
+  background: var(--border, #e5e7eb);
+  transition: all 0.15s;
+  opacity: 0;
+}
+
+.resize-handle:hover .resize-handle-line {
+  opacity: 1;
+  background: var(--primary, #e8b84b);
+  height: 60px;
+}
+
+.resize-handle.active .resize-handle-line {
+  opacity: 1;
+  background: var(--primary, #e8b84b);
+  height: 80px;
+  width: 3px;
+}
+
+/* 悬浮时显示拖拽光标提示 */
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  right: -3px;
+  cursor: col-resize;
+}
+
+/* 暗色主题 */
+[data-theme="dark"] .resize-handle:hover {
+  background: rgba(232, 184, 75, 0.1);
+}
+
+[data-theme="dark"] .resize-handle.active {
+  background: rgba(232, 184, 75, 0.15);
+}
+
+[data-theme="dark"] .resize-handle-line {
+  background: var(--border, #333);
+}
+
+[data-theme="dark"] .resize-handle:hover .resize-handle-line,
+[data-theme="dark"] .resize-handle.active .resize-handle-line {
+  background: var(--primary, #e8b84b);
+}
+
+/* 移动端隐藏拖拽手柄 */
+@media (max-width: 768px) {
+  .resize-handle {
+    display: none !important;
+  }
+}
+
+/* 面板过渡动画（仅在非拖拽时） */
+.resource-panel,
+.preview-panel,
+.chat-main-panel {
+  transition: flex 0.2s ease, min-width 0.2s ease, max-width 0.2s ease;
+}
+
+/* 拖拽时禁用过渡 */
+body[style*="col-resize"] .resource-panel,
+body[style*="col-resize"] .preview-panel,
+body[style*="col-resize"] .chat-main-panel {
+  transition: none !important;
+}

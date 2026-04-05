@@ -38,6 +38,8 @@ const { handleAdminRoutes } = require('./routes/admin');
 const { handleComboRoutes } = require('./routes/combo-skills');
 const { handleWebExtractRoutes } = require('./routes/web-extract');
 const { handleChatShareRoutes } = require('./routes/chat-share');
+const { handleUserPrefsRoutes } = require('./routes/user-prefs');
+const { handleAutoTaskRoutes } = require('./routes/auto-tasks');
 
 const http = require('http');
 const https = require('https');
@@ -4505,6 +4507,28 @@ const server = http.createServer(async (req, res) => {
    if (handled) return;
  }
  // ===== 对话分享 API 结束 =====
+
+ // ===== 用户偏好/隐性知识 API =====
+ if (url.pathname.startsWith('/api/user-prefs')) {
+   let prefsBody = {};
+   if (req.method === 'POST') {
+     try { prefsBody = await parseRequestBody(req); } catch(e) {}
+   }
+   const handled = handleUserPrefsRoutes(req, res, url, req.method, getUserCode, isAuthenticated, function(r, cb) { cb(prefsBody); });
+   if (handled) return;
+ }
+ // ===== 用户偏好 API 结束 =====
+
+ // ===== 自动化任务 API =====
+ if (url.pathname.startsWith('/api/auto-tasks')) {
+   let taskBody = {};
+   if (req.method === 'POST') {
+     try { taskBody = await parseRequestBody(req); } catch(e) {}
+   }
+   const handled = handleAutoTaskRoutes(req, res, url, taskBody, getUserCode, isAuthenticated);
+   if (handled) return;
+ }
+ // ===== 自动化任务 API 结束 =====
 
  // ===== 安全防护：屏蔽敏感目录的直接 HTTP 访问 =====
  const blockedPaths = ['/skills/', '/skills', '/assistants/', '/assistants', '/data/', '/data'];
