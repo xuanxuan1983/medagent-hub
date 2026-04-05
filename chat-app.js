@@ -5944,3 +5944,88 @@ async function savePreviewAsFile() {
     });
   }
 })();
+
+
+// ===== LAYOUT SWITCHER DRAG =====
+(function() {
+  function initLayoutDrag() {
+    var el = document.getElementById('layoutSwitcher');
+    if (!el) return;
+
+    var isDragging = false;
+    var hasMoved = false;
+    var startX, startY, origLeft, origTop;
+
+    // Restore saved position
+    try {
+      var saved = JSON.parse(localStorage.getItem('medagent_layout_pos'));
+      if (saved && saved.left != null && saved.top != null) {
+        el.style.left = saved.left + 'px';
+        el.style.top = saved.top + 'px';
+        el.style.bottom = 'auto';
+        el.style.transform = 'none';
+      }
+    } catch(e) {}
+
+    function onPointerDown(e) {
+      // Only drag from the label or empty area, not from layout buttons
+      if (e.target.closest('.layout-btn')) return;
+      isDragging = true;
+      hasMoved = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      var rect = el.getBoundingClientRect();
+      origLeft = rect.left;
+      origTop = rect.top;
+      el.classList.add('dragging');
+      e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasMoved = true;
+      if (!hasMoved) return;
+
+      var newLeft = origLeft + dx;
+      var newTop = origTop + dy;
+
+      // Clamp within viewport
+      var w = el.offsetWidth;
+      var h = el.offsetHeight;
+      newLeft = Math.max(0, Math.min(window.innerWidth - w, newLeft));
+      newTop = Math.max(0, Math.min(window.innerHeight - h, newTop));
+
+      el.style.left = newLeft + 'px';
+      el.style.top = newTop + 'px';
+      el.style.bottom = 'auto';
+      el.style.transform = 'none';
+    }
+
+    function onPointerUp(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      el.classList.remove('dragging');
+      if (hasMoved) {
+        // Save position
+        try {
+          localStorage.setItem('medagent_layout_pos', JSON.stringify({
+            left: parseInt(el.style.left),
+            top: parseInt(el.style.top)
+          }));
+        } catch(e) {}
+      }
+    }
+
+    el.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLayoutDrag);
+  } else {
+    setTimeout(initLayoutDrag, 300);
+  }
+})();

@@ -1880,6 +1880,14 @@
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.2);
       z-index: 200;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+    .layout-switcher.dragging {
+      cursor: grabbing;
+      opacity: 0.85;
+      transition: none;
     }
     .layout-switcher-label {
       font-size: 11px;
