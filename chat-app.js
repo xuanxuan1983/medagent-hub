@@ -1607,13 +1607,13 @@
        if (searchingEl2) {
          searchingEl2.classList.remove('searching');
          searchingEl2.classList.add('found');
-         // 限制最多显示4个标签，多余的用 +N 折叠
-         var maxChips = 4;
+         // 限制最多显示3个标签，多余的用 +N 折叠
+         var maxChips = 3;
          var visibleSites = evt.sites.slice(0, maxChips);
          var extraCount = evt.sites.length > maxChips ? evt.sites.length - maxChips : 0;
          var chipsHtml = visibleSites.map(function(site) {
            var label = site.domain || site.title || '来源';
-           if (label.length > 18) label = label.substring(0, 18) + '...';
+           if (label.length > 14) label = label.substring(0, 14) + '...';
            if (site.url) {
              return '<a class="sa-chip" href="' + site.url + '" target="_blank" rel="noopener" title="' + (site.title || '') + '">' + label + '</a>';
            }

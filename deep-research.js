@@ -159,7 +159,7 @@ async function executeParallelSearch(options) {
   // 对每个子查询执行多源搜索
   for (let i = 0; i < queries.length; i++) {
     const query = queries[i];
-    const queryLabel = `子查询 ${i + 1}/${queries.length}: ${query.substring(0, 25)}`;
+    const queryLabel = `子查询 ${i + 1}/${queries.length}: ${query}`;
     
     // 发送搜索进度
     const searchStepId = streamer.sendStep(queryLabel, 'running');
@@ -185,6 +185,8 @@ async function executeParallelSearch(options) {
                   let docLabel = s.title || s.fileName || '文档';
                   // 去掉文件后缀名
                   docLabel = docLabel.replace(/\.(pdf|docx?|txt|md|xlsx?)$/i, '');
+                  // 截断过长标题，最多12个字符
+                  if (docLabel.length > 12) docLabel = docLabel.substring(0, 12) + '...';
                   return { title: docLabel, domain: docLabel };
                 })
               });
@@ -239,10 +241,10 @@ async function executeParallelSearch(options) {
               streamer.sendSearchActivity({
                 stepId: searchStepId, tool: 'web_search', toolLabel: '联网搜索',
                 status: 'found', count: r.searchResults.length,
-                sites: r.searchResults.slice(0, 6).map(s => {
+                sites: r.searchResults.slice(0, 5).map(s => {
                   let domain = '';
                   try { domain = new URL(s.url).hostname.replace('www.', ''); } catch(e) {}
-                  return { title: (s.title || '').substring(0, 30), domain: domain, url: s.url };
+                  return { title: (s.title || '').substring(0, 20), domain: domain, url: s.url };
                 })
               });
             } else {
