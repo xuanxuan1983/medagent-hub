@@ -156,7 +156,7 @@ async function handleUnifiedChatStream(req, res, deps) {
  try {
  const expMem = require('../experiential-memory');
  // 1. 注入经验记忆上下文
- const expContext = expMem.buildExperientialContext(userCode, session.agentId);
+ const expContext = expMem.buildExperientialContext(userCode, session.agentId, message);
  if (expContext) {
  enrichedSystemPrompt += '\n\n' + expContext;
  console.log(`[经验记忆] 已注入 ${userCode} 的经验记忆`);

@@ -328,39 +328,81 @@ function extractFromCorrection(message, previousAssistantMsg, agentId) {
 
 // ============================================================
 // 构建经验记忆上下文（注入到系统提示词中）
+// 支持传入用户当前消息，用于关键词相关性匹配
 // ============================================================
-function buildExperientialContext(userCode, agentId) {
+function buildExperientialContext(userCode, agentId, currentUserMessage) {
   const data = loadUserExperientialMemory(userCode);
   if (!data.memories || data.memories.length === 0) return null;
   
-  // 筛选与当前Agent相关的记忆 + 通用记忆，按置信度排序
-  const relevant = data.memories
-    .filter(m => m.agentId === agentId || m.agentId === 'general')
-    .sort((a, b) => {
-      const scoreA = a.confidence * 0.6 + Math.min(a.hitCount / 10, 0.4);
-      const scoreB = b.confidence * 0.6 + Math.min(b.hitCount / 10, 0.4);
-      return scoreB - scoreA;
-    })
-    .slice(0, 8); // 最多注入8条，控制Token消耗
+  // 筛选与当前Agent相关的记忆 + 通用记忆
+  let candidates = data.memories
+    .filter(m => m.agentId === agentId || m.agentId === 'general');
   
-  if (relevant.length === 0) return null;
+  if (candidates.length === 0) return null;
+
+  // ---- 相关性匹配：根据用户当前消息提升相关记忆的优先级 ----
+  const msgText = (currentUserMessage || '').toLowerCase();
+  for (const m of candidates) {
+    // 基础分 = 置信度 * 0.5 + 引用频率 * 0.2
+    m._score = m.confidence * 0.5 + Math.min(m.hitCount / 10, 0.2);
+    
+    // 纠错记忆始终获得额外权重（最重要，必须遵循）
+    if (m.type === 'correction') m._score += 0.3;
+    
+    // 关键词匹配加分：记忆内容中的关键词出现在用户消息中
+    if (msgText.length > 2) {
+      const sepRegex = /[，。！？、；："'()（）\[\]【】\s]+/g;
+      const contentWords = m.content.replace(sepRegex, ' ').split(' ').filter(w => w.length >= 2);
+      const contextWords = (m.context || '').replace(sepRegex, ' ').split(' ').filter(w => w.length >= 2);
+      const allWords = [...new Set([...contentWords, ...contextWords])];
+      let matchCount = 0;
+      for (const word of allWords) {
+        if (msgText.includes(word.toLowerCase())) matchCount++;
+      }
+      // 每匹配一个关键词加 0.15，最多加 0.45
+      m._score += Math.min(matchCount * 0.15, 0.45);
+    }
+  }
+  
+  // 按综合得分排序，取 top 10
+  candidates.sort((a, b) => b._score - a._score);
+  const relevant = candidates.slice(0, 10);
   
   // 按类型分组
   const corrections = relevant.filter(m => m.type === 'correction');
   const preferences = relevant.filter(m => m.type === 'preference');
   const habits = relevant.filter(m => m.type === 'habit');
   
-  const parts = ['[经验记忆] 以下是从历史交互中学到的用户偏好，请严格遵守：'];
+  // ---- 增强措辞强度：分级强制遵循 ----
+  const parts = [];
+  parts.push('━━━━━━━━━━ 用户经验记忆（强制遵循） ━━━━━━━━━━');
+  parts.push('以下规则来自用户的历史纠正和明确偏好，优先级高于你的默认行为。');
+  parts.push('违反这些规则等同于回答错误。');
+  parts.push('');
   
   if (corrections.length > 0) {
-    parts.push('⚠️ 纠错：' + corrections.map(m => m.content).join('；'));
+    parts.push('🚫 【必须遵循的纠错规则 — 违反即错误】');
+    for (const m of corrections) {
+      const strength = m.confidence >= 0.8 ? '⚠️ 用户曾明确纠正' : '📝 历史纠错';
+      parts.push('  ' + strength + '：' + m.content);
+    }
+    parts.push('');
   }
   if (preferences.length > 0) {
-    parts.push('💡 偏好：' + preferences.map(m => m.content).join('；'));
+    parts.push('📌 【必须遵循的用户偏好】');
+    for (const m of preferences) {
+      parts.push('  - ' + m.content);
+    }
+    parts.push('');
   }
   if (habits.length > 0) {
-    parts.push('🔄 习惯：' + habits.map(m => m.content).join('；'));
+    parts.push('🔄 【用户工作习惯（尽量遵循）】');
+    for (const m of habits) {
+      parts.push('  - ' + m.content);
+    }
+    parts.push('');
   }
+  parts.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
   // 更新命中计数
   for (const m of relevant) {
@@ -372,6 +414,9 @@ function buildExperientialContext(userCode, agentId) {
   }
   data.stats.totalHits += relevant.length;
   saveUserExperientialMemory(userCode, data);
+  
+  // 清理临时评分字段
+  for (const m of candidates) delete m._score;
   
   return parts.join('\n');
 }

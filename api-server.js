@@ -3030,7 +3030,7 @@ const server = http.createServer(async (req, res) => {
  // ===== 经验记忆系统 =====
  try {
  const expMem2 = require('./experiential-memory');
- const expContext2 = expMem2.buildExperientialContext(userCode2, session2.agentId);
+ const expContext2 = expMem2.buildExperientialContext(userCode2, session2.agentId, message);
  if (expContext2) session2._expMemoryContext = expContext2;
  const signal2 = expMem2.detectExperientialSignal(message);
  if (signal2.detected) {
