@@ -3027,6 +3027,27 @@ const server = http.createServer(async (req, res) => {
  console.warn('[用户记忆] 提取跳过:', e.message);
  }
 
+ // ===== 经验记忆系统 =====
+ try {
+ const expMem2 = require('./experiential-memory');
+ const expContext2 = expMem2.buildExperientialContext(userCode2, session2.agentId);
+ if (expContext2) session2._expMemoryContext = expContext2;
+ const signal2 = expMem2.detectExperientialSignal(message);
+ if (signal2.detected) {
+ const prevAst2 = session2.messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content || '';
+ const corr2 = expMem2.extractFromCorrection(message, prevAst2, session2.agentId);
+ for (const c of corr2) expMem2.addMemory(userCode2, c);
+ }
+ const umc2 = session2.messages.filter(m => m.role === 'user').length;
+ if (umc2 > 0 && umc2 % 10 === 0) {
+ expMem2.extractExperientialMemoryWithLLM(userCode2, session2.agentId, session2.messages).then(mems => {
+ for (const m of mems) expMem2.addMemory(userCode2, { ...m, agentId: session2.agentId });
+ }).catch(() => {});
+ }
+ } catch (e) {
+ console.warn('[经验记忆] 提取跳过:', e.message);
+ }
+
  // ===== 权限检查 =====
  const planStatus2 = getUserPlanStatus(userCode2);
  if (planStatus2.isTrialExpired) {
@@ -3073,6 +3094,10 @@ const server = http.createServer(async (req, res) => {
  // 注入用户记忆上下文
  if (session2._memoryContext) {
  enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + session2._memoryContext;
+ }
+ // 注入经验记忆上下文
+ if (session2._expMemoryContext) {
+ enrichedSystemPrompt = enrichedSystemPrompt + '\n\n' + session2._expMemoryContext;
  }
  const agentId2 = session2.agentId;
 
@@ -3757,6 +3782,16 @@ const server = http.createServer(async (req, res) => {
  assistantMsg || '（未记录回答）',
  reason || ''
  );
+ } catch (e) { /* non-fatal */ }
+ // 经验记忆：从点踩反馈中异步提取纠错经验
+ try {
+ const expMem = require('./experiential-memory');
+ expMem.extractFromFeedback(userCode, agentId, userMsg, assistantMsg, reason).then(memory => {
+ if (memory) {
+ expMem.addMemory(userCode, memory);
+ console.log(`[经验记忆] 从点踩反馈提取纠错经验: ${memory.content}`);
+ }
+ }).catch(() => {});
  } catch (e) { /* non-fatal */ }
  }
  res.writeHead(200, { 'Content-Type': 'application/json' });

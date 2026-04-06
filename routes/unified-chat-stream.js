@@ -152,6 +152,39 @@ async function handleUnifiedChatStream(req, res, deps) {
  }
  } catch (e) { /* 静默失败 */ }
 
+ // ===== 经验记忆系统 =====
+ try {
+ const expMem = require('../experiential-memory');
+ // 1. 注入经验记忆上下文
+ const expContext = expMem.buildExperientialContext(userCode, session.agentId);
+ if (expContext) {
+ enrichedSystemPrompt += '\n\n' + expContext;
+ console.log(`[经验记忆] 已注入 ${userCode} 的经验记忆`);
+ }
+ // 2. 同步检测纠正信号，立即提取经验
+ const signal = expMem.detectExperientialSignal(message);
+ if (signal.detected) {
+ const prevAssistant = session.messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content || '';
+ const corrections = expMem.extractFromCorrection(message, prevAssistant, session.agentId);
+ for (const c of corrections) {
+ expMem.addMemory(userCode, c);
+ }
+ console.log(`[经验记忆] 检测到${signal.type}信号，提取了 ${corrections.length} 条经验`);
+ }
+ // 3. 每10轮异步LLM提取（不阻塞响应）
+ const userMsgCount = session.messages.filter(m => m.role === 'user').length;
+ if (userMsgCount > 0 && userMsgCount % 10 === 0) {
+ expMem.extractExperientialMemoryWithLLM(userCode, session.agentId, session.messages).then(memories => {
+ for (const m of memories) {
+ expMem.addMemory(userCode, { ...m, agentId: session.agentId });
+ }
+ if (memories.length > 0) console.log(`[经验记忆LLM] 异步提取了 ${memories.length} 条经验`);
+ }).catch(() => {});
+ }
+ } catch (e) {
+ console.warn('[经验记忆] 注入跳过:', e.message);
+ }
+
  // 专家模式专属指令增强 + 任务规划
  let taskPlanSteps = null;
  if (isExpertMode) {
