@@ -114,86 +114,78 @@
  let currentView = 'desktop';
  let lastUserMsg = ''; // 记录最近一次用户消息，用于反馈学习
 
- const AGENT_GROUPS = [
- {
- label: '上游厂商',
- agents: [
- { id: 'gtm-strategist', icon: '', name: 'GTM战略大师', desc: '整合战略定位、循证背书、组品方案、价格控盘', category: '上游厂商' },
- { id: 'product-expert', icon: '', name: '产品材料专家', desc: '精通流变学、PACER模型、材料选择与机理拆解', category: '上游厂商' },
- { id: 'medical-liaison', icon: '', name: '学术推广专家', desc: '首席医学联络官，擅长KOL征服与学术叙事', category: '上游厂商' },
- { id: 'marketing-director', icon: '', name: '市场创意总监', desc: '整合新媒体、视觉创意、种草运营、科学视觉', category: '上游厂商' },
- { id: 'sales-director', icon: '', name: '销售作战总监', desc: '整合销售总监、大区经理、商务经理的超级销售Agent', category: '上游厂商' },
- { id: 'training-director', icon: '', name: '培训赋能总监', desc: 'ASK模型、反差教学、通关护照的培训专家', category: '上游厂商' },
- { id: 'operations-director', icon: '', name: '运营效能总监', desc: '整合SFE、财务、采购的综合运营Agent', category: '上游厂商' },
- { id: 'area-manager', icon: '', name: '大区经理', desc: 'Forecast分级测谎、进销存逻辑闭环、情境模拟辅导', category: '上游厂商' },
- { id: 'channel-manager', icon: '', name: '商务经理', desc: 'ROI利润精算、反向背调、窜货雷霆管控、库存博弈', category: '上游厂商' },
- { id: 'finance-bp', icon: '', name: '财务BP', desc: '税务合规与交易结构优化，货折替代票折保护利润', category: '上游厂商', hidden: true },
- { id: 'hrbp', icon: '', name: '战略HRBP', desc: '精准猎聘竞品人才，背调侦查与竞业攻防', category: '上游厂商', hidden: true },
- { id: 'procurement-manager', icon: '', name: '采购经理', desc: 'Kraljic矩阵与Should-Cost模型优化TCO', category: '上游厂商', hidden: true },
- ]
- },
- {
- label: '下游机构',
- agents: [
- // { id: 'neuro-aesthetic-architect', icon: '', name: '神经美学架构师', desc: '融合神经科学、皮肤病学与身心健康，从“修复结构”到“修复情感”', category: '下游机构' },
- { id: 'aesthetic-designer', icon: '', name: '高定美学设计总监', desc: '服务于Top 1%高净值人群的面部美学设计专家', category: '下游机构' },
- { id: 'senior-consultant', icon: '', name: '金牌医美咨询师', desc: '10年一线经验的销冠级咨询师，精通SPIN与三明治报价', category: '下游机构' },
- { id: 'sparring-partner', icon: '', name: '医美实战陪练机器人', desc: 'HP动态情绪系统，高压仿真话术训练', category: '下游机构' },
- { id: 'postop-specialist', icon: '', name: '医美术后私域管家', desc: '红绿灯风险分诊，将术后焦虑转化为复购信任', category: '下游机构' },
- { id: 'trend-setter', icon: '', name: '医美爆款种草官', desc: '三品一规合规专家，生成有传播力又不踩红线的内容', category: '下游机构' },
- { id: 'anatomy-architect', icon: '', name: '医美解剖决策建筑师', desc: 'PACER模型，面部建筑结构分析，安全预警', category: '下游机构' },
- { id: 'materials-mentor', icon: '', name: '医美材料学硬核导师', desc: '营销剥离，PACER深度拆解，灵魂拷问', category: '下游机构' },
- { id: 'material-architect', icon: '', name: '医美材料学架构师', desc: '6维评估模型，场景判别，合规底线，专业决策', category: '下游机构' },
- { id: 'visual-translator', icon: '', name: '医美视觉通译官', desc: '机理转视觉画面，设计师Brief，3D渲染指导', category: '下游机构' },
- ]
- },
- {
- label: '其他',
- agents: [
- { id: 'new-media-director', icon: '', name: '医美合规内容专家', desc: '三品一规审查、合规替换词库、平台规则适配、合规种草框架', category: '其他' },
- { id: 'kv-design-director', icon: '', name: '视觉KV设计总监', desc: '电商海报提示词生成，10张KV系统，支持产品图识别、风格选择、中英双语排版', category: '其他' },
- { id: 'meta-prompt-architect', icon: '', name: '元提示词架构师', desc: '精英提示工程师，提取用户意图构建情境感知的高效提示词，输出可复用的模块化提示词模板', category: '其他' },
- { id: 'prompt-engineer-pro', icon: '', name: '高级Prompt工程师', desc: '基于CRISPE框架深度优化提示词，将普通提示词转化为结构化专业提示词，提供3-5条改进建议', category: '其他' },
- { id: 'first-principles-analyst', icon: '', name: '第一性原理深度剖析专家', desc: '冷酷理性的深度分析引擎，基于物理学思维拆解复杂问题，从底层逻辑重构颠覆性解决方案', category: '其他' },
- ]
- },
- {
- label: '内容创作',
- agents: [
- { id: 'xhs-content-creator', icon: '', name: '小红书图文创作顾问', desc: '9种风格×6种布局，将医美内容转化为高传播力的小红书图文系列', category: '内容创作' },
- { id: 'ppt-creator', icon: '', name: 'PPT创作顾问', desc: '7种视觉风格，将医美内容自动转化为结构化PPT大纲和每页详细文案', category: '内容创作' },
- { id: 'wechat-content-creator', icon: '', name: '微信公众号运营顾问', desc: '图文推送+深度文章，医美机构公众号内容策划与创作，兼顾合规与传播', category: '内容创作' },
- { id: 'comic-creator', icon: '', name: '知识漫画创作顾问', desc: '8种漫画风格，将医美知识转化为生动有趣的知识漫画脚本和分镜', category: '内容创作' },
- { id: 'article-illustrator', icon: '', name: '文章配图顾问', desc: '智能分析文章结构，识别配图位置，生成8种风格的AI绘图提示词', category: '内容创作' },
- { id: 'cover-image-creator', icon: '', name: '封面图创作顾问', desc: '8种封面风格，为医美文章和推文生成精美封面图方案和AI绘图提示词', category: '内容创作' },
- { id: 'social-media-creator', icon: '', name: '社交媒体运营顾问', desc: '多平台内容策略，小红书/抖音/微博/X差异化内容创作与运营规划', category: '内容创作' },
- { id: 'personal-ip-builder', icon: '', name: '个人IP打造指南', desc: '从IP定位、内容策略、视觉系统到变现路径，帮助创始人和独立顾问构建高价值个人品牌', category: '内容创作' },
- { id: 'personal-brand-cinematic', icon: '', name: '电影感品牌视觉顾问', desc: '结合电影摄影技术与个人品牌定位，为医美创始人打造高识别度的视觉形象和拍摄方案', category: '内容创作' },
- { id: 'super-writer', icon: '', name: '超级写作助手', desc: '集选题、写稿、验收、发布于一体的知识类视频内容工厂，内置10个专业写作模块，实现工业化内容生产', category: '内容创作' },
- ]
- },
- {
- label: '_hidden',
- hidden: true,
- agents: [
- { id: 'doudou', icon: '', name: '豆子', desc: '上游厂家专属搭档，整合 GTM、产品策略、学术推广等 12 个专家能力', category: '_hidden' },
- { id: 'douding', icon: '', name: '豆丁', desc: '机构端口专属搭档，整合咨询话术、运营、术后管理等 9 个专家能力', category: '_hidden' },
- { id: 'douya', icon: '', name: '豆芽', desc: '个人 IP 打造与内容创作操盘手，网感极佳的爆款制造机', category: '_hidden' },
- ]
- }
- ];
+  const AGENT_GROUPS = [
+  {
+  label: '核心搭档',
+  agents: [
+  { id: 'doudou', icon: '', name: '小豆豆', desc: '上游厂商全能搭档，整合 GTM 战略、产品材料、学术推广、销售管理、培训赋能等 12 个专家能力', category: '核心搭档' },
+  { id: 'douding', icon: '', name: '豆丁', desc: '下游机构全能搭档，整合咨询成交、美学设计、术后管理、话术陪练等 9 个专家能力', category: '核心搭档' },
+  { id: 'douya', icon: '', name: '豆芽', desc: '全媒体内容创作操盘手，小红书/公众号/短视频/漫画/PPT 全平台创作 + 个人 IP 打造', category: '核心搭档' },
+  ]
+  },
+  {
+  label: '专项工具',
+  agents: [
+  { id: 'compliance-guardian', icon: '', name: '合规卫士', desc: '三品一规合规审查、广告法合规、平台规则适配，在合规框架内找到最大表达空间', category: '专项工具' },
+  { id: 'prompt-master', icon: '', name: '提示词专家', desc: '提示词优化与模板构建 + 第一性原理深度分析，帮你理清思路、精准表达', category: '专项工具' },
+  { id: 'visual-designer', icon: '', name: '视觉设计师', desc: 'KV 设计、封面图、文章配图、海报等全视觉输出，生成可直接使用的 AI 绘图提示词', category: '专项工具' },
+  ]
+  },
+  {
+  label: '_legacy',
+  hidden: true,
+  agents: [
+  { id: 'gtm-strategist', icon: '', name: 'GTM战略大师', desc: '整合战略定位、循证背书、组品方案、价格控盘', category: '上游厂商' },
+  { id: 'product-expert', icon: '', name: '产品材料专家', desc: '精通流变学、PACER模型、材料选择与机理拆解', category: '上游厂商' },
+  { id: 'medical-liaison', icon: '', name: '学术推广专家', desc: '首席医学联络官，擅长KOL征服与学术叙事', category: '上游厂商' },
+  { id: 'marketing-director', icon: '', name: '市场创意总监', desc: '整合新媒体、视觉创意、种草运营、科学视觉', category: '上游厂商' },
+  { id: 'sales-director', icon: '', name: '销售作战总监', desc: '整合销售总监、大区经理、商务经理的超级销售Agent', category: '上游厂商' },
+  { id: 'training-director', icon: '', name: '培训赋能总监', desc: 'ASK模型、反差教学、通关护照的培训专家', category: '上游厂商' },
+  { id: 'operations-director', icon: '', name: '运营效能总监', desc: '整合SFE、财务、采购的综合运营Agent', category: '上游厂商' },
+  { id: 'area-manager', icon: '', name: '大区经理', desc: 'Forecast分级测谎、进销存逻辑闭环、情境模拟辅导', category: '上游厂商' },
+  { id: 'channel-manager', icon: '', name: '商务经理', desc: 'ROI利润精算、反向背调、窜货雷霆管控、库存博弈', category: '上游厂商' },
+  { id: 'finance-bp', icon: '', name: '财务BP', desc: '税务合规与交易结构优化，货折替代票折保护利润', category: '上游厂商' },
+  { id: 'hrbp', icon: '', name: '战略HRBP', desc: '精准猎聘竞品人才，背调侦查与竞业攻防', category: '上游厂商' },
+  { id: 'procurement-manager', icon: '', name: '采购经理', desc: 'Kraljic矩阵与Should-Cost模型优化TCO', category: '上游厂商' },
+  { id: 'aesthetic-designer', icon: '', name: '高定美学设计总监', desc: '服务于Top 1%高净值人群的面部美学设计专家', category: '下游机构' },
+  { id: 'senior-consultant', icon: '', name: '金牌医美咨询师', desc: '10年一线经验的销冠级咨询师，精通SPIN与三明治报价', category: '下游机构' },
+  { id: 'sparring-partner', icon: '', name: '医美实战陪练机器人', desc: 'HP动态情绪系统，高压仿真话术训练', category: '下游机构' },
+  { id: 'postop-specialist', icon: '', name: '医美术后私域管家', desc: '红绿灯风险分诊，将术后焦虑转化为复购信任', category: '下游机构' },
+  { id: 'trend-setter', icon: '', name: '医美爆款种草官', desc: '三品一规合规专家，生成有传播力又不踩红线的内容', category: '下游机构' },
+  { id: 'anatomy-architect', icon: '', name: '医美解剖决策建筑师', desc: 'PACER模型，面部建筑结构分析，安全预警', category: '下游机构' },
+  { id: 'materials-mentor', icon: '', name: '医美材料学硬核导师', desc: '营销剥离，PACER深度拆解，灵魂拷问', category: '下游机构' },
+  { id: 'material-architect', icon: '', name: '医美材料学架构师', desc: '6维评估模型，场景判别，合规底线，专业决策', category: '下游机构' },
+  { id: 'visual-translator', icon: '', name: '医美视觉通译官', desc: '机理转视觉画面，设计师Brief，3D渲染指导', category: '下游机构' },
+  { id: 'new-media-director', icon: '', name: '医美合规内容专家', desc: '三品一规审查、合规替换词库、平台规则适配、合规种草框架', category: '其他' },
+  { id: 'kv-design-director', icon: '', name: '视觉KV设计总监', desc: '电商海报提示词生成，10张KV系统', category: '其他' },
+  { id: 'meta-prompt-architect', icon: '', name: '元提示词架构师', desc: '情境感知提示词模板', category: '其他' },
+  { id: 'prompt-engineer-pro', icon: '', name: '高级Prompt工程师', desc: 'CRISPE框架优化提示词', category: '其他' },
+  { id: 'first-principles-analyst', icon: '', name: '第一性原理深度剖析专家', desc: '物理学思维拆解复杂问题', category: '其他' },
+  { id: 'xhs-content-creator', icon: '', name: '小红书图文创作顾问', desc: '9种风格×6种布局', category: '内容创作' },
+  { id: 'ppt-creator', icon: '', name: 'PPT创作顾问', desc: '7种视觉风格', category: '内容创作' },
+  { id: 'wechat-content-creator', icon: '', name: '微信公众号运营顾问', desc: '图文推送+深度文章', category: '内容创作' },
+  { id: 'comic-creator', icon: '', name: '知识漫画创作顾问', desc: '8种漫画风格', category: '内容创作' },
+  { id: 'article-illustrator', icon: '', name: '文章配图顾问', desc: 'AI绘图提示词', category: '内容创作' },
+  { id: 'cover-image-creator', icon: '', name: '封面图创作顾问', desc: '8种封面风格', category: '内容创作' },
+  { id: 'social-media-creator', icon: '', name: '社交媒体运营顾问', desc: '多平台差异化内容', category: '内容创作' },
+  { id: 'personal-ip-builder', icon: '', name: '个人IP打造指南', desc: 'IP定位到变现路径', category: '内容创作' },
+  { id: 'personal-brand-cinematic', icon: '', name: '电影感品牌视觉顾问', desc: '电影摄影+个人品牌', category: '内容创作' },
+  { id: 'super-writer', icon: '', name: '超级写作助手', desc: '选题到发布全流程', category: '内容创作' },
+  ]
+  }
+  ];
 
  // 根据用户角色获取默认 Agent
  // login.html 存储的角色值: upstream / downstream / other
- function getDefaultAgentByRole() {
- const role = localStorage.getItem('medagent_role') || '';
- const roleMap = {
- 'upstream': 'sales-director', // 上游厂商 → 销售作战总监
- 'downstream': 'senior-consultant', // 下游机构 → 金牌医美咨询师
- 'other': 'senior-consultant', // 其他 → 金牌医美咨询师
- };
- return roleMap[role] || 'senior-consultant';
- }
+  function getDefaultAgentByRole() {
+  const role = localStorage.getItem('medagent_role') || '';
+  const roleMap = {
+  'upstream': 'doudou', // 上游厂商 → 小豆豆
+  'downstream': 'douding', // 下游机构 → 豆丁
+  'other': 'douding', // 其他 → 豆丁
+  };
+  return roleMap[role] || 'douding';
+  }
 
  const PROVIDERS_MODELS = {
  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
@@ -212,26 +204,17 @@
  let currentIsPro = false;
  let currentIsProPlus = false;
  // 内测期间免费开放的21个医美专属Agent
- const TRIAL_AGENTS = new Set([
- 'gtm-strategy','product-expert','academic-liaison','marketing-director',
- 'sales-director','operations-director','training-director','area-manager',
- 'channel-manager',
- 'aesthetic-design','senior-consultant','sparring-robot','post-op-guardian',
- 'trend-setter','anatomy-architect','materials-mentor','material-architect','visual-translator',
- 'new-media-director','kv-design-director','finance-bp'
- ]);
- // 内容创作类Agent（需要Pro或反馈解锁）
- const CONTENT_AGENTS = new Set([
- 'xhs-content-creator','ppt-creator','wechat-content-creator',
- 'comic-creator','article-illustrator','cover-image-creator','social-media-creator',
- 'personal-ip-builder','personal-brand-cinematic',
- 'hrbp','procurement-manager',
- 'super-writer'
- ]);
- // 全部可用Agent（Pro+）
- const PRO_AGENTS = new Set([...TRIAL_AGENTS, ...CONTENT_AGENTS]);
- // 仅管理员可见的 Agent（非管理员完全不显示）
- const ADMIN_ONLY_AGENTS = new Set(['meta-prompt-architect', 'prompt-engineer-pro', 'first-principles-analyst']);
+  // 新版 6 Agent 体系：所有核心搭档和专项工具均内测免费开放
+  const TRIAL_AGENTS = new Set([
+  'doudou','douding','douya',
+  'compliance-guardian','prompt-master','visual-designer'
+  ]);
+  // 内容创作类Agent（已合并到豆芽，保留旧 ID 兼容历史对话）
+  const CONTENT_AGENTS = new Set([]);
+  // 全部可用Agent
+  const PRO_AGENTS = new Set([...TRIAL_AGENTS, ...CONTENT_AGENTS]);
+  // 仅管理员可见的 Agent（非管理员完全不显示）
+  const ADMIN_ONLY_AGENTS = new Set([]);
  let currentIsAdmin = false;
  let currentBetaUnlock = false; // 内测反馈解锁状态
 

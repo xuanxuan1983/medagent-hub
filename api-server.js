@@ -1663,6 +1663,14 @@ function loadSkillPrompt(skillName) {
 
 // Agent ID to skill name mapping
 const agentSkillMap = {
+ // === 新版 6 Agent 体系 ===
+ 'doudou': 'doudou',
+ 'douding': 'douding',
+ 'douya': 'douya',
+ 'compliance-guardian': 'compliance-guardian',
+ 'prompt-master': 'prompt-master',
+ 'visual-designer': 'visual-designer',
+ // === 旧版 Agent（兼容历史对话）===
  'gtm-strategy': 'gtm-strategist',
  'product-expert': 'product-strategist',
  'academic-liaison': 'medical-liaison',
@@ -1689,7 +1697,6 @@ const agentSkillMap = {
  'meta-prompt-architect': 'meta-prompt-architect',
  'prompt-engineer-pro': 'prompt-engineer-pro',
  'first-principles-analyst': 'first-principles-analyst',
- 'doudou': 'doudou',
  'xhs-content-creator': 'xhs-content-creator',
  'ppt-creator': 'ppt-creator',
  'wechat-content-creator': 'wechat-content-creator',
@@ -1703,6 +1710,14 @@ const agentSkillMap = {
 };
 
 const agentNames = {
+ // === 新版 6 Agent 体系 ===
+ 'doudou': '小豆豆',
+ 'douding': '豆丁',
+ 'douya': '豆芽',
+ 'compliance-guardian': '合规卫士',
+ 'prompt-master': '提示词专家',
+ 'visual-designer': '视觉设计师',
+ // === 旧版 Agent（兼容历史对话）===
  'gtm-strategy': 'GTM战略大师',
  'product-expert': '产品材料专家',
  'academic-liaison': '学术推广专家',
@@ -1729,7 +1744,6 @@ const agentNames = {
  'meta-prompt-architect': '元提示词架构师',
  'prompt-engineer-pro': '高级Prompt工程师',
  'first-principles-analyst': '第一性原理深度剖析专家',
- 'doudou': '豆豆',
  'xhs-content-creator': '小红书图文创作顾问',
  'ppt-creator': 'PPT创作顾问',
  'wechat-content-creator': '微信公众号运营顾问',
